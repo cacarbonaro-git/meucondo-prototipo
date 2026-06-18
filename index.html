@@ -118,7 +118,7 @@
   .abas button{flex:1; padding:10px; background:var(--cinza-claro); color:var(--cinza); font-weight:700; font-size:.85rem}
   .abas button.on{background:var(--verde); color:#fff}
 
-  select,input{width:100%; padding:13px; border:1px solid var(--borda); border-radius:10px; font-size:1rem; font-family:inherit; background:var(--branco); color:var(--texto); margin-bottom:10px}
+  select,input,textarea{width:100%; padding:13px; border:1px solid var(--borda); border-radius:10px; font-size:1rem; font-family:inherit; background:var(--branco); color:var(--texto); margin-bottom:10px}
   input::placeholder{color:var(--cinza); opacity:1}
   label{font-size:.8rem; font-weight:700; color:var(--cinza); display:block; margin-bottom:5px}
 
@@ -364,7 +364,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v2.74';
+const VERSAO='v2.75';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -550,6 +550,8 @@ let avisos = [
   {t:'Nova academia liberada', d:'Funcionamento das 6h às 22h. Regras no mural.', quando:'01/06', torre:'todas'},
 ];
 const avisosDoMorador=()=>avisos.filter(a=>a.torre==='todas'||a.torre===daTorre(MORADOR.un));
+let comTorreSel='todas';   /* comunicado: torre-alvo */
+let comAnexo=false;        /* comunicado: PDF anexado (simulação) */
 
 const MORADOR = {nome:'Carla Mendes', un:'A-305', emDia:true, papel:'inquilina'};
 
@@ -952,6 +954,7 @@ TELAS.inicio = () => {
     <button class="card" onclick="mesGraf=5;verBalancete()"><div class="num">${fmt(25920)}</div><div class="lbl">recebido no mês ›</div></button>
   </div>
   ${enqueteResumoSindico()}
+  ${comunicadoCardSindico()}
   <h2>Próximas reservas <span class="mais" onclick="irPara('reservas')">ver agenda</span></h2>
   ${resHoje.map(r=>`<div class="item"><div class="linha1"><span class="nome">${r.a}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.mes).padStart(2,'0')}</span></div><div class="sub">Reservado por ${r.u}</div></div>`).join('')}
   <h2>Balancete de maio</h2>
@@ -2680,6 +2683,50 @@ function enqSetTorre(t){
     const on=b.dataset.t===t; b.classList.toggle('verde',on); b.classList.toggle('cinza',!on);
   });
 }
+/* ===== COMUNICADOS — lado do síndico (criar) ===== */
+function comunicadoCardSindico(){
+  const ultimo=avisos[0]; const tot=avisos.length;
+  const leituras=ultimo?(ultimo.lidoPor||[]).length:0;
+  return `<button class="item" style="width:100%; text-align:left; display:block" onclick="criarComunicado()">
+    <div class="linha1"><span class="nome">📣 Criar comunicado</span><span class="chip verde">novo ›</span></div>
+    <div class="sub" style="margin-top:5px">${tot} no mural · último: "${ultimo?ultimo.t:'—'}"${ultimo?` · ${leituras} leitura(s)`:''}</div>
+  </button>`;
+}
+function comSetTorre(t){
+  comTorreSel=t;
+  document.querySelectorAll('#cm-torre button').forEach(b=>{const on=b.dataset.t===t; b.classList.toggle('verde',on); b.classList.toggle('cinza',!on);});
+}
+function criarComunicado(){
+  comTorreSel='todas'; comAnexo=false;
+  abrirModal(`<h3>📣 Novo comunicado</h3>
+    <div class="sub" style="margin-bottom:10px">Vai pro app dos moradores da torre escolhida, com confirmação de leitura. Opcional: reforço no WhatsApp.</div>
+    <label>Título</label><input id="cm-t" placeholder="Ex.: Manutenção do elevador — 18/06">
+    <label>Mensagem</label><textarea id="cm-d" rows="3" placeholder="Detalhe o aviso para os moradores…"></textarea>
+    <label>Quem recebe</label>
+    <div id="cm-torre" style="display:flex; gap:6px; margin:6px 0 14px">
+      ${['todas','A','B'].map(t=>`<button type="button" class="chip ${t==='todas'?'verde':'cinza'}" data-t="${t}" style="border:none" onclick="comSetTorre('${t}')">${t==='todas'?'Todas as torres':'Torre '+t}</button>`).join('')}
+    </div>
+    <div class="botoes" style="margin-bottom:6px"><button class="btn claro" onclick="comAnexo=true;toast('📎 PDF anexado (simulação)')">📎 Anexar PDF</button></div>
+    <label style="display:flex; align-items:center; gap:8px; font-weight:400; color:var(--texto); margin:6px 0 12px"><input type="checkbox" id="cm-wpp" checked style="width:auto; margin:0"> Reforçar no WhatsApp (link wa.me — alta abertura)</label>
+    <button class="btn principal btn-grande" onclick="salvarComunicado()">Publicar comunicado</button>
+    <div class="aviso-lgpd" style="margin-top:10px">Só o morador da torre escolhida recebe (LGPD). A leitura de cada um fica registrada — vale como prova em convocação de assembleia.</div>`);
+}
+function salvarComunicado(){
+  const t=($('#cm-t').value||'').trim(), d=($('#cm-d').value||'').trim();
+  if(!t){ toast('Escreva o título do comunicado.'); return; }
+  const wpp=$('#cm-wpp')?$('#cm-wpp').checked:false;
+  avisos.unshift({t, d:d||'—', quando:fdata(hoje), torre:comTorreSel, anexo:comAnexo, lidoPor:[]});
+  fecharModal(); atualizar();
+  toast(wpp?'Comunicado publicado ✅ e reforçado no WhatsApp dos moradores.':'Comunicado publicado ✅ no app dos moradores.');
+}
+/* morador confirma leitura — fica registrado pro síndico */
+function confirmarLeitura(ix){
+  const a=avisos[ix]; if(!a) return;
+  a.lidoPor=a.lidoPor||[];
+  if(!a.lidoPor.includes(MORADOR.un)) a.lidoPor.push(MORADOR.un);
+  atualizar(); toast('Confirmação de leitura registrada ✅');
+}
+
 function editarEnquete(){
   const e=enquete; enqTorreSel=e.torre||'todas';
   abrirModal(`<h3>🗳️ ${e.ativa?'Editar enquete':'Nova enquete'}</h3>
@@ -2856,8 +2903,11 @@ TELAS.admatend = () => {
 TELAS.mavisos = () => `<div class="tela on">
   <div class="topo"><h1>${tIco("megafone")}Avisos do condomínio</h1><p>Você só recebe o que vale pra sua torre</p></div>
   ${enqueteHtml()}
-  ${avisosDoMorador().map(a=>`<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px"><span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas as torres':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div><div class="sub">${a.d}</div>
-  <div class="botoes"><button class="btn claro" onclick="this.textContent='Lido ✅';toast('Confirmação de leitura registrada')">Confirmar leitura</button></div></div>`).join('')}
+  ${avisos.map((a,ix)=>({a,ix})).filter(x=>x.a.torre==='todas'||x.a.torre===daTorre(MORADOR.un)).map(({a,ix})=>{
+    const lido=(a.lidoPor||[]).includes(MORADOR.un);
+    return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px"><span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas as torres':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div><div class="sub">${a.d}</div>
+    ${a.anexo?`<div class="sub" style="margin-top:4px">📎 documento anexado</div>`:''}
+    <div class="botoes"><button class="btn claro" ${lido?'disabled style="opacity:.6"':''} onclick="confirmarLeitura(${ix})">${lido?'Lido ✅':'Confirmar leitura'}</button></div></div>`;}).join('')}
 </div>`;
 
 /* ---------- início: tela de login ---------- */
