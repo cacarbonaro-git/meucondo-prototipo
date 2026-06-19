@@ -370,7 +370,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v3.04';
+const VERSAO='v3.06';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -773,12 +773,15 @@ function escolherTema(){
       <button class="chip cinza" style="border:none; padding:7px 10px" title="Detalhe: voltar ao padrão do tema" onclick="corGold=null;aplicarTema();wlRefresh();wlSyncHex()">↺</button>
     </div>
 
-    <div class="sub" style="font-weight:700; margin:18px 0 6px">Temas prontos <span style="color:var(--cinza); font-weight:400">(ponto de partida de cores)</span></div>
-    ${Object.entries(TEMAS).map(([k,t])=>{const atual=k===temaAtual&&!corCustom;
-      return `<button class="item" style="width:100%; text-align:left; display:block${atual?'; border-color:var(--verde)':''}" onclick="temaAtual='${k}';corCustom=null;aplicarTema();atualizar();escolherTema()">
-      <div class="linha1"><span class="nome">${t.cores.map(c=>`<span style="display:inline-block; width:15px; height:15px; border-radius:50%; background:${c}; border:1px solid rgba(127,127,127,.45); margin-right:3px; vertical-align:-2px"></span>`).join('')} ${t.nome}</span>${atual?'<span class="chip verde">em uso</span>':'<span style="color:var(--cinza)">›</span>'}</div>
-      <div class="sub">${t.desc}</div>
-    </button>`;}).join('')}
+    <div class="sub" style="font-weight:700; margin:18px 0 6px">Partir de um exemplo <span style="color:var(--cinza); font-weight:400">(preenche as 3 cores)</span></div>
+    <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px">
+      ${Object.entries(TEMAS).map(([k,t])=>{const atual=k===temaAtual&&!corBg&&!corCustom&&!corGold; const curto={caderno:'Caderno',classico:'Clássico',condox:'CondoX',premium:'Premium'}[k]||t.nome.split(' ')[0];
+        return `<button class="item" style="flex:0 0 auto; width:auto; min-width:92px; text-align:center; padding:8px 10px; margin:0${atual?'; border-color:var(--verde)':''}" title="${esc(t.desc)}" onclick="temaAtual='${k}';corBg=null;corCustom=null;corGold=null;aplicarTema();atualizar();escolherTema()">
+        <div style="display:flex; gap:3px; justify-content:center; margin-bottom:5px">${t.cores.map(c=>`<span style="width:14px; height:14px; border-radius:50%; background:${c}; border:1px solid rgba(127,127,127,.4)"></span>`).join('')}</div>
+        <div style="font-size:.74rem; font-weight:700; color:var(--texto); white-space:nowrap">${curto}</div>
+        ${atual?'<div style="font-size:.62rem; color:var(--verde-escuro); font-weight:700; margin-top:2px">em uso</div>':''}
+      </button>`;}).join('')}
+    </div>
 
     <div class="sub" style="font-weight:700; margin:18px 0 6px">Tela de login</div>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px">
@@ -2946,6 +2949,8 @@ function enqueteResumoSindico(){
     <div class="sub" style="margin-top:5px">${e.ativa
       ? `"${e.q}" · ${tot} ${tot===1?'voto':'votos'} · ${alvo} · encerra ${e.encerra}`
       : 'Crie uma enquete pra sentir o clima dos moradores antes da assembleia.'}</div>
+    ${e.ativa&&tot>0?(()=>{const lider=e.opcoes.reduce((a,b)=>b[1]>a[1]?b:a); const pct=Math.round(lider[1]/tot*100);
+      return `<div class="sub" style="margin-top:6px; color:var(--verde-escuro); font-weight:600">Liderando: ${lider[0]} — ${pct}%</div>`;})():''}
   </button>`;
 }
 /* seleciona a torre-alvo no modal sem re-renderizar (preserva o que já foi digitado) */
@@ -2999,10 +3004,23 @@ function confirmarLeitura(ix){
   atualizar(); toast('Confirmação de leitura registrada ✅');
 }
 
+function resultadoEnquete(e){
+  const tot=e.opcoes.reduce((s,o)=>s+o[1],0);
+  const maxv=Math.max(...e.opcoes.map(o=>o[1]),0);
+  return `<div class="item" style="border-color:var(--verde)">
+    <div class="linha1"><span class="nome">${tIco('grafico')}Resultado ${e.ativa?'parcial':'final'}</span><span class="chip ${e.ativa?'verde':'cinza'}">${tot} ${tot===1?'voto':'votos'}</span></div>
+    ${tot===0?`<div class="sub" style="margin-top:6px">Ninguém votou ainda. Assim que os moradores votarem, o resultado aparece aqui.</div>`
+      : e.opcoes.map(o=>{const pct=Math.round(o[1]/tot*100); const lider=o[1]===maxv&&maxv>0;
+        return `<div style="margin-top:8px"><div class="linha1"><span class="sub" style="font-weight:${lider?'700':'400'}; color:${lider?'var(--texto)':'var(--cinza)'}">${o[0]}${lider?' · líder':''}</span><span class="sub">${pct}% (${o[1]})</span></div>
+        <div class="cat-trilha" style="margin-top:4px"><div class="cat-barra" style="width:${pct}%"></div></div></div>`;}).join('')}
+    <div class="sub" style="margin-top:8px; font-size:.78rem">Voto anônimo — você vê o agregado, não quem votou (LGPD).</div>
+  </div>`;
+}
 function editarEnquete(){
   const e=enquete; enqTorreSel=e.torre||'todas';
-  abrirModal(`<h3>🗳️ ${e.ativa?'Editar enquete':'Nova enquete'}</h3>
-    <div class="sub" style="margin-bottom:12px">Pra sentir o clima dos moradores. A decisão formal (gasto do fundo) continua indo pra assembleia — a enquete não substitui o voto oficial.</div>
+  abrirModal(`<h3>${tIco('grafico')}${e.ativa?'Enquete no ar':'Nova enquete'}</h3>
+    ${e.ativa?resultadoEnquete(e):''}
+    <div class="sub" style="margin:12px 0">${e.ativa?'Edite a pergunta ou encerre abaixo. ':''}Pra sentir o clima dos moradores. A decisão formal (gasto do fundo) continua indo pra assembleia — a enquete não substitui o voto oficial.</div>
     <label>Pergunta</label>
     <input id="enq-q" type="text" value="${esc(e.q)}" placeholder="Ex.: Cobrir o bicicletário?">
     <label>Opção 1</label>
