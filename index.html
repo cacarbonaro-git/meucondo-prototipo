@@ -39,7 +39,7 @@
     #demobar .roles button{flex:1; padding:10px 2px; text-align:center; font-size:.8rem}
   }
 
-  #app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--branco); padding:64px 0 calc(90px + env(safe-area-inset-bottom))}
+  #app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--app-bg, var(--branco)); padding:64px 0 calc(90px + env(safe-area-inset-bottom))}
   /* fallback caso o JS de medição não rode; o valor real é aplicado dinamicamente pela altura da barra */
   @media (max-width:620px){ #app{padding-top:calc(112px + env(safe-area-inset-top))} }
   .tela{display:none; padding:0 16px}
@@ -72,6 +72,7 @@
   .chip.laranja{background:var(--amarelo-claro); color:var(--laranja)}
   .chip.verde{background:var(--verde-claro); color:var(--verde-escuro)}
   .chip.cinza{background:var(--cinza-claro); color:var(--cinza)}
+  .chip.acao{background:var(--verde); color:#fff; padding:5px 12px}
 
   .botoes{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
   .botoes .btn{min-width:130px}
@@ -164,7 +165,7 @@
   #tela-login input{text-align:center}
   .aviso-lgpd{font-size:.8rem; color:var(--cinza); margin-top:26px; line-height:1.5}
 
-  /* ===== Edi — assistente do prédio ===== */
+  /* ===== ${nomeAssist} — assistente do prédio ===== */
   .edi-linha{display:flex; align-items:flex-end; gap:8px; margin:8px 0}
   .edi-av{flex:0 0 32px; width:32px; height:32px; border-radius:50%; background:var(--verde-claro); border:1.5px solid var(--verde); display:flex; align-items:center; justify-content:center; font-size:1.05rem}
   .edi-bolha{display:inline-block; background:var(--cinza-claro); border-radius:14px 14px 14px 4px; padding:10px 14px; font-size:.92rem; max-width:85%}
@@ -242,6 +243,9 @@
   body.tema-p .item.feito .nome{color:#9AA1B8}
   body.tema-p .chip.cinza{background:#1b2440; color:#C2C8DA}
   body.tema-p .btn.claro{background:#1b2440}
+  /* white-label: cor personalizada (corCustom) vence os hardcodes de tema nos elementos de marca */
+  body.wl-custom .btn.principal{background:var(--verde)}
+  body.wl-custom .cat-barra,body.wl-custom .legbox.rec,body.wl-custom .graf-meses .rec{background:var(--verde)}
   /* acessibilidade no dark: tons claros do roxo para texto/ícone pequenos
      (roxo #5B4DFF puro não passa de 4.5:1 sobre o fundo escuro) */
   body.tema-p h2 .mais{color:#A99DFF}
@@ -260,6 +264,7 @@
   .viva-logo .vl-word{font-size:2rem; font-weight:800; letter-spacing:-.02em; color:var(--verde); line-height:1}
   .viva-logo .vl-word b{color:var(--gold); font-weight:800}
   body.tema-p .viva-logo .vl-word{color:#fff}
+  .viva-logo.vl-dark .vl-word{color:#fff}
   .viva-logo.big{margin:2px auto 6px}
   .viva-logo.big .vl-mark{width:62px; height:62px}
   .viva-logo.big .vl-word{font-size:2.7rem}
@@ -282,6 +287,7 @@
   /* ícone em título de tela e em marcador de tipo (no lugar de emoji:
      render idêntico em qualquer aparelho e cor que segue o tema) */
   .t-ico{display:inline-flex; vertical-align:-3px; margin-right:7px}
+  .icn-in{width:14px; height:14px; vertical-align:-2px; margin-right:4px}
   .t-ico .icn{width:21px; height:21px}
   .ico-in{display:inline-flex; vertical-align:-2.5px; margin-right:4px}
   .ico-in .icn{width:16px; height:16px}
@@ -303,7 +309,7 @@
   .comando input{flex:1; width:auto; border:none; outline:none; background:none; font-size:.95rem; font-family:inherit; color:var(--texto); padding:11px 0; margin:0; border-radius:0}
   .comando .mic{width:46px; height:46px; border-radius:50%; background:var(--verde); color:#fff; flex:0 0 auto; display:flex; align-items:center; justify-content:center}
   .comando .mic .icn{width:21px; height:21px}
-  /* botões de ícone do chat do Edi e da triagem herdam tamanho do set */
+  /* botões de ícone do chat do ${nomeAssist} e da triagem herdam tamanho do set */
   #rg-in ~ .btn .icn, .tela .btn .icn{width:20px; height:20px}
   .secao{font-size:.72rem; font-weight:800; letter-spacing:.6px; color:var(--cinza); margin:18px 4px 8px}
 
@@ -350,21 +356,21 @@
 <div id="demobar">
   <span class="tag">PROTÓTIPO</span><span class="tag" id="versao-selo" style="background:#374151" title="Versão carregada — se não bater com a última, force atualizar (Cmd/Ctrl+Shift+R)">v—</span><span class="desc">dados fictícios</span>
   <div class="roles">
-    <button onclick="menuDemo()" id="rb-cog" title="Perfil, tema e acessibilidade">⚙️ <span id="cog-perfil">Entrar</span></button>
+    <button onclick="menuDemo()" id="rb-cog" title="Perfil, tema e acessibilidade"><svg class="icn-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l1.8-1.4-1.8-3.1-2.2.9a7.6 7.6 0 0 0-2.6-1.5L14.2 3H9.8l-.4 2.4a7.6 7.6 0 0 0-2.6 1.5l-2.2-.9-1.8 3.1 1.8 1.4a7.7 7.7 0 0 0 0 3l-1.8 1.4 1.8 3.1 2.2-.9a7.6 7.6 0 0 0 2.6 1.5l.4 2.4h4.4l.4-2.4a7.6 7.6 0 0 0 2.6-1.5l2.2.9 1.8-3.1z"/></svg> <span id="cog-perfil">Entrar</span></button>
   </div>
 </div>
 
 <div id="app"></div>
 
 <div id="menu"></div>
-<button id="edi-fab" onclick="irPara('mregras')" aria-label="Falar com o Edi"><small>Edi</small></button>
+<button id="edi-fab" onclick="irPara('mregras')" aria-label="Falar com o assistente"><small>Edi</small></button>
 <div id="fundo-modal" onclick="if(event.target===this)fecharModal()"><div id="modal"></div></div>
 <div id="toast"></div>
 
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v2.75';
+const VERSAO='v3.04';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -417,10 +423,21 @@ const ICONES={
   martelo:'<path d="M14 5.5 18.5 10 16 12.5l-4.5-4.5z"/><path d="M11.5 8 4 15.5a1.8 1.8 0 0 0 2.5 2.5L14 10.5"/><path d="M13 4l3-1 4 4-1 3"/>',
   microfone:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/>',
   enviar:'<path d="M5 12h13M12 5l7 7-7 7"/>',
+  elevador:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M12 3v18"/><path d="M9.7 9 8.5 7 7.3 9"/><path d="M14.7 15 15.9 17 17.1 15"/>',
+  camera:'<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7 10 4.6h4L15.5 7"/><circle cx="12" cy="13.6" r="3.3"/>',
+  engrenagem:'<circle cx="12" cy="12" r="3.1"/><path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l1.8-1.4-1.8-3.1-2.2.9a7.6 7.6 0 0 0-2.6-1.5L14.2 3H9.8l-.4 2.4a7.6 7.6 0 0 0-2.6 1.5l-2.2-.9-1.8 3.1 1.8 1.4a7.7 7.7 0 0 0 0 3l-1.8 1.4 1.8 3.1 2.2-.9a7.6 7.6 0 0 0 2.6 1.5l.4 2.4h4.4l.4-2.4a7.6 7.6 0 0 0 2.6-1.5l2.2.9 1.8-3.1z"/>',
+  paleta:'<path d="M12 3a9 9 0 1 0 1 17.9c.9-.1 1.2-1.2.6-1.9a2 2 0 0 1 1.5-3.3H17a4 4 0 0 0 4-4c0-4.4-4-8.7-9-8.7z"/><circle cx="7.5" cy="11.5" r="1.1"/><circle cx="9.5" cy="7.5" r="1.1"/><circle cx="14.5" cy="7.5" r="1.1"/><circle cx="16.5" cy="11" r="1.1"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.5 2.5 4.9-5.1"/>',
+  importar:'<path d="M12 3v11m0 0 4-4m-4 4-4-4"/><path d="M4 15.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2.5"/>',
+  planilha:'<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9 4v16M15 4v16"/>',
+  lapis:'<path d="M4 20h4L19 9a2 2 0 0 0-2.8-2.8L5 17.2z"/><path d="M14.5 6.5l3 3"/>',
+  pessoas:'<circle cx="9" cy="8.5" r="3"/><path d="M3.8 19a5.2 5.2 0 0 1 10.4 0"/><path d="M15.5 6a3 3 0 0 1 0 5.4"/><path d="M20.5 19a5 5 0 0 0-3.3-4.7"/>',
+  clipe:'<path d="M20 11.5 11.5 20a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9 17.7a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/>',
   robo:'<rect x="4.5" y="8" width="15" height="11" rx="3"/><path d="M12 4.5V8M12 3.2h.01"/><circle cx="9" cy="13" r="1.2"/><circle cx="15" cy="13" r="1.2"/><path d="M9.5 16.2h5M2.5 12v3M21.5 12v3"/>',
 };
 const ico=n=>`<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[n]||ICONES.casa}</svg>`;
 const tIco=n=>`<span class="t-ico">${ico(n)}</span>`;
+const clip=()=>`<svg class="icn-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES.clipe}</svg>`;
 const hoje = new Date(2026,5,10); // 10/06/2026 fixo p/ demo estável
 const fdata = d => d.toLocaleDateString('pt-BR');
 
@@ -453,13 +470,13 @@ const MARCA = 'Viva';
 
 /* ---------- setup progressivo (engajamento + conversão) ---------- */
 let setupItens=[
-  {k:'cobranca', nome:'Cobrança configurada', desc:'rateio, PIX e vencimento', feito:true,  min:1, valor:true},
-  {k:'manut',    nome:'Datas das manutenções', desc:'9 itens obrigatórios já listados — confirme a última execução', feito:true,  min:2, valor:true},
-  {k:'docs',     nome:'Documentos do Edi',     desc:'convenção e regimento treinam o assistente', feito:true,  min:1, valor:true},
-  {k:'areas',    nome:'Áreas comuns e regras',  desc:'salão, churrasqueira, piscina — com regras padrão', feito:false, min:1, valor:false},
-  {k:'portaria', nome:'Portaria no tablet',     desc:'encomendas e visitantes em 3 toques', feito:false, min:1, valor:false},
-  {k:'equipe',   nome:'Equipe e escala',        desc:'quem trabalha e os turnos', feito:false, min:1, valor:false},
-  {k:'prest',    nome:'Prestadores e contratos',desc:'liga à triagem do zelador e alerta vencimento', feito:false, min:2, valor:false},
+  {k:'cobranca', nome:'Cobrança configurada', desc:'rateio, PIX e vencimento', feito:true,  min:1, valor:true, ic:'cifrao'},
+  {k:'manut',    nome:'Datas das manutenções', desc:'9 itens obrigatórios já listados — confirme a última execução', feito:true,  min:2, valor:true, ic:'chave'},
+  {k:'docs',     nome:'Documentos do Edi',     desc:'convenção e regimento treinam o assistente', feito:true,  min:1, valor:true, ic:'pasta'},
+  {k:'areas',    nome:'Áreas comuns e regras',  desc:'salão, churrasqueira, piscina — com regras padrão', feito:false, min:1, valor:false, ic:'calendario'},
+  {k:'portaria', nome:'Portaria no tablet',     desc:'encomendas e visitantes em 3 toques', feito:false, min:1, valor:false, ic:'porta'},
+  {k:'equipe',   nome:'Equipe e escala',        desc:'quem trabalha e os turnos', feito:false, min:1, valor:false, ic:'pessoas'},
+  {k:'prest',    nome:'Prestadores e contratos',desc:'liga à triagem do zelador e alerta vencimento', feito:false, min:2, valor:false, ic:'contrato'},
 ];
 function setupProgresso(){
   const feitos=setupItens.filter(i=>i.feito).length;
@@ -467,6 +484,8 @@ function setupProgresso(){
   const prox=setupItens.find(i=>!i.feito);
   return {pct, feitos, total:setupItens.length, proximo: prox?prox.nome.toLowerCase():'tudo pronto'};
 }
+/* assistente de "terminar configuração": percorre os itens que faltam, 1 por passo */
+let ajLista=[]; let ajStep=0;
 
 /* ---------- dados fictícios ---------- */
 let inadimplentes = [
@@ -573,37 +592,76 @@ const TEMAS={
   premium:{nome:'Viva Premium (dark)', desc:'Experiência residencial de luxo — dark mode, roxo royal com gradiente e detalhes dourados (Premium DS v2). 50% Apple Home, 20% Nubank.', cls:'tema-p', cores:['#050816','#5B4DFF','#D8B36A']},
 };
 let temaAtual='caderno';
-let corCustom=null;   /* cor de destaque personalizada (white-label) — null usa o tema */
-let corGold=null;     /* cor secundária (detalhe dourado do logo) — null usa o padrão */
-let marcaWL=false;    /* false = marca Viva · true = marca do condomínio (white-label) */
+let corBg=null;       /* tema personalizado: cor 1 = fundo do app (null usa o tema) */
+let corCustom=null;   /* tema personalizado: cor 2 = destaque/primária (null usa o tema) */
+let corGold=null;     /* tema personalizado: cor 3 = detalhe/secundária (null segue o tema) */
+let marcaModo='viva'; /* 'viva' (logo Viva) · 'nome' (nome do condomínio) · 'logo' (logo próprio enviado) */
+let logoWL=null;      /* logo p/ fundo claro (data URL) */
+let logoWLDark=null;  /* logo p/ fundo escuro — evita o logo sumir no tema dark */
+let brandLock=false;  /* administradora trava a marca pra toda a carteira */
+const temaEscuro=()=>document.body.classList.contains('tema-p');
+/* white-label da tela de login */
+let loginBg=null;     /* imagem de fundo/hero do login (data URL) */
+let loginMsg='';      /* mensagem de boas-vindas personalizada */
+let loginSuporte='';  /* contato de suporte exibido no login */
+let wlPreviewDark=false; /* toggle do preview: simula o app no tema escuro */
+let nomeAssist='Edi';    /* nome do assistente (IA) — personalizável no white-label */
 
 /* helpers de cor: derivam tons da cor de destaque escolhida */
 function _hx(h){h=(h||'').replace('#','');if(h.length===3)h=h.split('').map(x=>x+x).join('');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));}
 function _to(r,g,b){return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');}
 function corShade(hex,amt){const [r,g,b]=_hx(hex);const f=1+amt;return _to(r*f,g*f,b*f);}
 function corMix(hex,hex2,t){const a=_hx(hex),b=_hx(hex2);return _to(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t);}
+/* luminância relativa e contraste (WCAG) — pra checar legibilidade do texto sobre a cor de marca */
+function _lum(hex){const v=_hx(hex).map(c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4);});return .2126*v[0]+.7152*v[1]+.0722*v[2];}
+function contraste(h1,h2){const a=_lum(h1),b=_lum(h2),hi=Math.max(a,b),lo=Math.min(a,b);return (hi+.05)/(lo+.05);}
+function ehHex(s){return /^#?[0-9a-fA-F]{6}$/.test((s||'').trim());}
+function normHex(s){s=(s||'').trim();return s[0]==='#'?s:'#'+s;}
 
 function aplicarTema(){
+  /* tema personalizado = qualquer uma das 3 cores definida (fundo/destaque/detalhe).
+     Quando há custom, saímos dos presets e montamos sobre a base limpa, pra não brigar
+     com os hardcodes de cada tema. */
+  const isCustom = !!(corBg||corCustom||corGold);
   document.body.classList.remove('tema-b','tema-x','tema-p');
-  const c=TEMAS[temaAtual].cls; if(c) document.body.classList.add(c);
+  if(!isCustom){ const c=TEMAS[temaAtual].cls; if(c) document.body.classList.add(c); }
   const root=document.documentElement.style;
+  ['--verde','--verde-escuro','--verde-claro','--app-bg','--branco','--texto','--borda','--cinza','--cinza-claro'].forEach(p=>root.removeProperty(p));
+  /* 2) destaque */
   if(corCustom){
     root.setProperty('--verde', corCustom);
     root.setProperty('--verde-escuro', corShade(corCustom,-0.22));
     root.setProperty('--verde-claro', corMix(corCustom,'#ffffff',0.86));
-  }else{
-    root.removeProperty('--verde'); root.removeProperty('--verde-escuro'); root.removeProperty('--verde-claro');
   }
-  if(corGold) root.setProperty('--gold', corGold); else root.removeProperty('--gold');
+  /* 3) detalhe — segue o tema escolhido quando não há override */
+  root.setProperty('--gold', corGold || (isCustom?'#c49a4a':(TEMAS[temaAtual].cores[2]||'#c49a4a')));
+  /* 1) fundo — com adaptação automática de superfícies/texto quando é escuro */
+  if(corBg){
+    root.setProperty('--app-bg', corBg);
+    if(_lum(corBg) < 0.42){
+      root.setProperty('--branco', corMix(corBg,'#ffffff',0.10));
+      root.setProperty('--texto', '#eef2f7');
+      root.setProperty('--borda', corMix(corBg,'#ffffff',0.22));
+      root.setProperty('--cinza', '#aeb8c6');
+      root.setProperty('--cinza-claro', corMix(corBg,'#ffffff',0.07));
+    }
+  }
+  document.body.classList.toggle('wl-custom', !!corCustom);
 }
 
 /* ===== MARCA / WHITE-LABEL ===== */
-/* logo Viva inline (SVG) — acompanha a cor de destaque; com marcaWL mostra o nome do condomínio */
-function marcaHTML(ctx){
+/* marca exibida (marcaModo): 'viva' = logo Viva inline · 'nome' = nome do condomínio · 'logo' = imagem enviada */
+function marcaHTML(ctx, forceDark){
   const big = ctx==='login' ? ' big' : '';
-  const telhado = marcaWL ? 'var(--verde-escuro)' : 'var(--gold)';
-  const palavra = marcaWL ? `<span class="vl-word">${COND.nome}</span>` : `<span class="vl-word">Vi<b>va</b></span>`;
-  return `<div class="viva-logo${big}">
+  const dark = (forceDark!==undefined) ? forceDark : temaEscuro();
+  /* logo próprio enviado (white-label de imagem) — escolhe a variante pelo fundo */
+  if(marcaModo==='logo' && (logoWL||logoWLDark)){
+    const src = dark ? (logoWLDark||logoWL) : (logoWL||logoWLDark);
+    return `<div class="viva-logo${big}" style="justify-content:center"><img src="${src}" alt="Logo do condomínio" style="max-height:${ctx==='login'?'70px':'42px'}; max-width:220px; object-fit:contain"></div>`;
+  }
+  const telhado = marcaModo==='nome' ? 'var(--verde-escuro)' : 'var(--gold)';
+  const palavra = marcaModo==='nome' ? `<span class="vl-word">${COND.nome}</span>` : `<span class="vl-word">Vi<b>va</b></span>`;
+  return `<div class="viva-logo${big}${dark?' vl-dark':''}">
     <svg class="vl-mark" viewBox="0 0 100 100" aria-hidden="true">
       <path d="M50 12 L86 40 V86 a4 4 0 0 1-4 4 H18 a4 4 0 0 1-4-4 V40 Z" fill="var(--verde)"/>
       <path d="M50 12 L86 40 H14 Z" fill="${telhado}"/>
@@ -611,14 +669,43 @@ function marcaHTML(ctx){
     </svg>${palavra}
   </div>`;
 }
-/* cartão de preview dentro do modal de white-label */
+/* cartão de preview dentro do modal: mini-app no contexto + checagem de contraste */
 function marcaBar(){
-  return `<div class="wl-card">
-    ${marcaHTML('preview')}
-    <div style="display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap">
-      <span class="chip verde">${COND.nome}</span>
-      <button class="btn principal" style="padding:8px 16px; font-size:.85rem">Ação principal</button>
+  const acc = corCustom || (TEMAS[temaAtual].cores[1]) || '#0e7a5f';
+  const cr = contraste('#ffffff', acc);
+  const ok = cr >= 3.2;
+  /* claro/escuro do preview vem do FUNDO escolhido (ou do tema) — sem toggle separado */
+  const bgRef = corBg || TEMAS[temaAtual].cores[0] || '#ffffff';
+  const d = _lum(bgRef) < 0.42;
+  const cardBg = corBg || (d?'#0c1424':'var(--branco)');
+  const cardBord = d?'#2a3340':'var(--borda)';
+  const innerBg = d ? (corBg?corMix(corBg,'#ffffff',0.10):'#111c33') : 'var(--branco)';
+  const bord = d?'#2a3340':'var(--borda)', mute=d?'#9fb0c8':'var(--cinza)';
+  return `<div class="wl-card" style="background:${cardBg}; border-color:${cardBord}">
+    ${marcaHTML('preview', d)}
+    <div style="margin-top:10px; border:1px solid ${bord}; border-radius:10px; overflow:hidden; text-align:left">
+      <div style="background:var(--verde); color:#fff; padding:7px 12px; font-weight:700; font-size:.8rem">${COND.nome}</div>
+      <div style="padding:8px 12px; background:${innerBg}; display:flex; justify-content:space-between; align-items:center; gap:8px">
+        <button class="btn principal" style="padding:7px 14px; font-size:.82rem; flex:0 0 auto; width:auto">Ação principal</button>
+        <span class="chip vermelho" style="font-size:.68rem">6 atrasados</span>
+      </div>
     </div>
+    <div style="margin-top:8px; font-size:.74rem; font-weight:700; color:${ok?(d?'#6fe0b8':'var(--verde-escuro)'):(d?'#ff9b9b':'var(--vermelho)')}">
+      ${ok?`Contraste do texto: OK (${cr.toFixed(1)}:1)`:`Contraste baixo (${cr.toFixed(1)}:1) — escureça a cor de destaque pro texto branco ficar legível`}
+    </div>
+    <div style="margin-top:4px; font-size:.72rem; color:${mute}">As cores de status (atrasado, alerta) ficam fixas — a marca não muda o significado.</div>
+  </div>`;
+}
+function logoSlotHTML(key,label,val){
+  const dark = key==='escuro';
+  return `<div style="flex:1 1 130px; min-width:130px; border:1px solid var(--borda); border-radius:10px; padding:8px; text-align:center">
+    <div style="font-size:.72rem; font-weight:700; color:var(--cinza); margin-bottom:6px">${label}</div>
+    <div style="height:46px; display:flex; align-items:center; justify-content:center; border-radius:6px; background:${dark?'#0a1020':'#f3f4f6'}; margin-bottom:6px">
+      ${val?`<img src="${val}" style="max-height:36px; max-width:110px; object-fit:contain">`:`<span style="font-size:.68rem; color:${dark?'#7b8499':'var(--cinza)'}">sem logo</span>`}
+    </div>
+    <label class="chip cinza" style="border:none; cursor:pointer; display:inline-block">${val?'trocar':'enviar'}<input type="file" accept="image/png,image/svg+xml,image/jpeg" style="display:none" onchange="wlUpload(event,'${key}')"></label>
+    ${val?`<button class="chip cinza" style="border:none; margin-left:4px" onclick="wlRemoveLogo('${key}')">remover</button>`:''}
+    <div style="margin-top:6px"><button class="chip cinza" style="border:none; font-size:.68rem" onclick="wlUsarViva('${key}')">usar Viva (demo)</button></div>
   </div>`;
 }
 function wlRefresh(){ const p=$('#wl-preview'); if(p) p.innerHTML=marcaBar(); }
@@ -627,41 +714,130 @@ function wlRefresh(){ const p=$('#wl-preview'); if(p) p.innerHTML=marcaBar(); }
 function escolherTema(){
   const swatches=['#0e7a5f','#1f6feb','#7c3aed','#c0392b','#e07b00','#0f766e'];
   const golds=['#c49a4a','#d8b36a','#e0a93b','#b8860b','#9c6b3f','#8a93a6'];
-  abrirModal(`<h3>🎨 Marca & cores · white-label</h3>
-    <div class="sub" style="margin-bottom:12px">Cada condomínio (ou administradora) deixa o app com a cara dele — tudo aplica na hora.</div>
-    <div id="wl-preview">${marcaBar()}</div>
+  const bgs=['#ffffff','#faf6ee','#f3f4f6','#0f172a','#1e293b','#050816'];
+  const accNow=(corCustom||TEMAS[temaAtual].cores[1]||'#0e7a5f');
+  const bgNow=(corBg||TEMAS[temaAtual].cores[0]||'#ffffff');
+  const goldNow=(corGold||TEMAS[temaAtual].cores[2]||'#c49a4a');
+  const isAdm = perfil==='administradora' || !!admContexto;
+  abrirModal(`<h3>${tIco('paleta')}Marca & cores · white-label</h3>
+    <div class="sub" style="margin-bottom:12px">Deixe o app com a cara do condomínio (ou da administradora) — tudo aplica na hora.</div>
+    <div id="wl-preview" style="position:sticky; top:-4px; z-index:4; background:var(--branco); padding:4px 0 8px">${marcaBar()}</div>
 
     <div class="sub" style="font-weight:700; margin:16px 0 6px">Marca exibida</div>
-    <div style="display:flex; gap:6px">
-      <button class="chip ${!marcaWL?'verde':'cinza'}" style="border:none" onclick="marcaWL=false;wlRefresh()">Viva</button>
-      <button class="chip ${marcaWL?'verde':'cinza'}" style="border:none" onclick="marcaWL=true;wlRefresh()">Nome do condomínio</button>
+    <div id="wl-modo" style="display:flex; gap:6px; flex-wrap:wrap">
+      ${[['viva','Logo Viva'],['nome','Nome do condomínio'],['logo','Logo próprio']].map(([m,r])=>`<button class="chip ${marcaModo===m?'verde':'cinza'}" data-m="${m}" style="border:none" onclick="wlSetModo('${m}')">${r}</button>`).join('')}
+    </div>
+    <div id="wl-logo-wrap" style="display:${marcaModo==='logo'?'block':'none'}; margin-top:10px">
+      <div class="sub" style="margin:0 0 6px">PNG/SVG com fundo transparente. Se o app usar tema escuro, envie também a versão pra fundo escuro — senão o logo some.</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        ${logoSlotHTML('claro','Fundo claro',logoWL)}
+        ${logoSlotHTML('escuro','Fundo escuro',logoWLDark)}
+      </div>
     </div>
 
     <div class="sub" style="font-weight:700; margin:16px 0 6px">Nome exibido</div>
     <input id="wl-nome" value="${(COND.nome||'').replace(/"/g,'&quot;')}" oninput="COND.nome=this.value;wlRefresh()">
 
-    <div class="sub" style="font-weight:700; margin:16px 0 6px">Cor de destaque</div>
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-      <input type="color" class="wl-color" value="${corCustom||'#0e7a5f'}" oninput="corCustom=this.value;aplicarTema();wlRefresh()">
-      ${swatches.map(c=>`<button class="wl-swatch${corCustom&&corCustom.toLowerCase()===c?' on':''}" style="background:${c}" onclick="corCustom='${c}';aplicarTema();wlRefresh()" aria-label="cor ${c}"></button>`).join('')}
-      <button class="chip cinza" style="border:none" onclick="corCustom=null;aplicarTema();wlRefresh()">↺ cor do tema</button>
+    <div class="sub" style="font-weight:700; margin:16px 0 6px">Assistente (IA)</div>
+    <input id="wl-assist" value="${(nomeAssist||'Edi').replace(/"/g,'&quot;')}" oninput="nomeAssist=this.value.trim()||'Edi';wlRefresh()" placeholder="Nome do assistente — padrão: ${nomeAssist}">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px">
+      <button class="chip cinza" style="border:none" onclick="fecharModal();irPara('fontesEdi')">${tIco('robo')}Treinar / ver fontes ›</button>
     </div>
 
-    <div class="sub" style="font-weight:700; margin:16px 0 6px">Cor secundária <span style="color:var(--cinza); font-weight:400">(detalhe dourado do logo)</span></div>
+    <div class="sub" style="font-weight:700; margin:18px 0 2px">Tema personalizado <span style="color:var(--cinza); font-weight:400">· 3 cores</span></div>
+    <div class="sub" style="margin:0 0 8px; color:var(--cinza)">Fundo, destaque e detalhe — igual aos temas prontos, mas do seu jeito. Escolher um tema abaixo preenche as 3.</div>
+
+    <div class="sub" style="font-weight:700; margin:8px 0 6px">1 · Fundo <span style="color:var(--cinza); font-weight:400">(base do app)</span></div>
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-      <input type="color" class="wl-color" value="${corGold||'#c49a4a'}" oninput="corGold=this.value;aplicarTema();wlRefresh()">
-      ${golds.map(c=>`<button class="wl-swatch${corGold&&corGold.toLowerCase()===c?' on':''}" style="background:${c}" onclick="corGold='${c}';aplicarTema();wlRefresh()" aria-label="cor ${c}"></button>`).join('')}
-      <button class="chip cinza" style="border:none" onclick="corGold=null;aplicarTema();wlRefresh()">↺ dourado padrão</button>
+      <input id="wl-color-bg" type="color" class="wl-color" value="${bgNow}" oninput="corBg=this.value;aplicarTema();wlRefresh();wlSyncHex()">
+      <input id="wl-hex0" value="${bgNow.toUpperCase()}" maxlength="7" spellcheck="false" style="width:96px; font-family:monospace; text-transform:uppercase" oninput="wlHexBg(this.value)" aria-label="código hex do fundo">
+      ${bgs.map(c=>`<button class="wl-swatch${corBg&&corBg.toLowerCase()===c?' on':''}" style="background:${c}" onclick="corBg='${c}';aplicarTema();wlRefresh();wlSyncHex()" aria-label="fundo ${c}"></button>`).join('')}
+      <button class="chip cinza" style="border:none; padding:7px 10px" title="Fundo: voltar ao padrão do tema" onclick="corBg=null;aplicarTema();wlRefresh();wlSyncHex()">↺</button>
     </div>
 
-    <div class="sub" style="font-weight:700; margin:16px 0 6px">Temas prontos</div>
+    <div class="sub" style="font-weight:700; margin:14px 0 6px">2 · Destaque <span style="color:var(--cinza); font-weight:400">(botões, cabeçalho, links)</span></div>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+      <input id="wl-color-acc" type="color" class="wl-color" value="${(corCustom||accNow)}" oninput="corCustom=this.value;aplicarTema();wlRefresh();wlSyncHex()">
+      <input id="wl-hex" value="${accNow.toUpperCase()}" maxlength="7" spellcheck="false" style="width:96px; font-family:monospace; text-transform:uppercase" oninput="wlHex(this.value)" aria-label="código hex da cor de destaque">
+      ${swatches.map(c=>`<button class="wl-swatch${corCustom&&corCustom.toLowerCase()===c?' on':''}" style="background:${c}" onclick="corCustom='${c}';aplicarTema();wlRefresh();wlSyncHex()" aria-label="cor ${c}"></button>`).join('')}
+      <button class="chip cinza" style="border:none; padding:7px 10px" title="Destaque: voltar ao padrão do tema" onclick="corCustom=null;aplicarTema();wlRefresh();wlSyncHex()">↺</button>
+    </div>
+
+    <div class="sub" style="font-weight:700; margin:14px 0 6px">3 · Detalhe <span style="color:var(--cinza); font-weight:400">(dourado do logo Viva)</span></div>
+    ${marcaModo!=='viva'?`<div class="sub" style="margin:-2px 0 6px; color:var(--cinza)">Hoje o detalhe aparece no <b>logo Viva</b> (telhado e o "va"). Você está usando ${marcaModo==='logo'?'logo próprio':'o nome do condomínio'} — veja o efeito na casinha ao lado.</div>`:''}
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+      <svg viewBox="0 0 100 100" style="width:32px; height:32px; flex:0 0 auto" aria-hidden="true"><path d="M50 12 L86 40 V86 a4 4 0 0 1-4 4 H18 a4 4 0 0 1-4-4 V40 Z" fill="var(--verde)"/><path d="M50 12 L86 40 H14 Z" fill="var(--gold)"/><circle cx="50" cy="64" r="11" fill="#fff"/></svg>
+      <input id="wl-color-gold" type="color" class="wl-color" value="${goldNow}" oninput="corGold=this.value;aplicarTema();wlRefresh();wlSyncHex()">
+      <input id="wl-hex2" value="${goldNow.toUpperCase()}" maxlength="7" spellcheck="false" style="width:96px; font-family:monospace; text-transform:uppercase" oninput="wlHexGold(this.value)" aria-label="código hex da cor secundária">
+      ${golds.map(c=>`<button class="wl-swatch${corGold&&corGold.toLowerCase()===c?' on':''}" style="background:${c}" onclick="corGold='${c}';aplicarTema();wlRefresh();wlSyncHex()" aria-label="cor ${c}"></button>`).join('')}
+      <button class="chip cinza" style="border:none; padding:7px 10px" title="Detalhe: voltar ao padrão do tema" onclick="corGold=null;aplicarTema();wlRefresh();wlSyncHex()">↺</button>
+    </div>
+
+    <div class="sub" style="font-weight:700; margin:18px 0 6px">Temas prontos <span style="color:var(--cinza); font-weight:400">(ponto de partida de cores)</span></div>
     ${Object.entries(TEMAS).map(([k,t])=>{const atual=k===temaAtual&&!corCustom;
       return `<button class="item" style="width:100%; text-align:left; display:block${atual?'; border-color:var(--verde)':''}" onclick="temaAtual='${k}';corCustom=null;aplicarTema();atualizar();escolherTema()">
-      <div class="linha1"><span class="nome">${t.cores.map(c=>`<span style="display:inline-block; width:15px; height:15px; border-radius:50%; background:${c}; border:1px solid rgba(127,127,127,.45); margin-right:3px; vertical-align:-2px"></span>`).join('')} ${t.nome}</span>${atual?'<span class="chip verde">✓ em uso</span>':'<span style="color:var(--cinza)">›</span>'}</div>
+      <div class="linha1"><span class="nome">${t.cores.map(c=>`<span style="display:inline-block; width:15px; height:15px; border-radius:50%; background:${c}; border:1px solid rgba(127,127,127,.45); margin-right:3px; vertical-align:-2px"></span>`).join('')} ${t.nome}</span>${atual?'<span class="chip verde">em uso</span>':'<span style="color:var(--cinza)">›</span>'}</div>
       <div class="sub">${t.desc}</div>
     </button>`;}).join('')}
-    <button class="btn principal btn-grande" onclick="fecharModal();atualizar()">Pronto</button>`);
+
+    <div class="sub" style="font-weight:700; margin:18px 0 6px">Tela de login</div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px">
+      <label class="btn claro" style="display:inline-flex; align-items:center; cursor:pointer; width:auto; padding:9px 13px; margin:0">${tIco('camera')}${loginBg?'Trocar fundo':'Imagem de fundo'}<input type="file" accept="image/*" style="display:none" onchange="wlLoginBg(event)"></label>
+      ${loginBg?`<button class="chip cinza" style="border:none" onclick="loginBg=null;escolherTema()">remover</button>`:''}
+      <button class="chip cinza" style="border:none" onclick="verLoginDemo()">ver a tela ›</button>
+    </div>
+    <input placeholder="Mensagem de boas-vindas (opcional)" value="${(loginMsg||'').replace(/"/g,'&quot;')}" oninput="loginMsg=this.value">
+    <input style="margin-top:8px" placeholder="Contato de suporte — ex.: (11) 9 9999-0000" value="${(loginSuporte||'').replace(/"/g,'&quot;')}" oninput="loginSuporte=this.value">
+
+    <div class="sub" style="font-weight:700; margin:18px 0 6px">Escopo da marca <span style="color:var(--cinza); font-weight:400">(administradora)</span></div>
+    <button class="item" style="width:100%; text-align:left; display:block" onclick="brandLock=!brandLock;escolherTema()">
+      <div class="linha1"><span class="nome" style="font-size:.9rem">Padrão de toda a carteira</span><span class="chip ${brandLock?'verde':'cinza'}" style="border:none">${brandLock?'travado p/ condomínios':'condo pode ajustar'}</span></div>
+      <div class="sub">${brandLock?'A administradora define a marca e todos os prédios herdam, sem poder mudar.':'A administradora define um padrão; cada síndico pode ajustar o próprio prédio.'}</div>
+    </button>
+    ${isAdm?`<button class="btn claro" style="margin-top:8px" onclick="toast('Tema salvo como padrão da carteira — aplicado aos condomínios que herdam a marca.')">Salvar como padrão da carteira</button>`:''}
+
+    <div class="sub" style="font-weight:700; margin:18px 0 6px">Onde a marca aparece</div>
+    <div class="sub" style="margin-top:-2px">Tela de login · app dos moradores · nome do remetente no WhatsApp e e-mail · descritivo do PIX/boleto. <span style="color:var(--cinza)">(canais externos no produto final)</span></div>
+
+    <div class="botoes" style="margin-top:14px">
+      <button class="btn claro" onclick="resetWL()">↺ Restaurar tudo</button>
+      <button class="btn principal" onclick="fecharModal();atualizar()">Pronto</button>
+    </div>`);
 }
+function wlSetModo(m){ marcaModo=m;
+  document.querySelectorAll('#wl-modo button').forEach(b=>{const on=b.dataset.m===m; b.classList.toggle('verde',on); b.classList.toggle('cinza',!on);});
+  const lw=$('#wl-logo-wrap'); if(lw) lw.style.display=(m==='logo')?'block':'none';
+  if(m==='logo' && !logoWL) toast('Envie o logo do condomínio (PNG/SVG).');
+  aplicarTema(); wlRefresh();
+}
+function wlUpload(e,key){ const f=e.target.files&&e.target.files[0]; if(!f) return;
+  if(f.size>2*1024*1024){ toast('Logo muito grande (máx 2 MB).'); return; }
+  const rd=new FileReader(); rd.onload=()=>{ if(key==='escuro') logoWLDark=rd.result; else logoWL=rd.result; marcaModo='logo'; aplicarTema(); escolherTema(); toast(`Logo (fundo ${key||'claro'}) aplicado.`); }; rd.readAsDataURL(f);
+}
+function wlRemoveLogo(key){ if(key==='escuro') logoWLDark=null; else logoWL=null; if(!logoWL&&!logoWLDark) marcaModo='viva'; aplicarTema(); escolherTema(); }
+/* logo Viva como imagem de demonstração — pra testar os slots sem precisar enviar arquivo */
+function vivaLogoSVG(dark){
+  const body=dark?'#ffffff':'#0e7a5f', roof='#c49a4a', win=dark?'#0e7a5f':'#ffffff', w1=dark?'#ffffff':'#0e7a5f';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 90"><path d="M40 12 L74 38 V82 a4 4 0 0 1-4 4 H14 a4 4 0 0 1-4-4 V38 Z" fill="${body}"/><path d="M40 12 L74 38 H6 Z" fill="${roof}"/><circle cx="40" cy="58" r="10" fill="${win}"/><text x="90" y="70" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="56" fill="${w1}">Vi<tspan fill="#c49a4a">va</tspan></text></svg>`;
+}
+function vivaLogoDataURL(dark){ return 'data:image/svg+xml;utf8,'+encodeURIComponent(vivaLogoSVG(dark)); }
+function wlUsarViva(key){ if(key==='escuro') logoWLDark=vivaLogoDataURL(true); else logoWL=vivaLogoDataURL(false); marcaModo='logo'; aplicarTema(); escolherTema(); }
+function wlLoginBg(e){ const f=e.target.files&&e.target.files[0]; if(!f) return; if(f.size>3*1024*1024){ toast('Imagem muito grande (máx 3 MB).'); return; } const rd=new FileReader(); rd.onload=()=>{ loginBg=rd.result; escolherTema(); toast('Imagem de fundo do login aplicada.'); }; rd.readAsDataURL(f); }
+function wlSyncHex(){
+  const bg=(corBg||TEMAS[temaAtual].cores[0]||'#ffffff').toUpperCase();
+  const acc=(corCustom||TEMAS[temaAtual].cores[1]||'#0e7a5f').toUpperCase();
+  const g=(corGold||TEMAS[temaAtual].cores[2]||'#c49a4a').toUpperCase();
+  const h0=$('#wl-hex0'); if(h0) h0.value=bg;
+  const a=$('#wl-hex'); if(a) a.value=acc;
+  const g2=$('#wl-hex2'); if(g2) g2.value=g;
+  const cb=$('#wl-color-bg'); if(cb) cb.value=bg;       /* sincroniza os quadradinhos */
+  const ca=$('#wl-color-acc'); if(ca) ca.value=acc;
+  const cg=$('#wl-color-gold'); if(cg) cg.value=g;
+}
+function wlHexBg(v){ if(ehHex(v)){ corBg=normHex(v).toLowerCase(); aplicarTema(); wlRefresh(); const cb=$('#wl-color-bg'); if(cb) cb.value=normHex(v).toUpperCase(); } }
+function wlHex(v){ if(ehHex(v)){ corCustom=normHex(v).toLowerCase(); aplicarTema(); wlRefresh(); const ca=$('#wl-color-acc'); if(ca) ca.value=normHex(v).toUpperCase(); } }
+function wlHexGold(v){ if(ehHex(v)){ corGold=normHex(v).toLowerCase(); aplicarTema(); wlRefresh(); const cg=$('#wl-color-gold'); if(cg) cg.value=normHex(v).toUpperCase(); } }
+function resetWL(){ corBg=null; corCustom=null; corGold=null; marcaModo='viva'; logoWL=null; logoWLDark=null; brandLock=false; loginBg=null; loginMsg=''; loginSuporte=''; aplicarTema(); escolherTema(); toast('Marca e cores restauradas ao padrão.'); }
 
 /* ===== MENU DA DEMONSTRAÇÃO (⚙️) =====
    Junta num lugar só tudo que é "de protótipo" — escolher/trocar o perfil que
@@ -670,9 +846,9 @@ function escolherTema(){
 function menuDemo(){
   const txtG=document.documentElement.classList.contains('txt-grande');
   const entrada=!perfil;
-  abrirModal(`<h3>⚙️ ${entrada?'Quem está acessando?':'Demonstração'}</h3>
+  abrirModal(`<h3>${tIco('engrenagem')}${entrada?'Quem está acessando?':'Demonstração'}</h3>
     <div class="sub" style="margin-bottom:10px">${entrada
-      ? 'Este é um protótipo de demonstração. Escolha por qual perfil quer navegar — dá pra trocar quando quiser aqui no ⚙️.'
+      ? 'Este é um protótipo de demonstração. Escolha por qual perfil quer navegar — dá pra trocar quando quiser por aqui.'
       : 'Você está vendo como '+(PERFIS_NOMES[perfil]||'—')+'. Toque em outro perfil pra trocar.'}</div>
     ${Object.entries(PERFIS_NOMES).map(([k,nome])=>{const atual=k===perfil;
       return `<button class="item" style="width:100%; text-align:left; display:block${atual?'; border-color:var(--verde)':''}" ${atual?'aria-pressed="true"':''} onclick="fecharModal();trocarPerfil('${k}')">
@@ -680,7 +856,7 @@ function menuDemo(){
     </button>`;}).join('')}
     <div class="sub" style="margin:16px 0 8px"><b>Aparência e acessibilidade</b></div>
     <button class="item" style="width:100%; text-align:left; display:block" onclick="fecharModal();escolherTema()">
-      <div class="linha1"><span class="nome">🎨 Marca & cores (white-label)</span><span style="opacity:.4">›</span></div></button>
+      <div class="linha1"><span class="nome">${tIco('paleta')}Marca & cores (white-label)</span><span style="opacity:.4">›</span></div></button>
     <button class="item" style="width:100%; text-align:left; display:block" onclick="document.documentElement.classList.toggle('txt-grande');toast(document.documentElement.classList.contains('txt-grande')?'Texto grande ativado — tudo aumenta junto 👓':'Texto no tamanho normal');menuDemo()">
       <div class="linha1"><span class="nome">Aa+ Texto grande</span><span class="chip ${txtG?'verde':'cinza'}" style="border:none">${txtG?'ligado':'desligado'}</span></div></button>
     <div class="sub" style="margin:16px 0 8px"><b>Entrada real</b></div>
@@ -727,7 +903,7 @@ function abrirModal(html){ $('#modal').innerHTML=`<button class="fechar-x" oncli
 function fecharModal(){ $('#fundo-modal').classList.remove('on'); }
 
 const MENUS = {
-  sindico:[['inicio','casa','Início'],['inadimplencia','cifrao','Cobrança'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['reservas','calendario','Reservas'],['fontesEdi','predio','Edi']],
+  sindico:[['inicio','casa','Início'],['inadimplencia','cifrao','Cobrança'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['reservas','calendario','Reservas']],
   portaria:[['encomendas','pacote','Encomendas'],['visitantes','porta','Visitantes'],['acessos','chave','Acessos']],
   zelador:[['rotina','checklist','Rotina'],['livro','caderno','Livro'],['manuzel','chave','Manutenção'],['triagem','maleta','Triagem'],['estoque','prancheta','Estoque']],
   conselho:[['ccontas','grafico','Contas'],['cdocs','pasta','Documentos']],
@@ -748,12 +924,21 @@ function trocarPerfil(p){
 }
 function irPara(tela){
   telaAtual=tela;
-  /* Edi unificado: botão flutuante em TODOS os perfis, sempre no mesmo canto —
+  /* ${nomeAssist} unificado: botão flutuante em TODOS os perfis, sempre no mesmo canto —
      padrão único (some só dentro da própria conversa) */
-  const fab=$('#edi-fab'); if(fab) fab.style.display=(perfil && perfil!=='administradora' && tela!=='mregras')?'flex':'none';
+  /* FAB removido: o ${nomeAssist} tem duas âncoras — a barra de busca no topo da home e a aba "${nomeAssist}" na barra inferior. Um botão flutuante a mais só tapava conteúdo. */
+  const fab=$('#edi-fab'); if(fab) fab.style.display='none';
   document.querySelectorAll('#menu button').forEach(b=>b.classList.remove('on'));
   const mb=$('#mb-'+tela); if(mb) mb.classList.add('on');
   $('#app').innerHTML = TELAS[tela]();
+  /* ${nomeAssist} onipresente: a aba "${nomeAssist}" saiu da barra inferior (de 6 → 5). Pra não perder o
+     acesso ao assistente fora da home, a barra "Peça ao ${nomeAssist}" é injetada no topo das
+     telas do síndico (a home já traz a sua própria no corpo). */
+  if(perfil==='sindico' && !admContexto && tela!=='fontesEdi' && !$('#app').querySelector('.comando')){
+    const w=document.createElement('div'); w.style.cssText='padding:12px 16px 0';
+    w.innerHTML=comandoEdi(`Peça ao ${nomeAssist}… "o que precisa de mim aqui?"`);
+    $('#app').insertBefore(w, $('#app').firstChild);
+  }
   /* barra de contexto quando a administradora está gerindo um condomínio da carteira */
   if(perfil==='sindico' && admContexto){
     const wrap=document.createElement('div'); wrap.innerHTML=bannerAdmContexto();
@@ -768,13 +953,16 @@ const TELAS = {};
 /* login (primeira impressão) */
 TELAS.login = () => `
 <div class="tela on" id="tela-login">
+  ${loginBg?`<div style="width:100%; height:140px; border-radius:14px; background:url('${loginBg}') center/cover; margin-bottom:10px"></div>`:''}
   ${marcaHTML('login')}
   <div class="slogan">${COND.nome} · Osasco/SP</div>
+  ${loginMsg?`<div class="sub" style="text-align:center; margin:2px 0 8px">${loginMsg}</div>`:''}
   <label style="text-align:left">Seu WhatsApp</label>
   <input type="tel" inputmode="tel" autocomplete="tel" value="(11) 99000-0010">
-  <button class="btn principal btn-grande" onclick="loginMagico()">Receber link de acesso 🔗</button>
+  <button class="btn principal btn-grande" onclick="loginMagico()">Receber link de acesso</button>
   <button class="btn claro btn-grande" onclick="irOnboarding()">Sou síndico — configurar meu condomínio</button>
   <div class="aviso-lgpd">Sem senha pra decorar: você recebe um link no WhatsApp e entra com um toque.<br>Seus dados são protegidos conforme a LGPD.</div>
+  ${loginSuporte?`<div class="sub" style="text-align:center; margin-top:10px; color:var(--cinza)">Precisa de ajuda? ${loginSuporte}</div>`:''}
 </div>`;
 function loginMagico(){
   toast('Link enviado no seu WhatsApp ✅ (simulação)');
@@ -794,21 +982,25 @@ function obProx(){ obStep++; renderOnboarding(); }
 function obVoltar(){ if(obStep>1){obStep--; renderOnboarding();} else if(obOrigem==='administradora'){ obOrigem='sindico'; obEditIx=null; obNovo=null; trocarPerfil('administradora'); } else { document.getElementById('app').innerHTML=TELAS.login(); } }
 function TELAS_ONBOARDING(){
   const TOTAL=5;
+  const OB_NOMES=['Importar','Unidades','Regras','Documentos','Pronto'];
   const passo=(n)=>`<span style="flex:1; height:5px; border-radius:99px; background:${n<=obStep?'var(--verde)':'var(--cinza-claro)'}"></span>`;
-  const barra=`<div style="display:flex; gap:5px; margin:4px 0 16px">${Array.from({length:TOTAL},(_,i)=>passo(i+1)).join('')}</div>
-    <div class="sub" style="margin-bottom:14px">Passo ${obStep} de ${TOTAL}</div>`;
+  const barra=`<div style="display:flex; gap:5px; margin:4px 0 5px">${Array.from({length:TOTAL},(_,i)=>passo(i+1)).join('')}</div>
+    <div style="display:flex; gap:5px; margin-bottom:14px">${OB_NOMES.map((nm,i)=>`<span style="flex:1; text-align:center; font-size:.64rem; line-height:1.2; font-weight:${i+1===obStep?'700':'500'}; color:${i+1===obStep?'var(--verde-escuro)':'var(--cinza)'}">${nm}</span>`).join('')}</div>`;
   let corpo='';
+  const obOpc=(icon,titulo,apoio,oc,selo)=>`<button class="btn claro btn-grande" style="display:flex; align-items:center; gap:12px; text-align:left" onclick="${oc}">
+    ${ico(icon)}<span style="flex:1"><b>${titulo}</b> <span style="font-weight:400; color:var(--cinza)">${apoio}</span>${selo?`<br><span style="font-size:.74rem; font-weight:700; color:var(--verde-escuro)">${selo}</span>`:''}</span><span style="color:var(--cinza); font-size:1.1rem">›</span>
+  </button>`;
   if(obStep===1){
-    corpo=`<h2 style="margin-top:0">📥 Importe seu condomínio</h2>
-    <div class="sub" style="margin-bottom:14px">Não precisa digitar unidade por unidade. Seu condomínio já está numa planilha, no relatório da administradora ou na lista do grupo. Suba o arquivo — a gente lê e você só confere.</div>
-    <button class="btn claro btn-grande" onclick="obImportar('planilha')">📄 Tenho uma planilha (Excel/CSV)</button>
-    <button class="btn claro btn-grande" onclick="obImportar('admin')">🏢 Relatório da administradora (PDF)</button>
-    <button class="btn claro btn-grande" onclick="obImportar('zero')">✏️ Não tenho arquivo — começar do zero</button>
-    <div class="aviso-lgpd">No produto final, o arquivo é processado na hora (CSV padrão Excel BR, vírgula decimal, dd/mm/aaaa) com tela de conferência antes de gravar.</div>`;
+    corpo=`<h2 style="margin-top:0">${tIco('importar')}Importe seu condomínio</h2>
+    <div class="sub" style="margin-bottom:14px">Seu condomínio já está numa planilha ou no relatório da administradora. Suba o arquivo — a gente lê, você confere.</div>
+    ${obOpc('planilha','Tenho uma planilha','(Excel/CSV)',"obImportar('planilha')",'mais rápido')}
+    ${obOpc('predio','Relatório da administradora','(PDF)',"obImportar('admin')")}
+    ${obOpc('lapis','Começar do zero','sem arquivo',"obImportar('zero')")}
+    <div class="aviso-lgpd" style="opacity:.75">No produto final, o arquivo é processado na hora (CSV padrão Excel BR) com tela de conferência antes de gravar.</div>`;
   }
   if(obStep===2){
     const linhas=[['A-101','Ap. ocupado','—'],['A-102','Ap. alugado','inquilino'],['A-203','Ap. ocupado','—'],['B-305','Ap. ocupado','—'],['B-502','Ap. alugado','inquilino']];
-    corpo=`<h2 style="margin-top:0">✓ Confira as unidades</h2>
+    corpo=`<h2 style="margin-top:0">${tIco('check')}Confira as unidades</h2>
     <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="linha1"><span class="nome">${obCond.unidades||60} unidades lidas do arquivo</span><span class="chip verde">pronto</span></div>
     <div class="sub">Proprietários e moradores separados automaticamente. Confira uma amostra:</div></div>
     ${linhas.map(l=>`<div class="item"><div class="linha1"><span class="nome">${l[0]}</span><span class="chip ${l[2]==='inquilino'?'laranja':'cinza'}">${l[1]}</span></div>${l[2]!=='—'?`<div class="sub">papel: ${l[2]}</div>`:''}</div>`).join('')}
@@ -816,7 +1008,7 @@ function TELAS_ONBOARDING(){
     <div class="aviso-lgpd">Algo errado? No produto final você edita aqui antes de confirmar. Proprietário ≠ morador ≠ inquilino já vem distinguido.</div>`;
   }
   if(obStep===3){
-    corpo=`<h2 style="margin-top:0">⚙️ Três ajustes essenciais</h2>
+    corpo=`<h2 style="margin-top:0">${tIco('engrenagem')}Três ajustes essenciais</h2>
     <div class="sub" style="margin-bottom:14px">Só o mínimo pra começar. O resto (reservas, prestadores, manutenção) você configura quando for usar cada parte.</div>
     <label>Como é o rateio da taxa?</label>
     <select id="ob-rateio"><option>Igualitário (todos pagam igual)</option><option>Por fração ideal</option></select>
@@ -832,35 +1024,35 @@ function TELAS_ONBOARDING(){
       return `<div class="item" ${feito?'style="background:var(--verde-claro); border-color:#bce3d6"':''}>
         <div class="linha1"><span class="nome">${feito?'✔ ':''}${nome}</span><span class="chip ${feito?'verde':'cinza'}">${feito?(k==='atas'?obDocs.atas+' atas':'anexado'):chip}</span></div>
         <div class="sub">${sub}</div>
-        <div class="botoes"><button class="btn claro" onclick="obAnexar('${k}')">${feito&&k==='atas'?'+ Anexar outra ata':feito?'Trocar arquivo':'📎 Anexar PDF'}</button></div>
+        <div class="botoes"><button class="btn claro" onclick="obAnexar('${k}')">${feito&&k==='atas'?'+ Anexar outra ata':feito?'Trocar arquivo':clip()+'Anexar PDF'}</button></div>
       </div>`;
     };
-    corpo=`<h2 style="margin-top:0">📚 Documentos do condomínio</h2>
-    <div class="sub" style="margin-bottom:14px">Suba os documentos uma vez: eles ficam no acervo (que sobrevive à troca de síndico) <b>e</b> treinam o Edi — o assistente passa a responder dúvidas dos moradores citando o artigo e a ata, em vez de cair tudo no seu WhatsApp.</div>
+    corpo=`<h2 style="margin-top:0">${tIco('pasta')}Documentos do condomínio</h2>
+    <div class="sub" style="margin-bottom:14px">Suba os documentos uma vez: eles ficam no acervo (que sobrevive à troca de síndico) <b>e</b> treinam o ${nomeAssist} — o assistente passa a responder dúvidas dos moradores citando o artigo e a ata, em vez de cair tudo no seu WhatsApp.</div>
     ${doc('convencao','Convenção condominial','Registrada em cartório. Base das regras que prevalecem.','recomendado')}
     ${doc('regimento','Regimento interno','Regras de convivência: horários, áreas comuns, pets, obras.','recomendado')}
-    ${doc('atas','Atas de assembleia','Decisões tomadas (ex.: novo horário da piscina). O Edi cita a ata e a data.','opcional')}
-    <div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome"><span class="ico-in">${ico('predio')}</span> Edi treinado com seus documentos</span><span class="chip ${obDocs.convencao||obDocs.regimento||obDocs.atas?'verde':'cinza'}">${obDocs.convencao||obDocs.regimento||obDocs.atas?'pronto pra responder':'aguardando documentos'}</span></div>
-    <div class="sub">O Edi nunca inventa: quando a resposta não está nos documentos, ele encaminha pra você em vez de chutar.</div></div>
-    <div class="aviso-lgpd">Não tem os PDFs agora? Sem problema — pode pular e anexar depois em "Fontes do Edi". O sistema funciona; só o assistente de regras fica mais limitado até você subir.</div>`;
+    ${doc('atas','Atas de assembleia','Decisões tomadas (ex.: novo horário da piscina). O ${nomeAssist} cita a ata e a data.','opcional')}
+    <div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome"><span class="ico-in">${ico('predio')}</span> ${nomeAssist} treinado com seus documentos</span><span class="chip ${obDocs.convencao||obDocs.regimento||obDocs.atas?'verde':'cinza'}">${obDocs.convencao||obDocs.regimento||obDocs.atas?'pronto pra responder':'aguardando documentos'}</span></div>
+    <div class="sub">O ${nomeAssist} nunca inventa: quando a resposta não está nos documentos, ele encaminha pra você em vez de chutar.</div></div>
+    <div class="aviso-lgpd">Não tem os PDFs agora? Sem problema — pode pular e anexar depois em "Fontes do ${nomeAssist}". O sistema funciona; só o assistente de regras fica mais limitado até você subir.</div>`;
   }
   if(obStep===5){
     corpo=`<h2 style="margin-top:0">🎉 Pronto! Já tem valor pra você</h2>
-    <div class="item" style="border-color:var(--vermelho)"><div class="linha1"><span class="nome">⚠️ 2 manutenções já vencidas</span><span class="chip vermelho">achamos pra você</span></div>
+    <div class="item" style="border-color:var(--vermelho)"><div class="linha1"><span class="nome">${tIco('alerta')}2 manutenções já vencidas</span><span class="chip vermelho">achamos pra você</span></div>
     <div class="sub">Limpeza da caixa d'água e revisão das bombas — prazos legais que estavam passando batido. Já entram no seu painel.</div></div>
-    ${(obDocs.convencao||obDocs.regimento||obDocs.atas)?`<div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome"><span class="ico-in">${ico('predio')}</span> Edi já responde sobre as regras</span><span class="chip verde">treinado</span></div>
-    <div class="sub">Moradores podem perguntar "pode festa até que horas?" e o Edi cita o artigo — menos pergunta no seu WhatsApp.</div></div>`:''}
-    <div class="item" style="border-color:var(--laranja)"><div class="linha1"><span class="nome">💰 Suba o último relatório e veja a inadimplência</span><span class="chip laranja">opcional agora</span></div>
+    ${(obDocs.convencao||obDocs.regimento||obDocs.atas)?`<div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome"><span class="ico-in">${ico('predio')}</span> ${nomeAssist} já responde sobre as regras</span><span class="chip verde">treinado</span></div>
+    <div class="sub">Moradores podem perguntar "pode festa até que horas?" e o ${nomeAssist} cita o artigo — menos pergunta no seu WhatsApp.</div></div>`:''}
+    <div class="item" style="border-color:var(--laranja)"><div class="linha1"><span class="nome">${tIco('cifrao')}Suba o último relatório e veja a inadimplência</span><span class="chip laranja">opcional agora</span></div>
     <div class="sub">Com aging (1-30, 31-60, 61-90, 90+ dias) e cobrança por WhatsApp + PIX pronta.</div></div>
     <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="sub" style="margin:0"><b>Próximos passos sugeridos:</b> gerar a cobrança do mês · cadastrar a portaria · marcar a assembleia de lançamento pra convidar os moradores.</div></div>
     <button class="btn principal btn-grande" onclick="obConcluir()">Entrar no meu painel →</button>`;
   }
-  const nav = obStep<5 ? `<div class="botoes" style="margin-top:14px">
-    <button class="btn claro" onclick="obVoltar()">‹ Voltar</button>
-    ${obStep===1?'':`<button class="btn principal" onclick="obAvancarConfig()">${obStep===4?(obDocs.convencao||obDocs.regimento||obDocs.atas?'Continuar ›':'Pular por agora ›'):'Continuar ›'}</button>`}
-  </div>` : `<div style="margin-top:8px"><button class="btn claro btn-grande" onclick="obVoltar()">‹ Voltar</button></div>`;
+  const back=`<button onclick="obVoltar()" style="background:none; border:none; color:var(--cinza); font-weight:600; font-family:inherit; font-size:.92rem; padding:10px 4px; cursor:pointer">‹ Voltar</button>`;
+  const nav = obStep<5
+    ? `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px">${back}${obStep===1?'':`<button class="btn principal" style="width:auto; flex:0 0 auto; padding:12px 22px" onclick="obAvancarConfig()">${obStep===4?(obDocs.convencao||obDocs.regimento||obDocs.atas?'Continuar ›':'Pular por agora ›'):'Continuar ›'}</button>`}</div>`
+    : `<div style="margin-top:8px">${back}</div>`;
   return `<div class="tela on">
-    <div class="topo"><h1>🏗️ Configurar condomínio</h1><p>Leva uns 15 minutos — e você já sai com o sistema útil</p></div>
+    <div class="topo"><h1>${tIco('prancheta')}Configurar condomínio</h1><p>Leva uns 15 minutos — e você já sai com o sistema útil</p></div>
     ${barra}${corpo}${nav}
   </div>`;
 }
@@ -878,12 +1070,12 @@ function obAvancarConfig(){
   obProx();
 }
 function obAnexar(k){
-  if(k==='atas'){ obDocs.atas++; toast(`Ata anexada (${obDocs.atas}) — o Edi já considera as decisões dela 📎`); }
-  else { obDocs[k]=true; toast(`${k==='convencao'?'Convenção':'Regimento'} anexado — Edi treinado com este documento ✅`); }
+  if(k==='atas'){ obDocs.atas++; toast(`Ata anexada (${obDocs.atas}) — o ${nomeAssist} já considera as decisões dela 📎`); }
+  else { obDocs[k]=true; toast(`${k==='convencao'?'Convenção':'Regimento'} anexado — ${nomeAssist} treinado com este documento ✅`); }
   renderOnboarding();
 }
 function obConcluir(){
-  /* reflete no estado real do Edi o que foi anexado no onboarding */
+  /* reflete no estado real do ${nomeAssist} o que foi anexado no onboarding */
   if(typeof ediFontes!=='undefined'){
     const set=(k,on)=>{const f=ediFontes.find(x=>x.k===k); if(f) f.status=on?'treinado':'pendente';};
     set('convencao', obDocs.convencao); set('regimento', obDocs.regimento); set('atas', obDocs.atas>0);
@@ -913,38 +1105,42 @@ TELAS.inicio = () => {
     }))
     .filter(r=>r.ano>2026 || r.mes>6 || r.d>=10)
     .sort((x,y)=>(x.ano-y.ano)||(x.mes-y.mes)||(x.d-y.d)).slice(0,3);
-  /* Home do síndico: comando do Edi → Agora (arrecadação) → digest único de pendências → Indicadores → Reservas → Balancete */
+  /* Home do síndico: comando do ${nomeAssist} → Agora (arrecadação) → digest único de pendências → Indicadores → Reservas → Balancete */
   return `<div class="tela on">
-  <div class="topo"><h1>Olá, síndico 👋</h1><p>${COND.nome} · 2 torres · 60 unidades</p></div>
+  <div class="topo"><h1>Olá, síndico</h1><p>${COND.nome} · 2 torres · 60 unidades</p></div>
 
-  ${comandoEdi('Peça ao Edi… "quem deve há mais de 60 dias?"')}
+  ${comandoEdi(`Peça ao ${nomeAssist}… "quem deve há mais de 60 dias?"`)}
 
   ${(()=>{ const p=setupProgresso(); if(p.pct>=100) return '';
     /* banner fininho, SEM barra: a única barra de progresso da home é a da
        arrecadação. % vira chip, contexto numa linha — não compete visualmente */
-    return `<button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde); border-radius:0 14px 14px 0; padding:11px 14px" onclick="irPara('ajustes')">
-      <div class="linha1"><span class="nome" style="font-size:.92rem">${tIco("prancheta")}Configurar o ${MARCA} — falta ${p.proximo}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip verde">${p.pct}%</span><span style="color:var(--cinza)">›</span></span></div>
+    return `<button onclick="abrirAjustes()" style="width:100%; text-align:left; display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 14px; padding:9px 12px; background:var(--cinza-claro); border:1px dashed #d1d5db; border-radius:10px; color:var(--cinza); font-family:inherit; font-weight:600; font-size:.82rem">
+      <span style="display:flex; align-items:center"><svg class="icn-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES.prancheta}</svg>Terminar configuração · falta ${p.proximo}</span>
+      <span style="display:flex; align-items:center; gap:6px; flex:0 0 auto"><span class="chip cinza" style="font-size:.72rem">${p.pct}%</span><span>›</span></span>
     </button>`;})()}
 
   <div class="secao">AGORA</div>
   <button class="item" style="width:100%; text-align:left; display:block" onclick="mesGraf=5;verBalancete()">
-    <div class="linha1"><span class="nome">💰 Arrecadação de junho: ${fmt(25920)}</span><span class="chip verde">90% ›</span></div>
+    <div class="linha1"><span class="nome">${tIco('cifrao')}Arrecadação de junho: ${fmt(25920)}</span><span class="chip verde">90% ›</span></div>
     <div class="cat-trilha" style="margin-top:8px; height:8px"><div class="cat-barra" style="width:90%"></div></div>
-    <div class="sub" style="margin-top:5px">${inadimplentes.length} em atraso · ${fmt(totAberto)} a recuperar</div>
+    <div class="sub" style="margin-top:5px">${fmt(25920)} recebidos · 54 de 60 unidades em dia</div>
+  </button>
+  <button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--vermelho); border-radius:0 14px 14px 0" onclick="irPara('inadimplencia')">
+    <div class="linha1"><span class="nome">${tIco('alerta')}Cobrar ${inadimplentes.length} inadimplentes</span><span style="display:flex; align-items:center; gap:6px"><span class="chip acao">${fmt(totAberto)} ›</span></span></div>
   </button>
 
-  ${(()=>{ /* lista ÚNICA de pendências do dia, no tom do Edi (verbo por item).
-       Antes havia "Edi preparou" + "Para você hoje" repetindo os mesmos assuntos. */
+  ${(()=>{ /* lista ÚNICA de pendências do dia, no tom do ${nomeAssist} (verbo por item).
+       Antes havia "${nomeAssist} preparou" + "Para você hoje" repetindo os mesmos assuntos. */
     const ab=ocorrencias.filter(o=>o.status==='aberta').length;
     const pend=[];
-    if(venc) pend.push(['manutencao','⚠️','Prazos legais vencidos',`${venc} itens`,'vermelho']);
-    if(ab)   pend.push(['ocorrencias','💬','Ocorrências sem resposta',`${ab}`,'laranja']);
-    if(compra.status!=='aprovada') pend.push(['compras','🛒','Cotações do zelador prontas','3 · revisar','laranja']);
-    if(!assembleia.convocada) pend.push(['assembleia','📋','Assembleia 25/06 minutada','convocar','laranja']);
-    pend.push(['fornecedores','📒','Contrato ElevaTech vence 15/07','renegociar','laranja']);
-    return `<div class="secao">O EDI PREPAROU PRA VOCÊ HOJE · ${pend.length}</div>`+pend.map(p=>`
+    if(venc) pend.push(['manutencao','alerta','Prazos legais vencidos',`${venc} itens`,'vermelho']);
+    if(ab)   pend.push(['ocorrencias','balao','Ocorrências sem resposta',`${ab}`,'laranja']);
+    if(compra.status!=='aprovada') pend.push(['compras','carrinho','Cotações do zelador prontas','revisar 3','acao']);
+    if(!assembleia.convocada) pend.push(['assembleia','prancheta','Assembleia 25/06 minutada','convocar','acao']);
+    pend.push(['fornecedores','contrato','Contrato ElevaTech vence 15/07','renegociar','acao']);
+    return `<div class="secao">O ${nomeAssist.toUpperCase()} PREPAROU PRA VOCÊ HOJE · ${pend.length}</div>`+pend.map(p=>`
     <button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde); border-radius:0 14px 14px 0" onclick="filtroManuVencidas=${p[0]==='manutencao'};irPara('${p[0]}')">
-      <div class="linha1"><span class="nome">${p[1]} ${p[2]}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${p[4]}">${p[3]}</span><span style="color:var(--cinza)">›</span></span></div>
+      <div class="linha1"><span class="nome">${tIco(p[1])}${p[2]}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${p[4]}">${p[3]}</span><span style="color:var(--cinza)">›</span></span></div>
     </button>`).join('');})()}
   <h2>Indicadores</h2>
   <div class="cards">
@@ -1042,8 +1238,8 @@ TELAS.manutencao = () => {
   ${filtroManuVencidas?`<div style="margin-bottom:10px"><button class="chip vermelho" style="border:none" onclick="filtroManuVencidas=false;atualizar()">Mostrando só vencidas · toque para ver todas ✕</button></div>`:''}
   ${filtroTorreHtml()}
   <div class="abas">
-    <button class="${abaManuSind==='contratuais'?'on':''}" onclick="abaManuSind='contratuais';atualizar()">🏢 Contratuais (${contratuais.length})${pend?` · ${pend} p/ aprovar`:''}</button>
-    <button class="${abaManuSind==='internas'?'on':''}" onclick="abaManuSind='internas';atualizar()">🔧 Internas (${internas.length})</button>
+    <button class="${abaManuSind==='contratuais'?'on':''}" onclick="abaManuSind='contratuais';atualizar()">${tIco('predio')}Contratuais (${contratuais.length})${pend?` · ${pend} p/ aprovar`:''}</button>
+    <button class="${abaManuSind==='internas'?'on':''}" onclick="abaManuSind='internas';atualizar()">${tIco('chave')}Internas (${internas.length})</button>
   </div>
   <div class="sub" style="margin:-4px 0 12px">${abaManuSind==='contratuais'
     ?'Itens de empresa certificada: o zelador arquiva o laudo e VOCÊ aprova a conclusão — é onde sua ação é necessária.'
@@ -1056,13 +1252,13 @@ TELAS.manutencao = () => {
 function verManutencao(ix){
   const m=manutencoes[ix]; if(!m) return;
   const chip=chipManu(m);
-  abrirModal(`<h3>🔧 ${m.item}</h3>
+  abrirModal(`<h3>${tIco('chave')}${m.item}</h3>
     <div class="sub" style="margin-bottom:8px"><span class="chip ${chip[1]}">${chip[0]}</span> · ${m.per}</div>
     <div class="sub" style="margin-bottom:6px"><b>Última execução:</b> ${m.ultima}${m.por?` — registrada pelo ${m.por}`:''}</div>
     <div class="sub" style="margin-bottom:6px">${m.empresa?'🏢 Item de empresa certificada: o zelador arquiva o laudo e você aprova a conclusão.':'🔧 Verificação interna do zelador — registrada direto, sem aprovação; aqui é só para sua ciência.'}</div>
-    ${m.status==='aprovacao'?`<div class="sub" style="margin-bottom:6px">📎 Laudo arquivado pelo zelador em ${m.pend.data} — confira antes de aprovar.</div>
+    ${m.status==='aprovacao'?`<div class="sub" style="margin-bottom:6px">${clip()}Laudo arquivado pelo zelador em ${m.pend.data} — confira antes de aprovar.</div>
     <div class="botoes" style="margin-top:12px">
-      <button class="btn claro" onclick="verLaudo(${ix})">📎 Ver laudo</button>
+      <button class="btn claro" onclick="verLaudo(${ix})">${clip()}Ver laudo</button>
       <button class="btn principal" onclick="aprovarExecucao(${ix});fecharModal()">✔ Aprovar conclusão</button>
       <button class="btn perigo" onclick="recusarExecucao(${ix});fecharModal()">Devolver ao zelador</button>
     </div>`
@@ -1087,7 +1283,7 @@ function registrarExecZelador(ix){
   const m=manutencoes[ix];
   abrirModal(`<h3>Arquivar laudo da empresa — ${m.item}</h3>
     <div class="sub" style="margin-bottom:10px">Item executado por empresa certificada: você acompanha a visita e arquiva o laudo DELA (com CNPJ e validade). O síndico confere e aprova.</div>
-    <button class="btn claro btn-grande" id="zl-laudo-btn" onclick="anexarLaudo()">📎 Anexar laudo da empresa — obrigatório</button>
+    <button class="btn claro btn-grande" id="zl-laudo-btn" onclick="anexarLaudo()">${clip()}Anexar laudo da empresa — obrigatório</button>
     <button class="btn principal btn-grande" onclick="confirmarExecZelador(${ix})">Enviar para conferência do síndico</button>`);
 }
 function marcarFeitoInterno(ix){
@@ -1110,7 +1306,7 @@ function confirmarExecZelador(ix){
 }
 function verLaudo(ix){
   const m=manutencoes[ix];
-  abrirModal(`<h3>📎 ${m.pend.laudo.arquivo}</h3>
+  abrirModal(`<h3>${clip()}${m.pend.laudo.arquivo}</h3>
     <div class="item" style="background:var(--cinza-claro); font-family:monospace; font-size:.78rem; line-height:1.7">
       <b>LAUDO / REGISTRO DE EXECUÇÃO</b> <span class="chip cinza">simulação</span><br><br>
       <b>Serviço:</b> ${m.item}<br>
@@ -1140,7 +1336,7 @@ TELAS.manuzel = () => {
       ${m.status==='aprovacao'?`<div class="sub" style="margin-top:4px">✔ Laudo arquivado em ${m.pend.data} — aguardando conferência do síndico.</div>`
       : m.status!=='ok'?`<div class="botoes" style="justify-content:flex-end">
         ${m.empresa
-          ?`<button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="registrarExecZelador(${ix})">📎 Arquivar laudo</button>`
+          ?`<button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="registrarExecZelador(${ix})">${clip()}Arquivar laudo</button>`
           :`<button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="marcarFeitoInterno(${ix})">✔ Marcar feito</button>`}
       </div>`:''}
     </div>`;};
@@ -1150,9 +1346,10 @@ TELAS.manuzel = () => {
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("chave")}Manutenção</h1><p>Mesmo painel do síndico — você executa e registra</p></div>
   ${filtroTorreHtml()}
+  ${elevadoresCard()}
   <div class="abas">
-    <button class="${abaManuZel==='contratuais'?'on':''}" onclick="abaManuZel='contratuais';atualizar()">🏢 Contratuais (${contratuais.length})</button>
-    <button class="${abaManuZel==='internas'?'on':''}" onclick="abaManuZel='internas';atualizar()">🔧 Internas (${internas.length})</button>
+    <button class="${abaManuZel==='contratuais'?'on':''}" onclick="abaManuZel='contratuais';atualizar()">${tIco('predio')}Contratuais (${contratuais.length})</button>
+    <button class="${abaManuZel==='internas'?'on':''}" onclick="abaManuZel='internas';atualizar()">${tIco('chave')}Internas (${internas.length})</button>
   </div>
   <div class="sub" style="margin:-4px 0 12px">${abaManuZel==='contratuais'
     ?'Empresa certificada executa: você acompanha a visita e arquiva o laudo dela (CNPJ e validade); o síndico confere e aprova.'
@@ -1162,6 +1359,63 @@ TELAS.manuzel = () => {
 </div>`;
 };
 let abaManuZel='contratuais';
+
+/* ===== ELEVADORES — zelador marca parada → comunicado automático pra torre ===== */
+/* Vários elevadores por torre: a mensagem cita qual parou e se há outro operando. */
+let elevadores=[
+  {torre:'A', nome:'Social',  status:'op'},
+  {torre:'A', nome:'Serviço', status:'op'},
+  {torre:'B', nome:'Social',  status:'op'}
+];
+function listaElev(arr){const n=arr.map(x=>x.nome); return n.length===1?n[0]:n.slice(0,-1).join(', ')+' e '+n.slice(-1);}
+function elevadoresCard(){
+  const list=elevadores.map((e,ix)=>({e,ix})).filter(x=>passaTorre(x.e.torre));
+  if(!list.length) return '';
+  const torres=[...new Set(list.map(x=>x.e.torre))];
+  return `<div class="item" style="border-left:3px solid var(--gold)">
+    <div class="linha1"><span class="nome">${tIco('elevador')}Elevadores</span><span class="chip cinza">sinal do prédio</span></div>
+    <div class="sub" style="margin:2px 0 8px">Marque a parada e o aviso vai sozinho pros moradores da torre — citando qual elevador parou e se há outro funcionando. No prédio integrado (telemetria/sensor), dispara automático.</div>
+    ${torres.map(t=>{const dt=list.filter(x=>x.e.torre===t);
+      return `<div style="padding:9px 0; border-top:1px solid var(--borda)">
+        <div style="font-weight:600; margin-bottom:3px">Torre ${t}</div>
+        ${dt.map(({e,ix})=>{const man=e.status==='man';
+          return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 0">
+            <div class="sub">${man?'🔴':'🟢'} ${e.nome} — ${man?'em manutenção':'operando'}</div>
+            <button class="btn ${man?'principal':'claro'}" style="flex:0 0 auto; padding:8px 12px; font-size:13px" onclick="toggleElevador(${ix})">${man?'✔ Voltou':'⚠ Parada'}</button>
+          </div>`;}).join('')}
+      </div>`;}).join('')}
+  </div>`;
+}
+function toggleElevador(ix){
+  const e=elevadores[ix]; if(!e) return;
+  const irmaos=elevadores.filter(x=>x.torre===e.torre);
+  const soUm=irmaos.length===1;
+  if(e.status==='op'){
+    e.status='man';
+    const outrosOp=irmaos.filter(x=>x!==e && x.status==='op');
+    let t,d;
+    if(soUm){ t=`🛗 Elevador da Torre ${e.torre} em manutenção`;
+      d='O elevador está em manutenção. Use a escada; avisaremos assim que normalizar. Equipe técnica acionada.'; }
+    else { t=`🛗 Elevador ${e.nome} da Torre ${e.torre} em manutenção`;
+      d=outrosOp.length
+        ? `O elevador ${e.nome} está em manutenção. O${outrosOp.length>1?'s':''} elevador${outrosOp.length>1?'es':''} ${listaElev(outrosOp)} segue${outrosOp.length>1?'m':''} funcionando normalmente.`
+        : `Atenção: todos os elevadores da Torre ${e.torre} estão parados no momento. Use a escada; equipe técnica acionada.`; }
+    avisos.unshift({t, d, quando:fdata(hoje), torre:e.torre, anexo:false, lidoPor:[], auto:true});
+    atualizar(); toast(`Parada registrada · comunicado enviado à Torre ${e.torre} ✅`);
+  } else {
+    e.status='op';
+    const aindaMan=irmaos.filter(x=>x!==e && x.status==='man');
+    let t,d;
+    if(soUm){ t=`✅ Elevador da Torre ${e.torre} normalizado`;
+      d='O elevador voltou a operar normalmente. Obrigado pela paciência.'; }
+    else { t=`✅ Elevador ${e.nome} da Torre ${e.torre} normalizado`;
+      d=aindaMan.length
+        ? `O elevador ${e.nome} voltou a operar. O${aindaMan.length>1?'s':''} elevador${aindaMan.length>1?'es':''} ${listaElev(aindaMan)} ainda ${aindaMan.length>1?'estão':'está'} em manutenção.`
+        : `Todos os elevadores da Torre ${e.torre} voltaram a operar normalmente. Obrigado pela paciência.`; }
+    avisos.unshift({t, d, quando:fdata(hoje), torre:e.torre, anexo:false, lidoPor:[], auto:true});
+    atualizar(); toast(`Normalização registrada · comunicado enviado à Torre ${e.torre} ✅`);
+  }
+}
 
 /* ===== RESERVAS (síndico vê agenda; morador reserva) ===== */
 function calendario(area, clicavel){
@@ -1212,7 +1466,7 @@ TELAS.reservas = () => `<div class="tela on">
   ${calendario(areaSel,false)}
   <h2>Próximas reservas</h2>
   ${proximasReservas(6).map(r=>`<div class="item">
-    <div class="linha1"><span class="nome">${r.area==='Churrasqueira'?'🍖':'🎉'} ${r.area}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.m).padStart(2,'0')}</span></div>
+    <div class="linha1"><span class="nome">${r.area}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.m).padStart(2,'0')}</span></div>
     <div class="sub">Reservado por ${r.un}</div>
   </div>`).join('')||'<div class="sub">Nenhuma reserva futura.</div>'}
 </div>`;
@@ -1221,8 +1475,8 @@ TELAS.reservas = () => `<div class="tela on">
 TELAS.encomendas = () => {
   const ag=encomendas.filter(e=>e.status==='aguardando'), hist=encomendas.filter(e=>e.status==='retirada');
   return `<div class="tela on">
-  <div class="topo"><h1>Portaria 👋</h1><p>${COND.nome} · ${fdata(hoje)}</p></div>
-  ${comandoEdi('Peça ao Edi… "o eletricista do 203 está autorizado?"')}
+  <div class="topo"><h1>Portaria</h1><p>${COND.nome} · ${fdata(hoje)}</p></div>
+  ${comandoEdi(`Peça ao ${nomeAssist}… "o eletricista do 203 está autorizado?"`)}
   <button class="btn principal btn-grande" onclick="novaEncomenda()">+ Registrar chegada</button>
   <h2>Aguardando retirada (${ag.length}) <span class="mais" onclick="irPara('visitantes')">${(n=>n===1?'1 visitante':n+' visitantes')(visitantes.filter(v=>v.status==='entrou').length)} no prédio ›</span></h2>
   ${ag.map(e=>`<div class="item" style="cursor:pointer" onclick="verEncomenda(${e.id})">
@@ -1268,7 +1522,7 @@ function novaEncomenda(){
     </div>
     <label>Transportadora</label>
     <select id="ne-tr"><option>Correios</option><option selected>Mercado Livre</option><option>Amazon</option><option>Shopee</option><option>Outra</option></select>
-    <button class="btn claro btn-grande" onclick="toast('📷 Foto registrada (simulação)')">📷 Tirar foto do pacote</button>
+    <button class="btn claro btn-grande" onclick="toast('📷 Foto registrada (simulação)')">${tIco('camera')}Tirar foto do pacote</button>
     <button class="btn principal btn-grande" onclick="salvarEncomenda()">Registrar e avisar morador</button>`);
   preencherUnidades('ne-torre','ne-un','B-408');
 }
@@ -1302,7 +1556,7 @@ TELAS.visitantes = () => {
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("porta")}Visitantes</h1><p>Lista de hoje · ${fdata(hoje)} · ${dentro.length} no prédio agora</p></div>
   <div class="botoes" style="margin-bottom:10px">
-    <button class="btn principal" style="padding:14px" onclick="validarQR()">📷 Validar QR do visitante</button>
+    <button class="btn principal" style="padding:14px" onclick="validarQR()">${tIco('camera')}Validar QR do visitante</button>
     <button class="btn claro" style="padding:14px" onclick="novaVisita()">+ Registrar na hora</button>
   </div>
   ${visitantes.map((v,ix)=>{
@@ -1386,12 +1640,10 @@ function fotoPacote(e){
     <rect x="96" y="20" width="8" height="46" fill="#e8dcc8" opacity=".85"/>
     <rect x="76" y="44" width="24" height="14" rx="1" fill="#fff"/>
     <rect x="78" y="47" width="20" height="2" fill="#9aa3b2"/><rect x="78" y="51" width="14" height="2" fill="#9aa3b2"/>
-    <rect x="0" y="78" width="200" height="14" fill="rgba(0,0,0,.45)"/>
-    <text x="6" y="88" font-size="8.5" fill="#fff" font-family="monospace">📷 ${e.chegada} · portaria · ${e.transp}</text>
   </svg>`;
 }
 function autorizarVisita(){
-  abrirModal(`<h3>👤 Autorizar visitante</h3>
+  abrirModal(`<h3>${tIco('pessoas')}Autorizar visitante</h3>
     <label>Nome do visitante</label><input id="av-n" placeholder="Ex.: Sandra Oliveira">
     <label>Tipo</label><select id="av-t"><option>Visita</option><option>Prestador</option></select>
     <label>Quando</label><select id="av-q"><option>Hoje</option><option>Amanhã</option></select>
@@ -1414,7 +1666,7 @@ function validarQR(){
   const ix=visitantes.findIndex(v=>v.status==='pré-autorizado');
   if(ix<0){ toast('Nenhum visitante pré-autorizado aguardando.'); return; }
   const v=visitantes[ix];
-  abrirModal(`<h3>📷 QR lido — válido ✅</h3>
+  abrirModal(`<h3>${tIco('camera')}QR lido — válido</h3>
     <div class="item" style="text-align:center; padding:14px">${qrSvg(v.nome+v.un,110)}</div>
     <div class="sub" style="margin:10px 0"><b>${v.nome}</b> · ${v.tipo} · pré-autorizado pelo <b>${v.un}</b></div>
     <button class="btn principal btn-grande" onclick="entrada(${ix})">Conferir documento e registrar entrada</button>
@@ -1452,31 +1704,31 @@ TELAS.mhome = () => {
   const minhaEnc = encomendas.find(e=>e.un===MORADOR.un && e.status==='aguardando');
   const reforma = ocorrencias.find(o=>o.un===MORADOR.un&&o.tipo==='Reforma'&&o.status==='em execução');
   const minhas = proximasReservas(99).filter(r=>r.un===MORADOR.un);
-  /* EXPERIMENTO Viva 3.0: home = barra de comando do Edi + feed "Agora"
+  /* EXPERIMENTO Viva 3.0: home = barra de comando do ${nomeAssist} + feed "Agora"
      curado por relevância. Intenção em vez de navegação; os atalhos ficam
      como fallback. Rollback: versoes/v2.38_*.html */
   return `<div class="tela on">
-  <div class="topo"><h1>Oi, ${MORADOR.nome.split(' ')[0]}! 👋</h1><p>${MORADOR.un} · ${MORADOR.papel} · ${COND.nome}</p></div>
+  <div class="topo"><h1>Oi, ${MORADOR.nome.split(' ')[0]}!</h1><p>${MORADOR.un} · ${MORADOR.papel} · ${COND.nome}</p></div>
 
   <div class="comando">
-    <input id="cmd-home" placeholder='Peça ao Edi… "reserva o salão sábado"' onkeydown="if(event.key==='Enter')ediHome()">
-    <button class="mic" aria-label="Falar com o Edi por voz" onclick="toast('No produto final: fale e o Edi resolve 🎙️')">${ico('microfone')}</button>
+    <input id="cmd-home" placeholder='Peça ao ${nomeAssist}… "reserva o salão sábado"' onkeydown="if(event.key==='Enter')ediHome()">
+    <button class="mic" aria-label="Falar com o ${nomeAssist} por voz" onclick="toast('No produto final: fale e o ${nomeAssist} resolve 🎙️')">${ico('microfone')}</button>
   </div>
   <div id="mhome-resposta"></div>
 
   <div class="secao">AGORA</div>
-  <div class="item"><div class="linha1"><span class="nome">✅ Você está em dia</span><span class="chip verde">taxa de junho paga</span></div>
-  <div class="sub">PIX em 03/06 · como inquilina, só as ordinárias (Lei 8.245/91)</div></div>
+  <div class="item"><div class="linha1"><span class="nome">${tIco('check')}Você está em dia</span><span class="chip verde">taxa de junho paga</span></div>
+  <div class="sub">PIX em 03/06 · como inquilina, você paga só as despesas ordinárias <span style="cursor:pointer; color:var(--verde-escuro); font-weight:600" onclick="toast('Lei do Inquilinato (8.245/91): despesas extraordinárias — como obras e fundo de reserva — são do proprietário, não do inquilino.')">(por quê?)</span></div></div>
   ${minhaEnc?`<div class="item" style="border-color:var(--laranja)">
-    <div class="linha1"><span class="nome">📦 Encomenda na portaria!</span><span class="chip laranja">${minhaEnc.transp}</span></div>
+    <div class="linha1"><span class="nome">${tIco('pacote')}Encomenda na portaria!</span><span class="chip laranja">${minhaEnc.transp}</span></div>
     <div style="display:flex; gap:10px; align-items:center; margin-top:8px">
       <div style="flex:0 0 92px">${fotoPacote(minhaEnc)}</div>
-      <div class="sub" style="margin:0">Chegou ${minhaEnc.chegada} · é essa caixa aí 👉</div>
+      <div class="sub" style="margin:0">Chegou ${minhaEnc.chegada} · é esta caixa, ao lado</div>
     </div></div>`:''}
   ${reforma?`<div class="item" style="border-color:var(--verde)">
-    <div class="linha1"><span class="nome">🔨 Sua reforma foi aprovada!</span><span class="chip verde">obra liberada</span></div>
+    <div class="linha1"><span class="nome">${tIco('martelo')}Sua reforma foi aprovada!</span><span class="chip verde">obra liberada</span></div>
     <div class="sub">${reforma.titulo} — condições no WhatsApp.</div></div>`:''}
-  ${minhas.length?`<div class="item"><div class="linha1"><span class="nome">${minhas[0].area==='Churrasqueira'?'🍖':'🎉'} Próxima reserva: ${minhas[0].area}</span><span class="chip verde">${String(minhas[0].d).padStart(2,'0')}/${String(minhas[0].m).padStart(2,'0')}</span></div></div>`:''}
+  ${minhas.length?`<div class="item"><div class="linha1"><span class="nome">Próxima reserva: ${minhas[0].area}</span><span class="chip verde">${String(minhas[0].d).padStart(2,'0')}/${String(minhas[0].m).padStart(2,'0')}</span></div></div>`:''}
 
   <div class="secao">ESTA SEMANA</div>
   ${enqueteHtml()}
@@ -1491,11 +1743,11 @@ TELAS.mhome = () => {
   </div>
 </div>`;
 };
-/* a barra de comando usa o MESMO motor do Edi — intenção vira ação ali mesmo.
+/* a barra de comando usa o MESMO motor do ${nomeAssist} — intenção vira ação ali mesmo.
    Uma por tela (mesmo id), com placeholder no dialeto de cada perfil. */
 const comandoEdi=ph=>`<div class="comando">
   <input id="cmd-home" placeholder='${ph}' onkeydown="if(event.key==='Enter')ediHome()">
-  <button class="mic" aria-label="Falar com o Edi por voz" onclick="toast('No produto final: fale e o Edi resolve 🎙️')">${ico('microfone')}</button>
+  <button class="mic" aria-label="Falar com o ${nomeAssist} por voz" onclick="toast('No produto final: fale e o ${nomeAssist} resolve 🎙️')">${ico('microfone')}</button>
 </div>
 <div id="mhome-resposta"></div>`;
 function ediHome(){
@@ -1503,7 +1755,7 @@ function ediHome(){
   $('#cmd-home').value='';
   const r=ediResponder(q);
   const a=$('#mhome-resposta');
-  if(a) a.innerHTML=`<div class="edi-linha" style="margin:12px 0 2px"><span class="edi-av">${ico('predio')}</span><div style="max-width:88%"><span class="edi-bolha">${r.t}${r.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">📎 ${r.fonte}</span>`:''}</span>${r.html||''}</div></div>`;
+  if(a) a.innerHTML=`<div class="edi-linha" style="margin:12px 0 2px"><span class="edi-av">${ico('predio')}</span><div style="max-width:88%"><span class="edi-bolha">${r.t}${r.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${r.fonte}</span>`:''}</span>${r.html||''}</div></div>`;
 }
 
 let areaSel='Salão de Festas';
@@ -1517,7 +1769,7 @@ TELAS.mreservar = () => `<div class="tela on">
   ${calendario(areaSel,true)}
   ${(()=>{const minhas=proximasReservas(99).filter(r=>r.un===MORADOR.un);
     return minhas.length?`<h2>Minhas reservas</h2>`+minhas.map(r=>`<div class="item">
-      <div class="linha1"><span class="nome">${r.area==='Churrasqueira'?'🍖':'🎉'} ${r.area}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.m).padStart(2,'0')}</span></div>
+      <div class="linha1"><span class="nome">${r.area}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.m).padStart(2,'0')}</span></div>
     </div>`).join(''):'';})()}
   <div class="aviso-lgpd">Regras: ${regras[areaSel].limite}${regras[areaSel].taxa?` · taxa de uso ${fmt(regras[areaSel].taxa)}`:' · sem taxa de uso'}. Tentou um dia ocupado? O sistema bloqueia — sem conflito, sem confusão.</div>
 </div>`;
@@ -1535,7 +1787,7 @@ function confirmarReserva(area,dia){
   fecharModal(); atualizar();
   const dataTxt=`${String(dia).padStart(2,'0')}/${String(calMes).padStart(2,'0')}/${calAno}`;
   const msg=`Reservei a ${area} do ${COND.nome} para ${dataTxt}! 🎉`;
-  abrirModal(`<h3>Reserva confirmada ✅</h3>
+  abrirModal(`<h3>${tIco('check')}Reserva confirmada</h3>
     <div class="sub" style="margin-bottom:14px">${area} · ${dataTxt} · ${MORADOR.un}</div>
     <a class="btn zap btn-grande" style="display:block" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}">Compartilhar no WhatsApp</a>
     <button class="btn claro btn-grande" onclick="fecharModal()">Fechar</button>`);
@@ -1557,7 +1809,7 @@ TELAS.compras = () => {
   const menor=Math.min(...c.cotacoes.map(x=>x.v));
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("carrinho")}Compras</h1><p>Solicitação do zelador · ${fdata(hoje)}</p></div>
-  <div class="item"><div class="linha1"><span class="nome">📋 Itens no ponto de reposição</span><span class="chip laranja">solicitado pelo zelador</span></div>
+  <div class="item"><div class="linha1"><span class="nome">${tIco('prancheta')}Itens no ponto de reposição</span><span class="chip laranja">solicitado pelo zelador</span></div>
   <div class="sub">${c.itens.map(i=>`${i[0]} ×${i[1]}`).join(' · ')}</div></div>
   ${c.status==='cotacao'?(()=>{
     if(c.sel===undefined) c.sel=c.cotacoes.findIndex(x=>x.v===menor); /* pré-seleciona o melhor preço */
@@ -1635,8 +1887,8 @@ function mudarMesCC(delta){
 TELAS.ccontas = () => {
   const F=FIN[mesCC], saldo=F.rec-F.desp;
   return `<div class="tela on">
-  <div class="topo"><h1>Conselho fiscal 👋</h1><p>Acesso somente leitura — os mesmos números do síndico</p></div>
-  ${comandoEdi(`Peça ao Edi… "resume as contas de ${F.nome.toLowerCase()}"`)}
+  <div class="topo"><h1>Conselho fiscal</h1><p>Acesso somente leitura — os mesmos números do síndico</p></div>
+  ${comandoEdi(`Peça ao ${nomeAssist}… "resume as contas de ${F.nome.toLowerCase()}"`)}
   <div class="secao">COMPETÊNCIA</div>
   <div class="abas" style="align-items:center">
     <button class="chip ${FIN[mesCC-1]?'verde':'cinza'}" style="border:none; flex:0 0 auto" onclick="mudarMesCC(-1)" aria-label="Mês anterior">‹ ant.</button>
@@ -1667,7 +1919,7 @@ TELAS.ccontas = () => {
   <h2>Lançamentos de ${F.nome.toLowerCase()} (com comprovante)</h2>
   ${F.lanc.map((l,ix)=>`<div class="item">
     <div class="linha1"><span class="nome" style="font-size:.88rem">${l.t}</span><span class="chip ${l.v>0?'verde':'cinza'}">${fmt(l.v)}</span></div>
-    <div class="sub">${l.d} · ${l.nf!=='—'?`<button class="chip verde" style="border:none; cursor:pointer" onclick="verComprovante(${ix})">📎 ${l.nf} — ver nota</button>`:'sem comprovante (receita)'}</div>
+    <div class="sub">${l.d} · ${l.nf!=='—'?`<button class="chip verde" style="border:none; cursor:pointer" onclick="verComprovante(${ix})">${clip()}${l.nf} — ver nota</button>`:'sem comprovante (receita)'}</div>
   </div>`).join('')}
   <div class="aviso-lgpd">Cada despesa tem comprovante anexado — é isso que permite ao conselho emitir o parecer do art. 1.356 sem pedir papelada ao síndico. O parecer é registrado por competência.</div>
 </div>`;
@@ -1676,7 +1928,7 @@ function verComprovante(ix, finKey){
   const l=FIN[finKey??mesCC].lanc[ix];
   /* volta pra prestação do mês certo ao fechar — sem quebrar o fluxo de quem veio do balancete */
   const voltar = finKey!==undefined ? `verPrestacao(${finKey})` : 'fecharModal()';
-  abrirModal(`<h3>📎 ${l.nf}</h3>
+  abrirModal(`<h3>${clip()}${l.nf}</h3>
     <div class="item" style="background:var(--cinza-claro); font-family:monospace; font-size:.78rem; line-height:1.7">
       <b>NOTA FISCAL / COMPROVANTE</b> <span class="chip cinza">simulação</span><br><br>
       <b>Descrição:</b> ${l.t}<br><b>Data:</b> ${l.d}/2026<br><b>Valor:</b> ${fmt(Math.abs(l.v))}<br><b>Documento:</b> ${l.nf}<br><br>
@@ -1700,24 +1952,43 @@ TELAS.cdocs = () => `<div class="tela on">
 </div>`;
 
 /* ===== AJUSTES — "deixe do seu jeito" (progresso + conversão por valor) ===== */
+/* "Terminar configuração" = assistente passo a passo (mesmo modelo do onboarding),
+   percorrendo só o que falta, 1 item por passo. */
 TELAS.ajustes = () => {
-  const p=setupProgresso();
+  const totalGeral=setupItens.length, feitosGeral=setupItens.filter(i=>i.feito).length;
+  if(ajStep >= ajLista.length){
+    return `<div class="tela on">
+      <div class="topo"><h1>${tIco('check')}Configuração concluída</h1><p>Seu ${MARCA} está redondo — os detalhes finos você ajusta quando for usar cada parte.</p></div>
+      <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="linha1"><span class="nome">${Math.round(feitosGeral/totalGeral*100)}% pronto</span><span class="chip verde">${feitosGeral} de ${totalGeral}</span></div>
+      <div class="sub" style="margin-top:6px">Pode reabrir qualquer ajuste pelas telas do app. Nada trava o uso.</div></div>
+      <button class="item" style="width:100%; text-align:left; display:block" onclick="irPara('fontesEdi')">
+        <div class="linha1"><span class="nome">${tIco('robo')}Fontes do ${nomeAssist}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip cinza">treinar</span><span style="color:var(--cinza)">›</span></span></div>
+        <div class="sub">O que o assistente leu pra responder aos moradores — convenção, regimento, atas.</div>
+      </button>
+      ${cardConversao()}
+      <div style="margin-top:8px"><button class="btn principal btn-grande" onclick="irPara('inicio')">Ir pro painel ›</button></div>
+    </div>`;
+  }
+  const it=setupItens.find(x=>x.k===ajLista[ajStep]);
+  const seg=ajLista.map((k,i)=>`<span style="flex:1; height:5px; border-radius:99px; background:${i<=ajStep?'var(--verde)':'var(--cinza-claro)'}"></span>`).join('');
+  const labels=ajLista.map((k,i)=>{const o=setupItens.find(x=>x.k===k); return `<span style="flex:1; text-align:center; font-size:.62rem; line-height:1.2; font-weight:${i===ajStep?'700':'500'}; color:${i===ajStep?'var(--verde-escuro)':'var(--cinza)'}">${o.nome.split(' ')[0]}</span>`;}).join('');
   return `<div class="tela on">
-  <div class="topo"><h1>${tIco("prancheta")}Deixe o ${MARCA} do seu jeito</h1><p>Sem formulário chato: cada item é um toque, já vem com padrão pronto</p></div>
-  <div class="item" style="background:var(--verde-claro); border-color:#bce3d6">
-    <div class="linha1"><span class="nome">${p.pct}% pronto</span><span class="chip verde">${p.feitos} de ${p.total}</span></div>
-    <div class="cat-trilha" style="margin-top:8px; height:10px"><div class="cat-barra" style="width:${p.pct}%"></div></div>
-    <div class="sub" style="margin-top:6px">${p.pct>=100?'Tudo no capricho! 🎉':'Você já pode usar tudo — isto é só pra deixar redondo. Nada trava enquanto falta.'}</div>
-  </div>
-  <h2>O que dá pra ajustar (1 toque cada)</h2>
-  ${setupItens.map((i,ix)=>`<div class="item" ${i.feito?'style="opacity:.6"':''}>
-    <div class="linha1"><span class="nome" style="font-size:.92rem">${i.feito?'✔ ':''}${i.nome}</span><span class="chip ${i.feito?'verde':'cinza'}">${i.feito?'pronto':'~'+i.min+' min'}</span></div>
-    <div class="sub">${i.desc}</div>
-    ${!i.feito?`<div class="botoes"><button class="btn principal" onclick="setupFazer('${i.k}')">Configurar agora</button><button class="btn claro" onclick="toast('Sem pressa — fica aqui quando você quiser 😉')">Depois</button></div>`:''}
-  </div>`).join('')}
-  ${cardConversao()}
-</div>`;
+    <div class="topo"><h1>${tIco('prancheta')}Terminar configuração</h1><p>Vamos fechar o que falta — um de cada vez, já com padrão pronto.</p></div>
+    <div style="display:flex; gap:5px; margin:4px 0 5px">${seg}</div>
+    <div style="display:flex; gap:5px; margin-bottom:14px">${labels}</div>
+    <h2 style="margin-top:0">${tIco(it.ic)}${it.nome}</h2>
+    <div class="sub" style="margin-bottom:12px">${it.desc}.</div>
+    <div class="item" style="border-color:var(--verde)"><div class="sub" style="margin:0">${it.assist||'Já vem com um padrão pronto. Toque em <b>Configurar</b> e ajuste os detalhes depois, quando for usar.'}</div></div>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px">
+      <button onclick="ajVoltar()" style="background:none; border:none; color:var(--cinza); font-weight:600; font-family:inherit; font-size:.92rem; padding:10px 4px; cursor:pointer">‹ Voltar</button>
+      <span style="display:flex; gap:8px"><button class="btn claro" style="width:auto; flex:0 0 auto; padding:12px 16px" onclick="ajPular()">Pular</button><button class="btn principal" style="width:auto; flex:0 0 auto; padding:12px 20px" onclick="ajConfigurar('${it.k}')">Configurar ›</button></span>
+    </div>
+  </div>`;
 };
+function abrirAjustes(){ ajLista=setupItens.filter(i=>!i.feito).map(i=>i.k); ajStep=0; irPara('ajustes'); }
+function ajConfigurar(k){ const i=setupItens.find(x=>x.k===k); if(i)i.feito=true; const msgs={areas:'Áreas comuns criadas com regras padrão ✅',portaria:'Portaria pronta — é só abrir no tablet ✅',equipe:'Equipe e escala registradas ✅',prest:'Prestadores cadastrados e ligados à triagem ✅'}; ajStep++; atualizar(); toast(msgs[k]||'Configurado ✅'); }
+function ajPular(){ ajStep++; atualizar(); }
+function ajVoltar(){ if(ajStep>0){ ajStep--; atualizar(); } else { irPara('inicio'); } }
 function setupFazer(k){
   const i=setupItens.find(x=>x.k===k); if(i) i.feito=true;
   const msgs={areas:'Áreas comuns criadas com regras padrão — ajuste fino quando quiser ✅',portaria:'Portaria pronta — é só abrir no tablet da entrada ✅',equipe:'Equipe e escala registradas ✅',prest:'Prestadores cadastrados e ligados à triagem ✅'};
@@ -1732,7 +2003,7 @@ function cardConversao(){
   return `<h2>Seu período de teste</h2>
   <div class="item" style="border-color:var(--verde)">
     <div class="linha1"><span class="nome">No teste, o ${MARCA} já te entregou:</span><span class="chip verde">14 dias grátis</span></div>
-    <div class="sub" style="margin-top:6px">💰 ${fmt(recuperado)} em cobranças prontas pra recuperar<br>🔧 2 manutenções vencidas achadas a tempo (evita multa)<br>📅 reservas sem conflito · Edi respondendo aos moradores</div>
+    <div class="sub" style="margin-top:6px">💰 ${fmt(recuperado)} em cobranças prontas pra recuperar<br>🔧 2 manutenções vencidas achadas a tempo (evita multa)<br>📅 reservas sem conflito · ${nomeAssist} respondendo aos moradores</div>
     <div class="botoes"><button class="btn principal" onclick="planoModal()">Ativar plano — R$ 2/unidade/mês</button></div>
     <div class="aviso-lgpd">Sem fidelidade, sem multa pra sair, seus dados sempre exportáveis. Você assina porque já viu funcionar.</div>
   </div>`;
@@ -1740,7 +2011,7 @@ function cardConversao(){
 function planoModal(){
   abrirModal(`<h3>Ativar o ${MARCA}</h3>
     <div class="sub" style="margin-bottom:12px">60 unidades × R$ 2 = <b>R$ 120/mês</b>. Menos que uma hora de um chamado de manutenção que o sistema te ajuda a evitar.</div>
-    <div class="item"><div class="sub" style="margin:0">✔ Todos os módulos e perfis · ✔ Edi ilimitado · ✔ suporte por WhatsApp nos primeiros 60 dias · ✔ export total dos dados a qualquer momento</div></div>
+    <div class="item"><div class="sub" style="margin:0">✔ Todos os módulos e perfis · ✔ ${nomeAssist} ilimitado · ✔ suporte por WhatsApp nos primeiros 60 dias · ✔ export total dos dados a qualquer momento</div></div>
     <button class="btn principal btn-grande" onclick="fecharModal();toast('No produto final: ativa o plano (PIX ou cartão) sem sair do app 💳')">Quero ativar</button>
     <button class="btn claro btn-grande" onclick="fecharModal()">Continuar no teste</button>`);
 }
@@ -1756,9 +2027,9 @@ TELAS.fontesEdi = () => {
   const treinadas=ediFontes.filter(f=>f.status==='treinado');
   const totalTrechos=ediFontes.reduce((s,f)=>s+f.trechos,0);
   return `<div class="tela on">
-  <div class="topo"><h1>${tIco('robo')}Fontes do Edi</h1><p>O que o assistente leu pra responder aos moradores</p></div>
+  <div class="topo"><h1>${tIco('robo')}Fontes do ${nomeAssist}</h1><p>O que o assistente leu pra responder aos moradores</p></div>
   <div class="item" style="background:var(--verde-claro); border-color:#bce3d6">
-    <div class="linha1"><span class="nome"><span class="ico-in">${ico('predio')}</span> Edi treinado com ${treinadas.length} de ${ediFontes.length} fontes</span><span class="chip verde">${totalTrechos} trechos indexados</span></div>
+    <div class="linha1"><span class="nome"><span class="ico-in">${ico('predio')}</span> ${nomeAssist} treinado com ${treinadas.length} de ${ediFontes.length} fontes</span><span class="chip verde">${totalTrechos} trechos indexados</span></div>
     <div class="sub">Ele responde citando a fonte (artigo, cláusula ou ata + data) e, quando não acha nos documentos, encaminha pra você — nunca inventa.</div>
   </div>
   <h2>Documentos</h2>
@@ -1768,20 +2039,20 @@ TELAS.fontesEdi = () => {
     <div class="botoes">
       ${f.status==='treinado'
         ? `<button class="btn claro" onclick="toast('No produto final: abre o PDF 📄')">Abrir</button><button class="btn claro" onclick="ediTrocar(${ix})">Atualizar versão</button>`
-        : `<button class="btn principal" onclick="ediTreinar(${ix})">📎 Anexar e treinar</button>`}
+        : `<button class="btn principal" onclick="ediTreinar(${ix})">${clip()}Anexar e treinar</button>`}
     </div>
   </div>`).join('')}
   <div class="botoes"><button class="btn claro btn-grande" onclick="ediNovaFonte()">+ Adicionar outro documento</button></div>
-  <h2>Testar o Edi</h2>
+  <h2>Testar o ${nomeAssist}</h2>
   <div class="comando" style="margin-bottom:8px">
     <input id="fe-teste" placeholder='Pergunte como um morador… "pode reforma no sábado?"' onkeydown="if(event.key==='Enter')ediTestar()">
     <button class="mic" aria-label="Perguntar" onclick="ediTestar()">${ico('enviar')}</button>
   </div>
   <div id="fe-resp"></div>
-  <div class="aviso-lgpd">O Edi responde só com base nos documentos deste condomínio. Atas mais recentes prevalecem sobre regras antigas — decisão nova da assembleia atualiza a resposta automaticamente.</div>
+  <div class="aviso-lgpd">O ${nomeAssist} responde só com base nos documentos deste condomínio. Atas mais recentes prevalecem sobre regras antigas — decisão nova da assembleia atualiza a resposta automaticamente.</div>
 </div>`;
 };
-function ediTreinar(ix){ ediFontes[ix].status='treinado'; ediFontes[ix].trechos=Math.floor(Math.random()*30)+12; toast(`${ediFontes[ix].nome} treinado — Edi já considera este documento ✅`); atualizar(); }
+function ediTreinar(ix){ ediFontes[ix].status='treinado'; ediFontes[ix].trechos=Math.floor(Math.random()*30)+12; toast(`${ediFontes[ix].nome} treinado — ${nomeAssist} já considera este documento ✅`); atualizar(); }
 function ediTrocar(ix){ toast(`No produto final: sobe a nova versão de "${ediFontes[ix].nome}" e reindexada na hora 🔄`); }
 function ediNovaFonte(){ ediFontes.push({k:'extra'+ediFontes.length, nome:'Novo documento', desc:'anexado agora', status:'treinado', trechos:Math.floor(Math.random()*20)+8}); toast('Documento anexado e treinado ✅'); atualizar(); }
 function ediTestar(){
@@ -1789,7 +2060,7 @@ function ediTestar(){
   if(!q) return;
   const hit=REGRAS_BASE.find(b=>b.chaves.some(c=>q.toLowerCase().includes(c)));
   const resp = hit
-    ? `<div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="sub" style="margin:0">${hit.r}<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">📎 ${hit.fonte}</span></div></div>`
+    ? `<div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="sub" style="margin:0">${hit.r}<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${hit.fonte}</span></div></div>`
     : `<div class="item"><div class="sub" style="margin:0">Não encontrei isso nos documentos deste condomínio. No produto final eu encaminharia a dúvida pra você decidir — sem inventar resposta.</div></div>`;
   document.getElementById('fe-resp').innerHTML=resp;
 }
@@ -1874,7 +2145,7 @@ TELAS.livro = () => `<div class="tela on">
 function novaLivro(){
   abrirModal(`<h3>📖 Nova ocorrência do livro</h3>
     <label>O que aconteceu?</label><input id="lv-t" placeholder="Ex.: infiltração na parede da vaga 8">
-    <button class="btn claro btn-grande" onclick="toast('📷 Foto anexada (simulação)')">📷 Anexar foto</button>
+    <button class="btn claro btn-grande" onclick="toast('📷 Foto anexada (simulação)')">${tIco('camera')}Anexar foto</button>
     <label>Destino</label>
     <select id="lv-d"><option>Só registrar no livro</option><option>Encaminhar ao síndico (decisão/gasto)</option></select>
     <button class="btn principal btn-grande" onclick="salvarLivro()">Registrar</button>`);
@@ -1949,7 +2220,7 @@ function verPrestacao(finKey){
     </div>
     <div class="sub" style="font-weight:700; margin:14px 0 6px">Lançamentos (com comprovante)</div>
     ${F.lanc.map((l,ix)=>`<div class="item"><div class="linha1"><span class="nome" style="font-size:.86rem">${l.t}</span><span class="chip ${l.v>0?'verde':'cinza'}">${fmt(l.v)}</span></div>
-      <div class="sub">${l.d} · ${l.nf!=='—'?`<button class="chip verde" style="border:none; cursor:pointer" onclick="verComprovante(${ix},${finKey})">📎 ${l.nf} — ver nota</button>`:'receita'}</div></div>`).join('')}
+      <div class="sub">${l.d} · ${l.nf!=='—'?`<button class="chip verde" style="border:none; cursor:pointer" onclick="verComprovante(${ix},${finKey})">${clip()}${l.nf} — ver nota</button>`:'receita'}</div></div>`).join('')}
     <button class="btn principal btn-grande" onclick="verBalancete()">‹ Voltar ao gráfico</button>
     <div class="aviso-lgpd">Cada despesa com comprovante — o síndico vê tudo que o conselho vê, e ainda lança e aprova. Transparência por competência.</div>`);
 }
@@ -1968,20 +2239,20 @@ let rotina = [
 const ESCALA_HOJE='Carlos (zelador) 7h–16h · João (porteiro) 6h–18h · Pedro (porteiro) 18h–6h · Maria (auxiliar) 8h–17h';
 TELAS.rotina = () => {
   const feitos=rotina.filter(r=>r.feito).length;
-  /* home do zelador no padrão CondoX: Header → Hero (progresso do dia + Edi) → ações → escala → tarefas */
+  /* home do zelador no padrão CondoX: Header → Hero (progresso do dia + ${nomeAssist}) → ações → escala → tarefas */
   return `<div class="tela on">
-  <div class="topo"><h1>Olá, Carlos 👋</h1><p>zelador · ${COND.nome}</p></div>
-  ${comandoEdi('Peça ao Edi… "portão não abre, e agora?"')}
+  <div class="topo"><h1>Olá, Carlos</h1><p>zelador · ${COND.nome}</p></div>
+  ${comandoEdi(`Peça ao ${nomeAssist}… "portão não abre, e agora?"`)}
   <div class="secao">HOJE</div>
   <div class="item">
-    <div class="linha1"><span class="nome">✅ Rotina: ${feitos} de ${rotina.length} feitas</span><span class="chip ${feitos===rotina.length?'verde':'laranja'}">${rotina.length-feitos} pendentes</span></div>
+    <div class="linha1"><span class="nome">${tIco('check')}Rotina: ${feitos} de ${rotina.length} feitas</span><span class="chip ${feitos===rotina.length?'verde':'laranja'}">${rotina.length-feitos} pendentes</span></div>
     <div class="cat-trilha" style="margin-top:8px; height:8px"><div class="cat-barra" style="width:${Math.round(feitos/rotina.length*100)}%"></div></div>
   </div>
   <div class="botoes" style="margin-bottom:12px">
     <button class="btn perigo" onclick="emergencia()">🚨 Emergência</button>
     <button class="btn claro" onclick="passagemTurno()">🔄 Passagem de turno</button>
   </div>
-  <div class="item"><div class="linha1"><span class="nome">👥 Escala de hoje</span></div><div class="sub">${ESCALA_HOJE}</div></div>
+  <div class="item"><div class="linha1"><span class="nome">${tIco('pessoas')}Escala de hoje</span></div><div class="sub">${ESCALA_HOJE}</div></div>
   ${rotina.map((r,ix)=>`<div class="item ${r.feito?'feito':''}">
     <div class="linha1"><span class="nome">${r.feito?'✔ ':''}${r.t}</span><span class="chip ${r.feito?'verde':'cinza'}">${r.freq}</span></div>
     <div class="sub">responsável: <b>${r.resp}</b>${r.leitura?` · leitura registrada: <b>${r.leitura}</b>`:''}</div>
@@ -2051,7 +2322,7 @@ TELAS.fornecedores = () => {
   ${comContrato.map((p,_)=>{const ix=PRESTADORES.indexOf(p); return `<div class="item" ${p.contrato.vencendo?'style="border-color:var(--laranja)"':''}>
     <div class="linha1"><span class="nome">${p.nome}</span>${p.contrato.vencendo?'<span class="chip laranja">contrato vence 15/07</span>':`<span class="chip verde">vigente</span>`}</div>
     <div class="sub">atende: ${p.atende}${p.contrato.valor?` · ${fmt(p.contrato.valor)}/mês`:''} · vigência: ${p.contrato.fim} · ${p.aval?`★${p.aval.toFixed(1)}`:''}</div>
-    <div class="sub">📎 ${p.docs}</div>
+    <div class="sub">${clip()}${p.docs}</div>
     <div class="botoes" style="align-items:center">
       ${p.contrato.vencendo?`<button class="btn principal" onclick="toast('No produto final: abre a renegociação com 2-3 cotações — renovar no automático é vício de gestão 📊')">Renegociar contrato</button>`:'<button class="btn claro" onclick="toast(\'No produto final: contrato e certificados em PDF 📄\')">Ver documentos</button>'}
       ${p.contrato.vencendo?`<button class="btn-ic doc" aria-label="Ver documentos" onclick="toast('No produto final: contrato e certificados em PDF 📄')">📎</button>`:''}
@@ -2060,7 +2331,7 @@ TELAS.fornecedores = () => {
   <h2>Avulsos avaliados (${avulsos.length})</h2>
   ${avulsos.map(p=>`<div class="item">
     <div class="linha1"><span class="nome">${p.nome}</span>${p.aval?`<span class="chip verde">★${p.aval.toFixed(1)}</span>`:'<span class="chip cinza">emergência</span>'}</div>
-    <div class="sub">atende: ${p.atende} · 📎 ${p.docs}</div>
+    <div class="sub">atende: ${p.atende} · ${clip()}${p.docs}</div>
     <div class="botoes" style="justify-content:flex-end"><a class="btn-ic zap" aria-label="Chamar no WhatsApp" target="_blank" href="https://wa.me/${p.tel}">${ico('balao')}</a></div>
   </div>`).join('')}
   <div class="aviso-lgpd">Contrato vencendo gera alerta 60 dias antes — tempo de cotar de novo em vez de renovar no piloto automático. Cada serviço executado pede avaliação, e a nota aparece na triagem do zelador.</div>
@@ -2107,12 +2378,12 @@ TELAS.triagem = () => `<div class="tela on">
     ${['Lâmpada do hall queimada','Elevador parado','Cheiro de gás na garagem','Ralo entupido','Trinca na fachada'].map(s=>`<button class="chip cinza" style="border:none" onclick="triar('${s}')">${s}</button>`).join('')}
   </div>
   ${triagemResultado?`<div class="item" style="border-color:${triagemResultado.lado==='interno'?'var(--verde)':'var(--vermelho)'}">
-    <div class="linha1"><span class="nome">${triagemResultado.lado==='interno'?'🔧 Resolve internamente':'🚨 Chamar prestador'}</span>
+    <div class="linha1"><span class="nome">${triagemResultado.lado==='interno'?tIco('chave')+'Resolve internamente':tIco('alerta')+'Chamar prestador'}</span>
     <span class="chip ${triagemResultado.lado==='interno'?'verde':'vermelho'}">${triagemResultado.lado}</span></div>
     <div class="sub" style="margin-top:6px">${triagemResultado.r}</div>
     ${(()=>{const p=triagemResultado.prest&&PRESTADORES.find(x=>x.key===triagemResultado.prest);
       return p?`<div class="item" style="margin-top:8px; background:var(--verde-claro); border-color:#bce3d6">
-      <div class="linha1"><span class="nome">📒 ${p.nome}</span></div><div class="sub">${p.info}</div>
+      <div class="linha1"><span class="nome">${tIco('caderno')}${p.nome}</span></div><div class="sub">${p.info}</div>
       <div class="botoes"><a class="btn zap" target="_blank" href="https://wa.me/${p.tel}?text=${encodeURIComponent('Olá! Aqui é o zelador do '+COND.nome+'. Precisamos de atendimento: '+(document.querySelector('#tg-in')?.value||'ver triagem'))}">Chamar no WhatsApp</a>
       <a class="btn claro" href="tel:${p.tel}">📞 Ligar</a></div></div>`:'';})()}
     ${triagemResultado.lado==='prestador'?`<div class="msg-preview" style="margin-top:8px">📋 Checklist do síndico: 2-3 orçamentos por escrito · nota fiscal · certificado/laudo/ART quando aplicável · registrar no livro de ocorrências</div>
@@ -2140,7 +2411,7 @@ TELAS.estoque = () => {
   const baixo=estoque.filter(e=>e.qtd<e.min);
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("prancheta")}Estoque</h1><p>Pedir quando chega no mínimo, não quando acaba</p></div>
-  ${baixo.length?`<div class="item" style="border-color:var(--laranja)"><div class="linha1"><span class="nome">🛒 Lista de compra pro síndico</span><span class="chip laranja">${baixo.length} itens no ponto de reposição</span></div>
+  ${baixo.length?`<div class="item" style="border-color:var(--laranja)"><div class="linha1"><span class="nome">${tIco('carrinho')}Lista de compra pro síndico</span><span class="chip laranja">${baixo.length} itens no ponto de reposição</span></div>
   <div class="botoes"><a class="btn zap" target="_blank" href="https://wa.me/?text=${encodeURIComponent('Lista de reposição — '+COND.nome+':\n'+baixo.map(e=>`• ${e.item}: restam ${e.qtd} ${e.unidade} (mínimo ${e.min})`).join('\n'))}">Enviar lista no WhatsApp</a></div></div>`:''}
   ${(()=>{ /* uma linha por item: − [qtd · mín] + — quem repõe são os dedos, não os olhos */
     const linha=e=>{const ix=estoque.indexOf(e);
@@ -2178,11 +2449,11 @@ function reabrirOcorrencia(id){
   atualizar(); toast('Reaberta — morador avisado no WhatsApp ↩');
 }
 function artLink(o){
-  return o.art?`<div class="sub" style="margin-top:5px"><button class="chip verde" style="border:none; cursor:pointer" onclick="verART(${o.id})">📎 Ver ART anexada — ${o.art.arquivo}</button></div>`:'';
+  return o.art?`<div class="sub" style="margin-top:5px"><button class="chip verde" style="border:none; cursor:pointer" onclick="verART(${o.id})">${clip()}Ver ART anexada — ${o.art.arquivo}</button></div>`:'';
 }
 function verART(id){
   const o=ocorrencias.find(x=>x.id===id);
-  abrirModal(`<h3>📎 ${o.art.arquivo}</h3>
+  abrirModal(`<h3>${clip()}${o.art.arquivo}</h3>
     <div class="item" style="background:var(--cinza-claro); font-family:monospace; font-size:.78rem; line-height:1.7">
       <b>ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA — ART</b><br>
       CREA-SP · Nº 2026-08812 <span class="chip cinza">simulação</span><br><br>
@@ -2203,8 +2474,8 @@ TELAS.mfalar = () => {
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("balao")}Falar com o síndico</h1><p>Sugestões e reclamações com resposta e status</p></div>
   <div class="botoes" style="margin-top:6px">
-    <button class="btn principal" style="padding:14px" onclick="novaOcorrencia()">💡 Sugestão ou reclamação</button>
-    <button class="btn principal" style="padding:14px; background:var(--laranja)" onclick="novaReforma()">🔨 Comunicar reforma</button>
+    <button class="btn principal" style="padding:14px; display:flex; align-items:center; justify-content:center; line-height:1.2" onclick="novaOcorrencia()">${tIco('lampada')}Sugestão ou reclamação</button>
+    <button class="btn principal" style="padding:14px; background:var(--laranja); display:flex; align-items:center; justify-content:center; line-height:1.2" onclick="novaReforma()">${tIco('martelo')}Comunicar reforma</button>
   </div>
   <h2>Minhas solicitações (${minhas.length})</h2>
   ${minhas.map(o=>{let c=chipOcorrencia(o.status);
@@ -2227,7 +2498,7 @@ function novaOcorrencia(){
     <select id="oc-tipo"><option>Sugestão</option><option>Reclamação</option></select>
     <label>Título</label><input id="oc-titulo" placeholder="Ex.: Lâmpada queimada no hall do 3º andar">
     <label>Descreva</label><input id="oc-desc" placeholder="Conte o que aconteceu ou sua ideia">
-    <button class="btn claro btn-grande" onclick="toast('📷 Foto anexada (simulação)')">📷 Anexar foto (opcional)</button>
+    <button class="btn claro btn-grande" onclick="toast('📷 Foto anexada (simulação)')">${tIco('camera')}Anexar foto (opcional)</button>
     <button class="btn principal btn-grande" onclick="enviarOcorrencia()">Enviar para o síndico</button>`);
 }
 function enviarOcorrencia(){
@@ -2240,7 +2511,7 @@ function enviarOcorrencia(){
 
 function novaReforma(){
   window._artAnexada=false;
-  abrirModal(`<h3>🔨 Comunicar reforma</h3>
+  abrirModal(`<h3>${tIco('martelo')}Comunicar reforma</h3>
     <div class="sub" style="margin-bottom:12px">A comunicação prévia ao síndico é exigência da NBR 16.280 — e protege você em caso de questionamento.</div>
     <label>O que será feito? <span style="color:var(--vermelho)">*</span></label><input id="rf-titulo" placeholder="Ex.: troca de piso da sala e cozinha">
     <label>Início previsto e duração <span style="color:var(--vermelho)">*</span></label><input id="rf-periodo" placeholder="Ex.: 22/06, cerca de 3 semanas">
@@ -2259,7 +2530,7 @@ function novaReforma(){
     <label>Tem responsável técnico (ART/RRT)?</label>
     <select id="rf-art" onchange="document.getElementById('rf-art-up').style.display=this.value==='Sim'?'block':'none'"><option>Sim</option><option>Não</option></select>
     <div id="rf-art-up">
-      <button class="btn claro btn-grande" id="rf-art-btn" onclick="anexarART()">📎 Anexar ART/RRT (PDF) — obrigatório</button>
+      <button class="btn claro btn-grande" id="rf-art-btn" onclick="anexarART()">${clip()}Anexar ART/RRT (PDF) — obrigatório</button>
     </div>
     <button class="btn principal btn-grande" style="background:var(--laranja)" onclick="enviarReforma()">Enviar comunicado ao síndico</button>`);
 }
@@ -2376,7 +2647,7 @@ function enviarRespostaMorador(id){
 }
 function aprovarReforma(id){
   const o=ocorrencias.find(x=>x.id===id);
-  abrirModal(`<h3>🔨 Aprovar reforma — ${o.un}</h3>
+  abrirModal(`<h3>${tIco('martelo')}Aprovar reforma — ${o.un}</h3>
     <div class="sub" style="margin-bottom:10px">"${o.desc}"</div>
     <div class="sub" style="font-weight:700; margin-bottom:6px">Condições padrão (NBR 16.280 + regimento):</div>
     <div class="item"><div class="sub">✔ ART/RRT do responsável técnico arquivada antes do início<br>✔ Horários: seg–sex 8h–17h, sáb 9h–13h — domingos e feriados, não<br>✔ Trabalhadores cadastrados na portaria (documento com foto)<br>✔ Elevador de serviço com proteção instalada<br>✔ Entulho em caçamba própria — proibido na lixeira comum<br>✔ Comunicar conclusão para registro no histórico da unidade</div></div>
@@ -2501,7 +2772,7 @@ const REGRAS_BASE = [
    Personalidade: porteiro veterano digital — fala simples, cita a fonte, resolve.
    Princípios: ação sensível sempre tem confirmação humana; não revela dado de outra
    unidade além do que o perfil já vê; quando não sabe, encaminha — nunca inventa. */
-let chatEdi=[{de:'bot', t:'Oi! Eu sou o Edi, o assistente do prédio. Pergunte uma regra (eu cito o artigo) ou me peça algo — eu preparo e você só confirma.'}];
+let chatEdi=[{de:'bot', t:`Oi! Eu sou o ${nomeAssist}, o assistente do prédio. Pergunte uma regra (eu cito o artigo) ou me peça algo — eu preparo e você só confirma.`}];
 const EDI_CHIPS={
   morador:['Reserva o salão num sábado','2ª via da taxa','Minha encomenda chegou?','Pode festa até que horas?'],
   sindico:['Quem deve há mais de 60 dias?','Resume as contas de maio','O que está vencido na manutenção?','Horário de obra?'],
@@ -2618,28 +2889,28 @@ function falarEdi(txt){
 TELAS.mregras = () => `<div class="tela on">
   <div class="topo" style="display:flex; align-items:center; gap:12px">
     <div class="edi-av" style="flex:0 0 46px; width:46px; height:46px; background:#fff">${ico('predio').replace('class="icn"','class="icn" style="width:26px;height:26px"')}</div>
-    <div><h1>Edi — assistente do prédio</h1><p>Pergunte, que ele resolve — citando a regra</p></div>
+    <div><h1>${nomeAssist} — assistente do prédio</h1><p>Pergunte, que ele resolve — citando a regra</p></div>
   </div>
   <div id="rg-chat" style="max-height:46vh; overflow-y:auto; margin-bottom:12px">
     ${chatEdi.map(m=>m.de==='eu'
       ? `<div style="text-align:right; margin:8px 0"><span style="display:inline-block; background:var(--verde); color:#fff; border-radius:14px 14px 4px 14px; padding:10px 14px; font-size:.92rem; max-width:85%; text-align:left">${m.t}</span></div>`
-      : `<div class="edi-linha"><span class="edi-av">${ico('predio')}</span><div style="max-width:88%"><span class="edi-bolha">${m.t}${m.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">📎 ${m.fonte}</span>`:''}</span>${m.html||''}</div></div>`).join('')}
+      : `<div class="edi-linha"><span class="edi-av">${ico('predio')}</span><div style="max-width:88%"><span class="edi-bolha">${m.t}${m.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${m.fonte}</span>`:''}</span>${m.html||''}</div></div>`).join('')}
   </div>
   <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px">
     ${(EDI_CHIPS[perfil]||EDI_CHIPS.morador).map(s=>`<button class="chip cinza" style="border:none" onclick="falarEdi('${s}')">${s}</button>`).join('')}
   </div>
   <div style="display:flex; gap:8px">
-    <input id="rg-in" placeholder="Pergunte ao Edi..." style="margin:0" onkeydown="if(event.key==='Enter')falarEdi()">
-    <button class="btn claro" style="flex:0 0 auto; padding:0 14px" onclick="toast('No produto final: fale com o Edi por voz 🎙️')" aria-label="Falar por voz">${ico('microfone')}</button>
+    <input id="rg-in" placeholder="Pergunte ao ${nomeAssist}..." style="margin:0" onkeydown="if(event.key==='Enter')falarEdi()">
+    <button class="btn claro" style="flex:0 0 auto; padding:0 14px" onclick="toast('No produto final: fale com o ${nomeAssist} por voz 🎙️')" aria-label="Falar por voz">${ico('microfone')}</button>
     <button class="btn principal" style="flex:0 0 auto; padding:0 18px" onclick="falarEdi()" aria-label="Enviar">${ico('enviar')}</button>
   </div>
-  <div class="aviso-lgpd">O Edi responde só com base nos documentos e dados do condomínio, cita a fonte e nunca mostra dados de outras unidades além do que o seu perfil já vê. Ações como reserva e PIX sempre pedem a sua confirmação. Protótipo: respostas de exemplo; no produto final, IA sobre a convenção e o regimento reais.</div>
+  <div class="aviso-lgpd">O ${nomeAssist} responde só com base nos documentos e dados do condomínio, cita a fonte e nunca mostra dados de outras unidades além do que o seu perfil já vê. Ações como reserva e PIX sempre pedem a sua confirmação. Protótipo: respostas de exemplo; no produto final, IA sobre a convenção e o regimento reais.</div>
 </div>`;
 
 /* enquete informal com voto no app (roadmap CondoX) — decisão formal continua na assembleia.
    O síndico cria/edita/encerra em TELAS.inicio (card COMUNICAÇÃO → editarEnquete). */
-let enquete={ativa:true, q:'Cobrir o bicicletário? (orçamento: R$ 12.400 do fundo de reserva)', encerra:'24/06', torre:'todas',
-  opcoes:[['Sim, aprovar',38],['Não agora',9]], votou:null};
+let enquete={ativa:true, q:'Cobrir o bicicletário?', info:'Orçamento estimado: R$ 12.400 do fundo de reserva.', encerra:'24/06', torre:'todas',
+  opcoes:[['Sou a favor',38],['Não agora',9]], votou:null};
 let enqTorreSel='todas';
 function votar(i){
   if(enquete.votou!==null) return;
@@ -2652,9 +2923,10 @@ function enqueteHtml(){
   if(!(enquete.torre==='todas'||enquete.torre===daTorre(MORADOR.un))) return '';
   const tot=enquete.opcoes.reduce((s,o)=>s+o[1],0)||1;
   return `<div class="item" style="border-color:var(--verde)">
-    <div class="linha1"><span class="nome">🗳️ Enquete: ${enquete.q}</span><span class="chip laranja">até ${enquete.encerra}</span></div>
+    <div class="linha1"><span class="nome">${tIco('grafico')}Enquete: ${enquete.q}</span><span class="chip laranja">até ${enquete.encerra}</span></div>
+    ${enquete.info?`<div class="sub" style="margin-top:6px">${enquete.info}</div>`:''}
     ${enquete.votou===null
-      ? `<div class="botoes" style="margin-top:10px">${enquete.opcoes.map((o,i)=>`<button class="btn ${i===0?'principal':'claro'}" onclick="votar(${i})">${o[0]}</button>`).join('')}</div>`
+      ? `<div class="botoes" style="margin-top:10px">${enquete.opcoes.map((o,i)=>`<button class="btn claro" onclick="votar(${i})">${o[0]}</button>`).join('')}</div>`
       : enquete.opcoes.map((o,i)=>{const pct=Math.round(o[1]/tot*100);
         return `<div class="sub" style="margin-top:8px">${o[0]}${enquete.votou===i?' · <b>seu voto ✓</b>':''} — ${pct}% (${o[1]})</div>
         <div class="cat-trilha" style="margin-top:4px"><div class="cat-barra" style="width:${pct}%"></div></div>`;}).join('')}
@@ -2670,7 +2942,7 @@ function enqueteResumoSindico(){
   const alvo=e.torre==='todas'?'todas as torres':'Torre '+e.torre;
   return `<div class="secao">COMUNICAÇÃO</div>
   <button class="item" style="width:100%; text-align:left; display:block" onclick="editarEnquete()">
-    <div class="linha1"><span class="nome">🗳️ ${e.ativa?'Enquete no ar':'Nova enquete dos moradores'}</span><span class="chip ${e.ativa?'verde':'laranja'}">${e.ativa?'editar ›':'criar ›'}</span></div>
+    <div class="linha1"><span class="nome">${tIco('grafico')}${e.ativa?'Enquete no ar':'Nova enquete dos moradores'}</span><span class="chip ${e.ativa?'verde':'laranja'}">${e.ativa?'editar ›':'criar ›'}</span></div>
     <div class="sub" style="margin-top:5px">${e.ativa
       ? `"${e.q}" · ${tot} ${tot===1?'voto':'votos'} · ${alvo} · encerra ${e.encerra}`
       : 'Crie uma enquete pra sentir o clima dos moradores antes da assembleia.'}</div>
@@ -2688,7 +2960,7 @@ function comunicadoCardSindico(){
   const ultimo=avisos[0]; const tot=avisos.length;
   const leituras=ultimo?(ultimo.lidoPor||[]).length:0;
   return `<button class="item" style="width:100%; text-align:left; display:block" onclick="criarComunicado()">
-    <div class="linha1"><span class="nome">📣 Criar comunicado</span><span class="chip verde">novo ›</span></div>
+    <div class="linha1"><span class="nome">${tIco('megafone')}Criar comunicado</span><span class="chip verde">novo ›</span></div>
     <div class="sub" style="margin-top:5px">${tot} no mural · último: "${ultimo?ultimo.t:'—'}"${ultimo?` · ${leituras} leitura(s)`:''}</div>
   </button>`;
 }
@@ -2734,7 +3006,7 @@ function editarEnquete(){
     <label>Pergunta</label>
     <input id="enq-q" type="text" value="${esc(e.q)}" placeholder="Ex.: Cobrir o bicicletário?">
     <label>Opção 1</label>
-    <input id="enq-o1" type="text" value="${e.opcoes[0]?esc(e.opcoes[0][0]):''}" placeholder="Ex.: Sim, aprovar">
+    <input id="enq-o1" type="text" value="${e.opcoes[0]?esc(e.opcoes[0][0]):''}" placeholder="Ex.: Sou a favor">
     <label>Opção 2</label>
     <input id="enq-o2" type="text" value="${e.opcoes[1]?esc(e.opcoes[1][0]):''}" placeholder="Ex.: Não agora">
     <label>Opção 3 <span style="color:var(--cinza); font-weight:400">(opcional)</span></label>
@@ -2766,7 +3038,7 @@ function encerrarEnquete(){
 /* ===== ADMINISTRADORA — carteira multi-condomínio (B2B2C) =====
    A administradora já roda o financeiro pesado num ERP (boleto, cobrança,
    contabilidade). Aqui ela tem a CAMADA que o ERP faz mal: visão da carteira,
-   saúde operacional de cada prédio e a deflexão de atendimento que o Edi gera.
+   saúde operacional de cada prédio e a deflexão de atendimento que o ${nomeAssist} gera.
    O dado financeiro é espelho do ERP; cada síndico só vê o próprio condomínio. */
 const carteira=[
   {nome:'Residencial Jacarandá', cidade:'Osasco',      un:60,  inadPct:10, inad:2880, ocor:3, manut:1, caixa:48200, edi:42, sindico:'João Pereira', status:'ok',      atual:true},
@@ -2864,9 +3136,9 @@ function verCondo(ix){
       <div class="card ${c.ocor>5?'aten':'ok'}"><div class="num">${c.ocor}</div><div class="lbl">ocorrências</div></div>
     </div>
     <div class="item"><div class="linha1"><span class="nome">Caixa do condomínio</span><span class="chip ${c.caixa<10000?'vermelho':'verde'}">${fmt(c.caixa)}</span></div>
-    <div class="sub" style="margin-top:4px">Dúvidas resolvidas pelo Edi este mês: <b>${c.edi}</b> — atendimento que não caiu na administradora.</div></div>
+    <div class="sub" style="margin-top:4px">Dúvidas resolvidas pelo ${nomeAssist} este mês: <b>${c.edi}</b> — atendimento que não caiu na administradora.</div></div>
     <button class="btn principal btn-grande" onclick="abrirCondoComoSindico(${ix})">Abrir o painel deste condomínio →</button>
-    <button class="btn claro btn-grande" style="margin-top:8px" onclick="configurarCondoAdm(${ix})">⚙️ Configurar este condomínio</button>
+    <button class="btn claro btn-grande" style="margin-top:8px" onclick="configurarCondoAdm(${ix})">${tIco('engrenagem')}Configurar este condomínio</button>
     <div class="aviso-lgpd" style="margin-top:10px">A administradora vê o resumo de saúde; ao abrir, entra no painel do síndico daquele prédio — sem misturar dados entre condomínios.</div>`);
 }
 
@@ -2888,15 +3160,15 @@ TELAS.admatend = () => {
   const tEdi=carteira.reduce((s,c)=>s+c.edi,0);
   const ordenada=[...carteira].sort((a,b)=>b.edi-a.edi);
   return `<div class="tela on">
-  <div class="topo"><h1>${tIco("balao")}Atendimento</h1><p>O quanto o Edi tira do seu telefone</p></div>
+  <div class="topo"><h1>${tIco("balao")}Atendimento</h1><p>O quanto o ${nomeAssist} tira do seu telefone</p></div>
   <div class="cards">
-    <button class="card ok" onclick="toast('${tEdi} dúvidas resolvidas pelo Edi este mês na carteira')"><div class="num">${tEdi}</div><div class="lbl">dúvidas resolvidas no mês</div></button>
-    <button class="card ok" onclick="toast('Estimativa: cada dúvida resolvida pelo Edi é um contato a menos na administradora')"><div class="num">~${Math.round(tEdi*0.6)}</div><div class="lbl">contatos evitados (est.)</div></button>
+    <button class="card ok" onclick="toast('${tEdi} dúvidas resolvidas pelo ${nomeAssist} este mês na carteira')"><div class="num">${tEdi}</div><div class="lbl">dúvidas resolvidas no mês</div></button>
+    <button class="card ok" onclick="toast('Estimativa: cada dúvida resolvida pelo ${nomeAssist} é um contato a menos na administradora')"><div class="num">~${Math.round(tEdi*0.6)}</div><div class="lbl">contatos evitados (est.)</div></button>
   </div>
   <div class="secao">POR CONDOMÍNIO</div>
   ${ordenada.map(c=>`<div class="item"><div class="linha1"><span class="nome">${c.nome}</span><span class="chip verde">${c.edi} resolvidas</span></div>
-    <div class="sub" style="margin-top:4px">Edi treinado na convenção, no regimento e nas atas deste prédio — responde o morador citando o artigo, em vez de cair no seu WhatsApp.</div></div>`).join('')}
-  <div class="aviso-lgpd" style="margin-top:6px">Atendimento é o maior custo de uma administradora. Quanto mais o Edi resolve sozinho, menor o custo por unidade — e maior a satisfação que segura o cliente.</div>
+    <div class="sub" style="margin-top:4px">${nomeAssist} treinado na convenção, no regimento e nas atas deste prédio — responde o morador citando o artigo, em vez de cair no seu WhatsApp.</div></div>`).join('')}
+  <div class="aviso-lgpd" style="margin-top:6px">Atendimento é o maior custo de uma administradora. Quanto mais o ${nomeAssist} resolve sozinho, menor o custo por unidade — e maior a satisfação que segura o cliente.</div>
 </div>`;
 };
 
@@ -2906,8 +3178,8 @@ TELAS.mavisos = () => `<div class="tela on">
   ${avisos.map((a,ix)=>({a,ix})).filter(x=>x.a.torre==='todas'||x.a.torre===daTorre(MORADOR.un)).map(({a,ix})=>{
     const lido=(a.lidoPor||[]).includes(MORADOR.un);
     return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px"><span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas as torres':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div><div class="sub">${a.d}</div>
-    ${a.anexo?`<div class="sub" style="margin-top:4px">📎 documento anexado</div>`:''}
-    <div class="botoes"><button class="btn claro" ${lido?'disabled style="opacity:.6"':''} onclick="confirmarLeitura(${ix})">${lido?'Lido ✅':'Confirmar leitura'}</button></div></div>`;}).join('')}
+    ${a.anexo?`<div class="sub" style="margin-top:4px">${clip()}documento anexado</div>`:''}
+    <div class="botoes"><button class="btn claro" ${lido?'disabled style="opacity:.6"':''} onclick="confirmarLeitura(${ix})">${lido?tIco('check')+'Lido':'Confirmar leitura'}</button></div></div>`;}).join('')}
 </div>`;
 
 /* ---------- início: tela de login ---------- */
