@@ -397,7 +397,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v3.67';
+const VERSAO='v3.68';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1550,8 +1550,8 @@ TELAS.manuzel = () => {
       ${m.status==='aprovacao'?`<div class="sub" style="margin-top:4px; display:flex; align-items:flex-start; gap:5px">${tIco('check')}<span>Laudo arquivado em ${m.pend.data} — aguardando conferência do síndico.</span></div>`
       : m.status!=='ok'?`<div class="botoes" style="justify-content:flex-end">
         ${m.empresa
-          ?`<button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="registrarExecZelador(${ix})">${clip()}Arquivar laudo</button>`
-          :`<button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="marcarFeitoInterno(${ix})">${tIco('check')}Marcar feito</button>`}
+          ?`<button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="registrarExecZelador(${ix})">${clip()}Arquivar laudo</button>`
+          :`<button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="marcarFeitoInterno(${ix})">${tIco('check')}Marcar feito</button>`}
       </div>`:''}
     </div>`;};
   const idx=manutencoes.map((m,ix)=>({m,ix})).filter(x=>passaTorre(x.m.torre)).filter(x=>modOn('elevadores')||!/elevador/i.test(x.m.item));
@@ -1801,8 +1801,8 @@ TELAS.encomendas = () => {
     <div class="linha1"><span class="nome">${e.un} — ${e.morador}</span><span style="display:flex; align-items:center; gap:6px; flex:0 0 auto"><span class="chip ${cor}">${txt}</span><span style="color:var(--cinza)">›</span></span></div>
     <div class="sub">${e.transp}${sp.dias>=3?` · <b style="color:var(--vermelho)">encalhada — lembre o morador</b>`:''}</div>
     <div class="botoes" style="justify-content:flex-end">
-      ${sp.dias>=3?`<a class="btn zap" style="flex:0 0 auto; padding:11px 16px" target="_blank" href="https://wa.me/${e.tel}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation()">Lembrar</a>`:''}
-      <button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="event.stopPropagation();retirar(${e.id})">${tIco('check')}Confirmar retirada</button>
+      ${sp.dias>=3?`<a class="btn zap" style="flex:0 0 auto; padding:8px 14px; font-size:13px" target="_blank" href="https://wa.me/${e.tel}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation()">Lembrar</a>`:''}
+      <button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="event.stopPropagation();retirar(${e.id})">${tIco('check')}Confirmar retirada</button>
     </div>
   </div>`;}).join('')||vazio('pacote','Nenhuma encomenda aguardando','Quando chegar uma, registre aqui — o morador é avisado na hora.')}
 <h2>Retiradas recentes</h2>
@@ -1882,8 +1882,8 @@ TELAS.visitantes = () => {
     return `<div class="item ${v.status==='saiu'?'feito':''}" style="cursor:pointer${v.status==='entrou'?'; border-color:var(--verde)':''}" onclick="verVisitante(${ix})">
     <div class="linha1"><span class="nome">${v.nome}</span><span style="display:flex; align-items:center; gap:6px; flex:0 0 auto"><span class="chip ${chip[1]}">${chip[0]}</span><span style="color:var(--cinza)">›</span></span></div>
     <div class="sub">${v.tipo} · ${v.un}${extra}</div>
-    ${v.status==='pré-autorizado'?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="event.stopPropagation();entrada(${ix})">→ Registrar entrada</button></div>`:''}
-    ${v.status==='entrou'?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="event.stopPropagation();saida(${ix})">← Registrar saída</button></div>`:''}
+    ${v.status==='pré-autorizado'?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="event.stopPropagation();entrada(${ix})">→ Registrar entrada</button></div>`:''}
+    ${v.status==='entrou'?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="event.stopPropagation();saida(${ix})">← Registrar saída</button></div>`:''}
   </div>`;};
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("porta")}Visitantes</h1><p>Lista de hoje · ${fdata(hoje)}</p></div>
@@ -3061,7 +3061,7 @@ TELAS.rotina = () => {
   ${rotina.map((r,ix)=>({r,ix})).sort((a,b)=>(a.r.feito?1:0)-(b.r.feito?1:0)).map(({r,ix})=>`<div class="item ${r.feito?'feito':''}">
     <div class="linha1"><span class="nome">${r.feito?tIco('check'):''}${r.t}</span><span class="chip ${r.feito?'verde':'cinza'}">${r.freq}</span></div>
     <div class="sub">responsável: <b>${r.resp}</b>${r.leitura?` · leitura registrada: <b>${r.leitura}</b>`:''}</div>
-    ${!r.feito?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto; padding:11px 18px" onclick="marcarRotina(${ix})">${tIco('check')}Marcar feito</button></div>`:''}
+    ${!r.feito?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="marcarRotina(${ix})">${tIco('check')}Marcar feito</button></div>`:''}
   </div>`).join('')}
   <div class="aviso-lgpd">Cada marcação registra quem fez e quando. Leituras (caixa d'água) pedem o número — o valor de hoje comparado ao de ontem é o que denuncia vazamento.</div>
 </div>`;
