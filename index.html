@@ -308,9 +308,10 @@
   /* ===== EXPERIMENTO Viva 3.0: barra de comando + feed (rollback: v2.38) ===== */
   .comando{display:flex; align-items:center; gap:8px; background:var(--branco); border:1.5px solid var(--verde); border-radius:99px; padding:4px 4px 4px 16px; margin-bottom:4px}
   .comando input{flex:1; width:auto; border:none; outline:none; background:none; font-size:.95rem; font-family:inherit; color:var(--texto); padding:11px 0; margin:0; border-radius:0}
-  .comando .mic{width:46px; height:46px; border-radius:50%; background:var(--verde); color:#fff; flex:0 0 auto; display:flex; align-items:center; justify-content:center}
+  .comando .mic{width:54px; height:54px; border-radius:50%; background:var(--verde); color:#fff; flex:0 0 auto; display:flex; align-items:center; justify-content:center}
   .comando .mic .icn{width:21px; height:21px}
   .edi-mini{position:relative; display:inline-block; width:34px; height:34px; --e-acc:#0E7A5F; --e-light:#2FB389; --e-eye:#6FE0C2; --e-f1:#0A2E25; --e-f2:#06201A}
+  .comando .mic .edi-mini{width:46px; height:46px}
   .edi-av .edi-mini{width:28px; height:28px}
   .edi-mini>*{position:absolute}
   .em-halo{inset:-12%; border-radius:50%; background:radial-gradient(circle, rgba(14,122,95,.34) 0%, transparent 66%); filter:blur(1px); animation:emGlow 3.5s ease-in-out infinite}
@@ -397,7 +398,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v3.68';
+const VERSAO='v3.69';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
