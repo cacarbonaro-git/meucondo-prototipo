@@ -398,7 +398,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v3.77';
+const VERSAO='v3.80';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1150,11 +1150,11 @@ function TELAS_ONBOARDING(){
   const barra=`<div style="display:flex; gap:5px; margin:4px 0 5px">${Array.from({length:TOTAL},(_,i)=>passo(i+1)).join('')}</div>
     <div style="display:flex; gap:5px; margin-bottom:14px">${OB_NOMES.map((nm,i)=>`<span style="flex:1; text-align:center; font-size:.64rem; line-height:1.2; font-weight:${i+1===obStep?'700':'500'}; color:${i+1===obStep?'var(--verde-escuro)':'var(--cinza)'}">${nm}</span>`).join('')}</div>`;
   let corpo='';
-  const obOpc=(icon,titulo,apoio,oc,selo)=>`<button class="btn claro btn-grande" style="display:flex; align-items:center; gap:12px; text-align:left" onclick="${oc}">
+  const obOpc=(icon,titulo,apoio,oc,selo)=>`<button class="btn claro btn-grande" style="display:flex; align-items:center; gap:12px; text-align:left${selo?'; border:1.5px solid var(--verde); background:var(--verde-claro)':''}" onclick="${oc}">
     ${ico(icon)}<span style="flex:1"><b>${titulo}</b> <span style="font-weight:400; color:var(--cinza)">${apoio}</span>${selo?`<br><span style="font-size:.74rem; font-weight:700; color:var(--verde-escuro)">${selo}</span>`:''}</span><span style="color:var(--cinza); font-size:1.1rem">›</span>
   </button>`;
   if(obStep===1){
-    corpo=`<h2 style="margin-top:0">${tIco('importar')}Importe seu condomínio</h2>
+    corpo=`<h2 style="margin-top:0; justify-content:flex-start; gap:8px">${tIco('importar')}Importe seu condomínio</h2>
     <div class="sub" style="margin-bottom:14px">Seu condomínio já está numa planilha ou no relatório da administradora. Suba o arquivo — a gente lê, você confere.</div>
     ${obOpc('planilha','Tenho uma planilha','(Excel/CSV)',"obImportar('planilha')",'mais rápido')}
     ${obOpc('predio','Relatório da administradora','(PDF)',"obImportar('admin')")}
@@ -1163,15 +1163,15 @@ function TELAS_ONBOARDING(){
   }
   if(obStep===2){
     const linhas=[['A-101','Ap. ocupado','—'],['A-102','Ap. alugado','inquilino'],['A-203','Ap. ocupado','—'],['B-305','Ap. ocupado','—'],['B-502','Ap. alugado','inquilino']];
-    corpo=`<h2 style="margin-top:0">${tIco('check')}Confira as unidades</h2>
+    corpo=`<h2 style="margin-top:0; justify-content:flex-start; gap:8px">${tIco('check')}Confira as unidades</h2>
     <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="linha1"><span class="nome">${obCond.unidades||60} unidades lidas do arquivo</span><span class="chip verde">pronto</span></div>
     <div class="sub">Proprietários e moradores separados automaticamente. Confira uma amostra:</div></div>
-    ${linhas.map(l=>`<div class="item"><div class="linha1"><span class="nome">${l[0]}</span><span class="chip ${l[2]==='inquilino'?'laranja':'cinza'}">${l[1]}</span></div>${l[2]!=='—'?`<div class="sub">papel: ${l[2]}</div>`:''}</div>`).join('')}
+    ${linhas.map(l=>`<div class="item" style="padding:9px 13px; margin-bottom:6px"><div class="linha1"><span class="nome">${l[0]}${l[2]!=='—'?` <span style="font-weight:400; color:var(--cinza); font-size:.85rem">· ${l[2]}</span>`:''}</span><span class="chip ${l[2]==='inquilino'?'laranja':'cinza'}">${l[1]}</span></div></div>`).join('')}
     <div class="sub" style="text-align:center; margin:8px 0">…e mais ${(obCond.unidades||60)-5} unidades</div>
     <div class="aviso-lgpd">Algo errado? No produto final você edita aqui antes de confirmar. Proprietário ≠ morador ≠ inquilino já vem distinguido.</div>`;
   }
   if(obStep===3){
-    corpo=`<h2 style="margin-top:0">${tIco('engrenagem')}Três ajustes essenciais</h2>
+    corpo=`<h2 style="margin-top:0; justify-content:flex-start; gap:8px">${tIco('engrenagem')}Três ajustes essenciais</h2>
     <div class="sub" style="margin-bottom:14px">Só o mínimo pra começar. O resto (reservas, prestadores, manutenção) você configura quando for usar cada parte.</div>
     <label>Como é o rateio da taxa?</label>
     <select id="ob-rateio"><option>Igualitário (todos pagam igual)</option><option>Por fração ideal</option></select>
@@ -1190,7 +1190,7 @@ function TELAS_ONBOARDING(){
         <div class="botoes"><button class="btn claro" onclick="obAnexar('${k}')">${feito&&k==='atas'?'+ Anexar outra ata':feito?'Trocar arquivo':clip()+'Anexar PDF'}</button></div>
       </div>`;
     };
-    corpo=`<h2 style="margin-top:0">${tIco('pasta')}Documentos do condomínio</h2>
+    corpo=`<h2 style="margin-top:0; justify-content:flex-start; gap:8px">${tIco('pasta')}Documentos do condomínio</h2>
     <div class="sub" style="margin-bottom:14px">Suba os documentos uma vez: eles ficam no acervo (que sobrevive à troca de síndico) <b>e</b> treinam o ${nomeAssist} — o assistente passa a responder dúvidas dos moradores citando o artigo e a ata, em vez de cair tudo no seu WhatsApp.</div>
     ${doc('convencao','Convenção condominial','Registrada em cartório. Base das regras que prevalecem.','recomendado')}
     ${doc('regimento','Regimento interno','Regras de convivência: horários, áreas comuns, pets, obras.','recomendado')}
@@ -2474,7 +2474,7 @@ TELAS.ajustes = () => {
     <div class="topo"><h1>${tIco('prancheta')}Terminar configuração</h1><p>Vamos fechar o que falta — um de cada vez, já com padrão pronto.</p></div>
     <div style="display:flex; gap:5px; margin:4px 0 5px">${seg}</div>
     <div style="display:flex; gap:5px; margin-bottom:14px">${labels}</div>
-<h2 style="margin-top:0">${tIco(it.ic)}${it.nome}</h2>
+<h2 style="margin-top:0; justify-content:flex-start; gap:8px">${tIco(it.ic)}${it.nome}</h2>
     <div class="sub" style="margin-bottom:12px">${it.desc}.</div>
     <div class="item" style="border-color:var(--verde)"><div class="sub" style="margin:0">${it.assist||'Já vem com um padrão pronto. Toque em <b>Configurar</b> e ajuste os detalhes depois, quando for usar.'}</div></div>
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px">
@@ -3343,7 +3343,8 @@ function verProvaDia(){
     ${feitos.map(r=>`<div class="item" style="padding:10px 12px"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('check')}${r.t}</span><span class="chip verde" style="border:none; font-size:.7rem">${r.leitura||'feito'}</span></div></div>`).join('')||'<div class="sub" style="margin-bottom:8px">Nenhuma tarefa marcada ainda hoje.</div>'}
     <div class="secao">REGISTROS NO LIVRO (${regs.length})</div>
     ${regs.map(r=>`<div class="item" style="padding:10px 12px"><div class="linha1"><span class="nome" style="font-size:.9rem">${r.t}</span></div><div class="sub" style="display:flex; gap:5px; align-items:center; margin-top:3px">${r.foto?`<span class="chip cinza" style="border:none; padding:1px 7px; font-size:.66rem; display:inline-flex; gap:3px; align-items:center">${tIco('camera')}foto</span>`:''}<span>${r.quando}</span></div></div>`).join('')||'<div class="sub">Nada no livro ainda.</div>'}
-    <div class="botoes" style="margin-top:12px"><a class="btn zap btn-grande" style="display:block" target="_blank" href="https://wa.me/?text=${encodeURIComponent(provaTxt(feitos,regs))}">Enviar pro síndico</a></div>
+    <div class="botoes" style="margin-top:12px"><a class="btn zap btn-grande" style="display:block" target="_blank" href="https://wa.me/?text=${encodeURIComponent(provaTxt(feitos,regs))}">Mandar minha prova (não pede ação)</a></div>
+    <div class="sub" style="margin-top:6px; font-size:.78rem">Isto é só a prova de serviço. Para pedir decisão ou gasto, use o <b>Livro</b> → "Encaminhar ao síndico".</div>
     <div class="aviso-lgpd">A foto e a hora protegem você: se alguém questionar se a ronda foi feita, está tudo registrado com a sua autoria.</div>`);
 }
 /* ===== RESUMO DA SEMANA (síndico): o que precisa dele, consolidado + WhatsApp ===== */
