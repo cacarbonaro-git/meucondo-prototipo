@@ -398,7 +398,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v3.80';
+const VERSAO='v3.93';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -565,7 +565,7 @@ let manutencoes = [
 ];
 
 let reservas = { // área -> 'ano-mes' -> dia -> unidade
-  'Salão de Festas':   {'2026-6':{13:'A-304', 20:'A-108', 27:'B-501'}, '2026-7':{11:'B-602'}, '2026-8':{}, '2026-9':{}},
+  'Salão de Festas':   {'2026-6':{10:'A-110', 13:'A-304', 20:'A-108', 27:'B-501'}, '2026-7':{11:'B-602'}, '2026-8':{}, '2026-9':{}},
   'Churrasqueira':     {'2026-6':{14:'A-210', 21:'A-102'}, '2026-7':{}, '2026-8':{2:'A-110'}, '2026-9':{}},
 };
 let calAno=2026, calMes=6; // navegação: junho (mês atual) até setembro/2026 na demo
@@ -973,10 +973,23 @@ function menuDemo(){
     <button class="item" style="width:100%; text-align:left; display:block" onclick="fecharModal();verLoginDemo()">
       <div class="linha1"><span class="nome">${tIco('chave')}Ver a tela de login do morador</span><span style="opacity:.4">›</span></div></button>
     <div class="sub" style="margin:16px 0 8px"><b>Apresentações</b></div>
-    <a class="item" style="width:100%; text-align:left; display:block; text-decoration:none; color:inherit" href="apresentacoes/Video-Apresentacao-INDICE.html" target="_blank" rel="noopener">
+    <button class="item" style="width:100%; text-align:left; display:block" onclick="abrirVideos()">
       <div class="linha1"><span class="nome">${tIco('camera')}Apresentações por perfil (vídeos)</span><span style="opacity:.4">↗</span></div>
-      <div class="sub" style="margin-top:3px">Abre o índice com os 6 vídeos (morador, síndico, zelador, portaria, conselho, administradora) numa nova aba.</div></a>
+      <div class="sub" style="margin-top:3px">Abre o índice com os 6 vídeos (morador, síndico, zelador, portaria, conselho, administradora) numa nova aba.</div></button>
     <button class="btn principal btn-grande" onclick="fecharModal()">${entrada?'Depois escolho':'Pronto'}</button>`);
+}
+/* abre o índice de vídeos. Os vídeos vivem em 2 lugares conforme o contexto:
+   - deploy/Netlify e index.html da raiz -> "apresentacoes/" (irmão do html)
+   - protótipo aberto direto em prototipos/ -> "../materiais/apresentacoes/"
+   Detecta pela URL e tenta o caminho certo (com fallback). */
+function abrirVideos(){
+  const arq='Video-Apresentacao-INDICE.html';
+  const naPasta=/\/prototipos\//.test(location.pathname);
+  const cands = naPasta
+    ? ['../materiais/apresentacoes/'+arq, '../../apresentacoes/'+arq, 'apresentacoes/'+arq]
+    : ['apresentacoes/'+arq, 'materiais/apresentacoes/'+arq];
+  const w=window.open(cands[0],'_blank','noopener');
+  if(!w){ toast('Permita pop-ups pra abrir os vídeos, ou abra a pasta apresentacoes/ direto.'); }
 }
 /* volta pra tela de login (entrada real do morador), zerando o perfil ativo */
 function verLoginDemo(){
@@ -996,7 +1009,7 @@ function verLoginDemo(){
 let torreSel='Todas';
 let TORRES=['A','B'];        // torres do condomínio (data-driven; demo pode simular muitas)
 let torreBusca='';
-const daTorre=un=>/^A-/.test(un||'')?'A':/^B-/.test(un||'')?'B':'geral';
+const daTorre=un=>{const m=/^([A-Za-z0-9]+)-/.exec(un||''); return m?m[1]:'geral';};
 const passaTorre=t=>torreSel==='Todas'||t==='geral'||t===torreSel;
 const rotuloTorre=t=>t==='Todas'?'Todas as torres':'Torre '+t;
 /* Filtro de torre ADAPTATIVO:
@@ -1009,18 +1022,19 @@ const filtroTorreHtml=()=>{
   }
   return `<button class="item" style="width:auto; display:inline-flex; align-items:center; gap:10px; margin-bottom:12px; padding:9px 14px; cursor:pointer" onclick="abrirTorrePicker()"><span style="display:inline-flex; align-items:center; gap:7px; font-size:.9rem; font-weight:600">${tIco('predio')}${rotuloTorre(torreSel)}</span><span style="color:var(--cinza); font-size:.8rem">▾</span></button>`;
 };
+let torrePickCb="fecharModal();atualizar()";
 function torreOpcoesHtml(){
   const opts=['Todas',...TORRES];
   const q=torreBusca.trim().toLowerCase();
   const vis=q? opts.filter(t=>t==='Todas'||rotuloTorre(t).toLowerCase().includes(q)) : opts;
   if(!vis.length) return `<p style="color:var(--cinza); padding:14px 4px; font-size:.9rem">Nenhuma torre encontrada.</p>`;
   return vis.map(t=>{const on=torreSel===t;
-    return `<button class="item" style="width:100%; text-align:left; display:block; margin-bottom:6px${on?'; border-color:var(--verde)':''}" onclick="torreSel='${t}';fecharModal();atualizar()"><span style="display:flex; align-items:center; justify-content:space-between"><span style="font-size:.92rem; font-weight:${on?'600':'400'}">${rotuloTorre(t)}</span>${on?'<span class="chip verde" style="border:none">selecionada</span>':'<span style="color:var(--cinza)">›</span>'}</span></button>`;
+    return `<button class="item" style="width:100%; text-align:left; display:block; margin-bottom:6px${on?'; border-color:var(--verde)':''}" onclick="torreSel='${t}';${torrePickCb}"><span style="display:flex; align-items:center; justify-content:space-between"><span style="font-size:.92rem; font-weight:${on?'600':'400'}">${rotuloTorre(t)}</span>${on?'<span class="chip verde" style="border:none">selecionada</span>':'<span style="color:var(--cinza)">›</span>'}</span></button>`;
   }).join('');
 }
 function torreListaHtml(){ const el=document.getElementById('torre-lista'); if(el) el.innerHTML=torreOpcoesHtml(); }
-function abrirTorrePicker(){
-  torreBusca='';
+function abrirTorrePicker(cb){
+  torreBusca=''; torrePickCb=cb||"fecharModal();atualizar()";
   abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('predio')}Filtrar por torre</h3>
     ${TORRES.length>10?`<input id="torre-busca" placeholder="Buscar torre…" oninput="torreBusca=this.value;torreListaHtml()" style="width:100%; margin:6px 0 4px">`:''}
     <div id="torre-lista" style="max-height:50vh; overflow-y:auto; margin-top:8px">${torreOpcoesHtml()}</div>`);
@@ -1261,13 +1275,6 @@ function obConcluir(){
 TELAS.inicio = () => {
   const totAberto = inadimplentes.reduce((s,i)=>s+divida(i),0);
   const venc = manutencoes.filter(m=>m.status==='vencida').length;
-  const resHoje = Object.entries(reservas)
-    .flatMap(([a,meses])=>Object.entries(meses).flatMap(([am,ds])=>{
-      const [ano,mes]=am.split('-').map(Number);
-      return Object.entries(ds).map(([d,u])=>({a,ano,mes,d:+d,u}));
-    }))
-    .filter(r=>r.ano>2026 || r.mes>6 || r.d>=10)
-    .sort((x,y)=>(x.ano-y.ano)||(x.mes-y.mes)||(x.d-y.d)).slice(0,3);
   /* Home do síndico: comando do ${nomeAssist} → Agora (arrecadação) → digest único de pendências → Indicadores → Reservas → Balancete */
   return `<div class="tela on">
   <div class="topo"><h1>Olá, síndico</h1><p>${COND.nome} · 2 torres · 60 unidades</p></div>
@@ -1292,24 +1299,8 @@ TELAS.inicio = () => {
     <div class="linha1"><span class="nome">${tIco('alerta')}Cobrar ${inadimplentes.length} inadimplentes</span><span style="display:flex; align-items:center; gap:6px"><span class="chip acao">${fmt(totAberto)} ›</span></span></div>
   </button>
 
-  ${(()=>{ /* lista ÚNICA de pendências do dia, no tom do ${nomeAssist} (verbo por item).
-       Antes havia "${nomeAssist} preparou" + "Para você hoje" repetindo os mesmos assuntos. */
-    const ab=ocorrencias.filter(o=>o.status==='aberta').length;
-    const pend=[];
-    if(venc) pend.push(['manutencao','alerta','Prazos legais vencidos',`${venc} itens`,'vermelho']);
-    if(ab)   pend.push(['ocorrencias','balao','Ocorrências sem resposta',`${ab}`,'laranja']);
-    if(compra.status!=='aprovada') pend.push(['compras','carrinho','Cotações do zelador prontas','revisar 3','acao']);
-    if(!assembleia.convocada) pend.push(['assembleia','prancheta','Assembleia 25/06 minutada','convocar','acao']);
-    pend.push(['fornecedores','contrato','Contrato ElevaTech vence 15/07','renegociar','acao']);
-    return `<div class="secao">O ${nomeAssist.toUpperCase()} PREPAROU PRA VOCÊ HOJE · ${pend.length}</div>`+pend.map(p=>`
-    <button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde); border-radius:0 14px 14px 0" onclick="filtroManuStatus='${p[0]==='manutencao'?'Vencidas':'Todas'}';irPara('${p[0]}')">
-      <div class="linha1"><span class="nome">${tIco(p[1])}${p[2]}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${p[4]}">${p[3]}</span><span style="color:var(--cinza)">›</span></span></div>
-    </button>`).join('');})()}
+  ${praAgirCard()}
   ${resumoSemanaCard()}
-  ${unidadesCardSindico()}
-  ${provaZeladorCard()}
-  ${impactoCardSindico()}
-  ${gestaoCard()}
 <h2>Indicadores</h2>
   <div class="cards">
 <button class="card ok" onclick="toast('54 unidades em dia (90%) — nada a cobrar delas')"><div class="num">54</div><div class="lbl">unidades em dia (90%)</div></button>
@@ -1318,12 +1309,17 @@ TELAS.inicio = () => {
     <button class="card" onclick="mesGraf=5;verBalancete()"><div class="num">${fmt(25920)}</div><div class="lbl">recebido no mês ›</div></button>
   </div>
   ${enqueteResumoSindico()}
-  ${comunicadoCardSindico()}
-  ${ediCardSindico()}
-  ${auditoriaCardSindico()}
-  ${integracoesCardSindico()}
-  ${modOn('reservas')?`<h2>Próximas reservas<span class="mais" onclick="irPara('reservas')">ver agenda</span></h2>
-  ${resHoje.map(r=>`<div class="item"><div class="linha1"><span class="nome">${r.a}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.mes).padStart(2,'0')}</span></div><div class="sub">Reservado por ${r.u}</div></div>`).join('')}`:''}
+  <h2>Gerir o condomínio</h2>
+  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px">
+    ${gerirEntrada('predio','Unidades & moradores',"abrirUnidades()")}
+    ${gerirEntrada('grafico','Seu impacto',"verImpacto()")}
+    ${gerirEntrada('maleta','Gestão / administradora',"verGestao()")}
+    ${gerirEntrada('checklist','Trilha de auditoria',"verAuditoria()",[''+auditoria.length,'cinza'])}
+    ${gerirEntrada('importar','Integrações',"irPara('integracoes')",(()=>{const p=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;return[p?''+p:'ok',p?'laranja':'verde'];})())}
+    ${gerirEntrada('megafone','Criar comunicado',"criarComunicado()")}
+    ${COND.painelElevador?gerirEntrada('elevador','Painel do elevador',"verPainelElevador()",[painelFila.length?painelFila.length+' no ar':'vazio',painelFila.length?'verde':'cinza']):''}
+    ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
+  </div>
 <h2>Balancete de maio</h2>
   <div class="item"><div class="linha1"><span class="nome">Receitas ${fmt(28350)} · Despesas ${fmt(24180)}</span><span class="chip verde">+ ${fmt(4170)}</span></div>
   <div class="sub">Pessoal 46% · Manutenção 22% · Consumo 19% · Administrativa 13%</div>
@@ -1805,13 +1801,34 @@ function esperaEnc(ch){
   const dias=Math.round((new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate())-dt)/86400000);
   return {dias, hhmm:m[3]+':'+m[4]};
 }
+function verConvidados(area,un){
+  abrirModal(`<h3>${tIco('porta')}Convidados — ${area} · ${un}</h3>
+    <div class="sub" style="margin-bottom:10px">A unidade <b>${un}</b> reservou o ${area} para hoje. No produto final, a unidade envia a lista pelo app — você confere o nome na chegada e libera o acesso.</div>
+    <div class="item"><div class="sub" style="margin:0; line-height:2; display:flex; flex-direction:column; gap:2px">
+      <span style="display:flex; align-items:center; gap:6px">${tIco('check')}Marcos Oliveira <span class="chip cinza" style="border:none">+1</span></span>
+      <span style="display:flex; align-items:center; gap:6px">${tIco('check')}Família Souza <span class="chip cinza" style="border:none">4 pessoas</span></span>
+      <span style="display:flex; align-items:center; gap:6px">${tIco('pacote')}Buffet Sabor & Cia <span class="chip cinza" style="border:none">prestador</span></span>
+    </div></div>
+    <div class="aviso-lgpd">A lista vale só no dia do evento e encerra à meia-noite — dado temporário, conforme a LGPD.</div>`);
+}
 TELAS.encomendas = () => {
   const ag=encomendas.filter(e=>e.status==='aguardando').slice().sort((a,b)=>esperaEnc(b.chegada).dias-esperaEnc(a.chegada).dias);
   const hist=encomendas.filter(e=>e.status==='retirada');
+  const evList = Object.entries(reservas)
+    .flatMap(([a,meses])=>Object.entries(meses).flatMap(([am,ds])=>{const [ano,mes]=am.split('-').map(Number); return Object.entries(ds).map(([d,u])=>({a,ano,mes,d:+d,u}));}));
+  const k=r=>r.ano*10000+r.mes*100+r.d, hk=hoje.getFullYear()*10000+(hoje.getMonth()+1)*100+hoje.getDate();
+  const evHoje=evList.filter(r=>k(r)===hk).sort((x,y)=>x.a.localeCompare(y.a));
+  const evProx=evList.filter(r=>k(r)>hk).sort((x,y)=>k(x)-k(y)).slice(0,3);
   return `<div class="tela on">
   <div class="topo"><h1>Portaria</h1><p>${COND.nome} · ${fdata(hoje)}</p></div>
   ${comandoEdi(`Peça ao ${nomeAssist}… "o eletricista do 203 está autorizado?"`)}
   <button class="btn principal btn-grande" onclick="novaEncomenda()">+ Registrar chegada</button>
+  ${modOn('reservas')&&evHoje.length?`<h2>Eventos de hoje</h2>
+  ${evHoje.map(r=>`<button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verConvidados('${r.a}','${r.u}')">
+    <div class="linha1"><span class="nome">${tIco('porta')}${r.a} — ${r.u}</span><span class="chip verde">hoje ›</span></div>
+    <div class="sub" style="margin-top:4px">Espere convidados da unidade ${r.u}. Confira a lista e libere o acesso na chegada.</div></button>`).join('')}`:''}
+  ${modOn('reservas')&&evProx.length?`<div class="secao" style="margin-top:${evHoje.length?'14px':'0'}">PRÓXIMAS RESERVAS</div>
+  <div class="item"><div class="sub" style="margin:0; line-height:1.9">${evProx.map(r=>`<span style="display:flex; align-items:center; gap:6px">${tIco('calendario')}${String(r.d).padStart(2,'0')}/${String(r.mes).padStart(2,'0')} · ${r.a} · ${r.u}</span>`).join('')}</div></div>`:''}
   ${avisoOpCard}
 <h2>Aguardando retirada (${ag.length})<span class="mais" onclick="irPara('visitantes')">${(n=>n===1?'1 visitante':n+' visitantes')(visitantes.filter(v=>v.status==='entrou').length)} no prédio ›</span></h2>
   ${ag.map(e=>{const sp=esperaEnc(e.chegada); const cor=sp.dias>=3?'vermelho':sp.dias>=1?'laranja':'cinza'; const txt=sp.dias===0?`hoje ${sp.hhmm}`:`há ${sp.dias} dia${sp.dias>1?'s':''}`;
@@ -2092,8 +2109,8 @@ TELAS.mhome = () => {
     <div class="linha1"><span class="nome">${tIco('martelo')}Sua reforma foi aprovada!</span><span class="chip verde">obra liberada</span></div>
     <div class="sub">${reforma.titulo} — condições no WhatsApp.</div></div>`:''}
   ${minhas.length?`<div class="item"><div class="linha1"><span class="nome">Próxima reserva: ${minhas[0].area}</span><span class="chip verde">${String(minhas[0].d).padStart(2,'0')}/${String(minhas[0].m).padStart(2,'0')}</span></div></div>`:''}
-  <div class="item"><div class="linha1"><span class="nome">${tIco('check')}Você está ${MORADOR.emDia?'em dia':'em atraso'}</span><span class="chip ${MORADOR.emDia?'verde':'laranja'}">${MORADOR.emDia?'taxa de junho paga':'taxa de junho em aberto'}</span></div>
-<div class="sub">PIX em 03/06 · como inquilina, você paga só as despesas ordinárias<span style="cursor:pointer; color:var(--verde-escuro); font-weight:600" onclick="toast('Lei do Inquilinato (8.245/91): despesas extraordinárias — como obras e fundo de reserva — são do proprietário, não do inquilino.')">(por quê?)</span></div></div>
+  <button class="item" style="width:100%; text-align:left; display:block" onclick="minhaTaxa()"><div class="linha1"><span class="nome">${tIco('cifrao')}Minha taxa de junho</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${MORADOR.emDia?'verde':'laranja'}">${MORADOR.emDia?'paga':'em aberto'}</span><span style="color:var(--cinza)">›</span></span></div>
+<div class="sub" style="margin-top:4px">${MORADOR.emDia?'Pago em 03/06 · toque pra comprovante ou 2ª via':'Toque pra gerar o PIX / 2ª via'}${MORADOR.papel==='inquilina'?' · como inquilina, só despesas ordinárias':''}</div></button>
 
   <div class="secao">ESTA SEMANA</div>
   ${enqueteHtml()}
@@ -3079,6 +3096,10 @@ let rotina = [
 const ESCALA_HOJE='Carlos (zelador) 7h–16h · João (porteiro) 6h–18h · Pedro (porteiro) 18h–6h · Maria (auxiliar) 8h–17h';
 TELAS.rotina = () => {
   const feitos=rotina.filter(r=>r.feito).length;
+  const eventos = Object.entries(reservas)
+    .flatMap(([a,meses])=>Object.entries(meses).flatMap(([am,ds])=>{const [ano,mes]=am.split('-').map(Number); return Object.entries(ds).map(([d,u])=>({a,ano,mes,d:+d,u}));}))
+    .filter(r=>r.ano>2026 || r.mes>6 || r.d>=10)
+    .sort((x,y)=>(x.ano-y.ano)||(x.mes-y.mes)||(x.d-y.d)).slice(0,3);
   /* home do zelador no padrão CondoX: Header → Hero (progresso do dia + ${nomeAssist}) → ações → escala → tarefas */
   return `<div class="tela on">
   <div class="topo"><h1>Olá, Carlos</h1><p>zelador · ${COND.nome}</p></div>
@@ -3098,6 +3119,9 @@ TELAS.rotina = () => {
     <button class="btn claro" onclick="passagemTurno()">${tIco('troca')}Passagem de turno</button>
   </div>
   <div class="item"><div class="linha1"><span class="nome">${tIco('pessoas')}Escala de hoje</span></div><div class="sub">${ESCALA_HOJE}</div></div>
+  ${modOn('reservas')&&eventos.length?`<div class="secao">EVENTOS A PREPARAR</div>
+  ${eventos.map(r=>`<div class="item"><div class="linha1"><span class="nome">${tIco('calendario')}${r.a}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.mes).padStart(2,'0')}</span></div><div class="sub">Unidade ${r.u} · deixar limpo e liberar o acesso na data</div></div>`).join('')}`:''}
+  <div class="secao">ROTINA</div>
   ${rotina.map((r,ix)=>({r,ix})).sort((a,b)=>(a.r.feito?1:0)-(b.r.feito?1:0)).map(({r,ix})=>`<div class="item ${r.feito?'feito':''}">
     <div class="linha1"><span class="nome">${r.feito?tIco('check'):''}${r.t}</span><span class="chip ${r.feito?'verde':'cinza'}">${r.freq}</span></div>
     <div class="sub">responsável: <b>${r.resp}</b>${r.leitura?` · leitura registrada: <b>${r.leitura}</b>`:''}</div>
@@ -3226,15 +3250,44 @@ function integracoesCardSindico(){
 }
 /* ===== UNIDADES & VÍNCULO DE OCUPAÇÃO (síndico/administradora): ficha + trocar inquilino ===== */
 function unidadesCardSindico(){
-  return `<button class="item" style="width:100%; text-align:left; display:block; margin:2px 0 6px" onclick="listaUnidades()">
+  return `<button class="item" style="width:100%; text-align:left; display:block; margin:2px 0 6px" onclick="abrirUnidades()">
     <div class="linha1"><span class="nome">${tIco('predio')}Unidades & moradores</span><span class="chip cinza">${Object.keys(unidades).length} cadastradas ›</span></div>
     <div class="sub" style="margin-top:5px">Quem mora em cada unidade, acesso e encomendas — e o fluxo de trocar inquilino com a cascata automática.</div></button>`;
 }
+let unidBusca='';
+const CAP_UNID=40;
+function unidFiltradas(){
+  const q=unidBusca.trim().toLowerCase();
+  let ents=Object.entries(unidades).filter(([un])=>passaTorre(daTorre(un)));
+  if(q) ents=ents.filter(([un,u])=>un.toLowerCase().includes(q)||(u.ocupante||'').toLowerCase().includes(q));
+  return ents;
+}
+function unidLinhasHtml(ents){
+  if(!ents.length) return `<p style="color:var(--cinza); padding:16px 4px; font-size:.9rem">Nenhuma unidade encontrada. Tente outra torre ou limpe a busca.</p>`;
+  return ents.slice(0,CAP_UNID).map(([un,u])=>`<button class="item" style="width:100%; text-align:left; display:block" onclick="fecharModal();verUnidade('${un}')">
+    <div class="linha1"><span class="nome">${un} — ${u.ocupante}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${u.tipo==='inquilino'?'laranja':'verde'}" style="border:none">${u.tipo}</span><span style="color:var(--cinza)">›</span></span></div></button>`).join('');
+}
+function unidContagem(ents){
+  const t=ents.length, corte=t>CAP_UNID;
+  return `${t} unidade${t!==1?'s':''}${corte?` · mostrando as ${CAP_UNID} primeiras, refine a busca`:''}`;
+}
+function unidListaHtml(){
+  const ents=unidFiltradas();
+  const el=document.getElementById('unid-lista'); if(el) el.innerHTML=unidLinhasHtml(ents);
+  const c=document.getElementById('unid-cnt'); if(c) c.textContent=unidContagem(ents);
+}
+function abrirUnidades(){ unidBusca=''; torreSel='Todas'; listaUnidades(); }
 function listaUnidades(){
+  const ents=unidFiltradas();
+  const filtroTorre = TORRES.length<=5
+    ? `<div style="display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; margin-bottom:8px">${['Todas',...TORRES].map(t=>`<button class="chip ${torreSel===t?'verde':'cinza'}" style="border:none; flex:0 0 auto; white-space:nowrap" onclick="torreSel='${t}';listaUnidades()">${rotuloTorre(t)}</button>`).join('')}</div>`
+    : `<button class="item" style="width:auto; display:inline-flex; align-items:center; gap:10px; margin-bottom:8px; padding:9px 14px; cursor:pointer" onclick="abrirTorrePicker('listaUnidades()')"><span style="display:inline-flex; align-items:center; gap:7px; font-size:.9rem; font-weight:600">${tIco('predio')}${rotuloTorre(torreSel)}</span><span style="color:var(--cinza); font-size:.8rem">▾</span></button>`;
   abrirModal(`<h3>${tIco('predio')}Unidades & moradores</h3>
     <div class="sub" style="margin-bottom:8px">A unidade é permanente; o morador é um vínculo que muda. Toque pra ver a ficha.</div>
-    ${Object.entries(unidades).map(([un,u])=>`<button class="item" style="width:100%; text-align:left; display:block" onclick="fecharModal();verUnidade('${un}')">
-      <div class="linha1"><span class="nome">${un} — ${u.ocupante}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${u.tipo==='inquilino'?'laranja':'verde'}" style="border:none">${u.tipo}</span><span style="color:var(--cinza)">›</span></span></div></button>`).join('')}`);
+    ${TORRES.length>1?filtroTorre:''}
+    <input id="unid-busca" value="${unidBusca.replace(/"/g,'&quot;')}" placeholder="Buscar por unidade (ex: A-305) ou morador…" oninput="unidBusca=this.value;unidListaHtml()" style="width:100%; margin-bottom:6px">
+    <div id="unid-cnt" class="sub" style="margin-bottom:6px; color:var(--cinza)">${unidContagem(ents)}</div>
+    <div id="unid-lista">${unidLinhasHtml(ents)}</div>`);
 }
 function verUnidade(un){
   const u=unidades[un]; if(!u) return;
@@ -3271,19 +3324,28 @@ function mudancaHtml(un){
       <div class="linha1"><span class="nome" style="font-size:.9rem; display:flex; align-items:center; gap:6px">${tIco(mud[k]?'check':ic)}${lbl}</span><span class="chip ${mud[k]?'verde':'cinza'}" style="border:none">${mud[k]?'feito':'pendente'}</span></div></button>`).join('')}`;
 }
 function toggleMudanca(un,k){ const u=unidades[un]; u.mudanca=u.mudanca||{agenda:false,vistoria:false,veiculo:false,pet:false}; u.mudanca[k]=!u.mudanca[k]; verUnidade(un); }
+function pinUnidade(un){ return (''+(un.charCodeAt(0)*7+un.length*131+97)).slice(-4); }
+function boasVindasMsg(un,pin){
+  const u=unidades[un]; const primeiro=(u.ocupante||'').split(' ')[0];
+  return `Olá, ${primeiro}! Seja bem-vindo(a) ao ${COND.nome}.\n\nVocê é o novo morador da unidade ${un}. Pra começar, ative o app do morador — é por ele que você fala com a portaria, libera visitantes, recebe avisos e encomendas, reserva as áreas comuns e acompanha os boletos.\n\nToque no link abaixo pra ativar. Acesso provisório, válido por 48h: PIN ${pin}.\n\nQualquer dúvida, é só chamar. — Administração do ${COND.nome}`;
+}
 function ativarMorador(un){
   const u=unidades[un];
-  const pin=(''+(un.charCodeAt(0)*7+un.length*131+97)).slice(-4);
-  abrirModal(`<h3>${tIco('chave')}Ativar acesso — ${u.ocupante}</h3>
-    <div class="sub" style="margin-bottom:10px">Preview da visão do <b>novo morador</b> ao receber o convite por WhatsApp.</div>
+  const pin=pinUnidade(un);
+  const msg=boasVindasMsg(un,pin);
+  abrirModal(`<h3>${tIco('chave')}Liberar acesso — ${u.ocupante}</h3>
+    <div class="sub" style="margin-bottom:10px">Um convite por WhatsApp libera o acesso do novo morador. Ao tocar nele, o morador:</div>
     <div class="item"><div class="sub" style="margin:0; line-height:2; display:flex; flex-direction:column; gap:2px">
       <span style="display:flex; align-items:center; gap:6px">${tIco('check')}Confirma identidade e cria o login do app</span>
       <span style="display:flex; align-items:center; gap:6px">${tIco('check')}Aceita convenção e regimento (consentimento LGPD)</span>
       <span style="display:flex; align-items:center; gap:6px">${tIco('cadeado')}Agenda o cadastro facial na portaria</span>
     </div></div>
-    <div class="sub" style="margin:10px 0 4px"><b>Enquanto a biometria não é cadastrada, entra por QR/PIN temporário:</b></div>
+    <div class="sub" style="margin:12px 0 4px"><b>${tIco('megafone')}Comunicado de boas-vindas</b> — vai junto com o link de ativação:</div>
+    <div class="item" style="white-space:pre-wrap; font-size:.85rem; line-height:1.55">${msg.replace(/</g,'&lt;')}</div>
+    <div class="sub" style="margin:12px 0 4px"><b>Acesso provisório</b> enquanto a biometria não é cadastrada:</div>
     <div class="item" style="text-align:center; padding:16px">${qrSvg(u.ocupante+un,140)}<div class="sub" style="margin-top:8px">QR válido por 48h · PIN <b>${pin}</b></div></div>
-    <button class="btn principal btn-grande" onclick="confirmarAtivacao('${un}')">Simular ativação concluída</button>`);
+    <a class="btn zap btn-grande" style="display:block; margin-top:4px" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}">Enviar convite + boas-vindas</a>
+    <button class="btn principal btn-grande" onclick="confirmarAtivacao('${un}')">Marcar acesso como ativado</button>`);
 }
 function confirmarAtivacao(un){
   const u=unidades[un]; u.app=true; if(u.acesso.indexOf('facial')<0) u.acesso.push('facial');
@@ -3324,7 +3386,8 @@ function confirmarTrocaInquilino(un){
       <span style="display:flex; align-items:center; gap:6px">${tIco('megafone')}Avisos redirecionados pro novo morador</span>
       <span style="display:flex; align-items:center; gap:6px">${tIco('pacote')}${encPend} encomenda(s) do antigo sinalizada(s) na portaria</span>
     </div></div>
-    <a class="btn zap btn-grande" style="display:block; margin-top:10px" target="_blank" href="https://wa.me/?text=${encodeURIComponent('Bem-vindo(a) ao '+COND.nome+'! Aqui é o síndico. Te enviei o convite pra ativar o app do morador — qualquer dúvida, é só chamar.')}">Enviar boas-vindas ao novo morador</a>
+    <div class="sub" style="margin:12px 0 4px">Próximo passo: <b>liberar o acesso</b> do novo morador. O convite já leva o comunicado de boas-vindas.</div>
+    <button class="btn principal btn-grande" onclick="ativarMorador('${un}')">${tIco('chave')}Liberar acesso e enviar boas-vindas</button>
     <button class="btn claro btn-grande" onclick="fecharModal()">Fechar</button>`);
 }
 /* ===== MINHA PROVA DO DIA (zelador): o que registrou hoje, com hora/foto, pronto pro síndico ===== */
@@ -3394,6 +3457,52 @@ function verResumoSemana(){
     ${blocos||vazio('check','Semana tranquila','Sem pendências que dependam de você agora.')}
     <div class="botoes" style="margin-top:12px"><a class="btn zap btn-grande" style="display:block" target="_blank" href="https://wa.me/?text=${encodeURIComponent(zt)}">Enviar resumo no meu WhatsApp</a></div>
     <div class="aviso-lgpd">No produto final, esse resumo chega sozinho toda segunda no seu WhatsApp — você abre o app só pra agir.</div>`);
+}
+/* ===== "PRA AGIR" — caixa única de pendências do síndico (aprovar/responder/delegar de um lugar só) ===== */
+function praAgir(){
+  const itens=[];
+  manutencoes.forEach((m,ix)=>{ if(m.status==='aprovacao') itens.push({cor:'laranja', tit:`Conferir laudo — ${nomeManu(m)}`, ctx:'O zelador arquivou o laudo; sua aprovação fecha o item.', acao:'Aprovar', fn:`aprovarDaFila(${ix})`, sec:'Ver', secfn:`fecharModal();verManutencao(${ix})`}); });
+  ocorrencias.forEach(o=>{ if(o.tipo==='Reforma' && o.status!=='resolvida' && o.status!=='em execução') itens.push({cor:'laranja', tit:`Aprovar reforma — ${o.un}`, ctx:o.titulo, acao:'Abrir', fn:`fecharModal();verOcorrencia(${o.id})`}); });
+  ocorrencias.forEach(o=>{ if(o.tipo!=='Reforma' && o.status!=='resolvida' && !o.resposta) itens.push({cor:'laranja', tit:`Responder — ${o.titulo}`, ctx:`${o.un} · ${o.tipo}`, acao:'Responder', fn:`fecharModal();verOcorrencia(${o.id})`, sec:'Rascunho Edi', secfn:`rascunhoEdi('resposta')`}); });
+  if(typeof compra!=='undefined' && compra.status!=='aprovada') itens.push({cor:'acao', tit:'Revisar cotações do zelador', ctx:'2-3 orçamentos por escrito prontos pra sua decisão.', acao:'Revisar', fn:`fecharModal();irPara('compras')`});
+  if(!provaReconhecida) itens.push({cor:'verde', tit:'Dar visto na operação do zelador', ctx:'Reconheça o que ele já fez e registrou hoje.', acao:'Ver e dar visto', fn:`fecharModal();verProvaSindico()`});
+  if(!assembleia.convocada) itens.push({cor:'acao', tit:'Convocar a assembleia 25/06', ctx:'Pauta minutada — falta convocar pelos canais.', acao:'Convocar', fn:`fecharModal();irPara('assembleia')`, sec:'Rascunho Edi', secfn:`rascunhoEdi('convocacao')`});
+  return itens;
+}
+function praAgirCard(){
+  const n=praAgir().length;
+  return `<button class="item" style="width:100%; text-align:left; display:block; margin:2px 0 6px; border-left:3px solid var(--verde)" onclick="verPraAgir()">
+    <div class="linha1"><span class="nome">${tIco('check')}Pra agir</span><span class="chip ${n?'laranja':'verde'}">${n?n+' pendência'+(n>1?'s':''):'tudo em dia'} ›</span></div>
+    <div class="sub" style="margin-top:5px">Tudo que depende de você num lugar — aprove, responda ou delegue de uma vez, sem caçar pelas telas.</div></button>`;
+}
+function verPraAgir(){
+  const itens=praAgir();
+  const cardC=c=>c==='acao'?'gold':c;
+  abrirModal(`<h3>${tIco('check')}Pra agir — ${itens.length}</h3>
+    <div class="sub" style="margin-bottom:10px">${itens.length?'Resolva de uma vez: aprovar, responder ou abrir. Some da fila ao concluir.':'Nada pendente — está tudo em dia.'}</div>
+    ${itens.map(i=>`<div class="item" style="border-left:3px solid var(--${cardC(i.cor)})">
+      <div class="linha1"><span class="nome" style="font-size:.95rem">${i.tit}</span></div>
+      <div class="sub" style="margin-top:3px">${i.ctx}</div>
+      <div class="botoes" style="justify-content:flex-end; margin-top:8px">
+        ${i.sec?`<button class="btn claro" style="flex:0 0 auto; padding:8px 13px; font-size:13px" onclick="${i.secfn}">${i.sec}</button>`:''}
+        <button class="btn principal" style="flex:0 0 auto; padding:8px 13px; font-size:13px" onclick="${i.fn}">${i.acao}</button>
+      </div></div>`).join('')||vazio('check','Tudo em dia','Sem pendências que dependam de você agora.')}`);
+}
+function aprovarDaFila(ix){ aprovarExecucao(ix); verPraAgir(); }
+function rascunhoEdi(assunto){
+  const txt={
+    convocacao:`CONVOCAÇÃO — Assembleia Geral Ordinária · ${COND.nome}\n25/06/2026 · 19h30 (1ª chamada) / 20h (2ª), no salão de festas.\nPauta: 1) prestação de contas; 2) eleição do conselho fiscal; 3) assuntos gerais.\nQuem não puder comparecer vota pelo app ou envia procuração.\n— Síndico`,
+    resposta:`Olá! Recebi sua solicitação e já estou verificando com a equipe. Te dou um retorno em até 48h, pelo app e pelo WhatsApp. Obrigado por avisar. — Síndico, ${COND.nome}`
+  }[assunto]||'';
+  abrirModal(`<h3>${tIco('robo')}Rascunho do ${nomeAssist}</h3>
+    <div class="sub" style="margin-bottom:8px">O ${nomeAssist} preparou — é só revisar e enviar. No produto final ele usa a convenção e o histórico do prédio.</div>
+    <div class="item" style="white-space:pre-wrap; font-size:.9rem; line-height:1.55">${txt}</div>
+    <div class="botoes" style="margin-top:10px"><a class="btn zap" style="flex:0 0 auto" target="_blank" href="https://wa.me/?text=${encodeURIComponent(txt)}">Enviar no WhatsApp</a><button class="btn claro" style="flex:0 0 auto" onclick="verPraAgir()">Voltar à fila</button></div>`);
+}
+/* entrada compacta do grid "Gerir o condomínio" (ícone + rótulo + badge), 2 colunas */
+function gerirEntrada(ic,lbl,oc,badge){
+  return `<button class="item" style="width:auto; flex:1 1 calc(50% - 4px); min-width:0; text-align:left; padding:11px 12px; margin:0; display:block" onclick="${oc}">
+    <div style="display:flex; align-items:center; gap:8px"><span style="flex:0 0 auto; display:inline-flex">${tIco(ic)}</span><span style="flex:1; min-width:0; font-weight:700; font-size:.86rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${lbl}</span>${badge?`<span class="chip ${badge[1]}" style="border:none; padding:1px 7px; font-size:.64rem; flex:0 0 auto">${badge[0]}</span>`:''}</div></button>`;
 }
 /* ===== GESTÃO: trocar de administradora (condomínio é permanente; a administradora é um vínculo) ===== */
 function gestaoCard(){
@@ -4008,6 +4117,28 @@ function ediReservar(area,d,m){
   atualizar();
   setTimeout(()=>{const c=document.querySelector('#rg-chat'); if(c) c.scrollTop=c.scrollHeight;},50);
 }
+function boletoLigado(){ const b=(typeof integracoes!=='undefined'?integracoes:[]).find(i=>/boleto/i.test(i.nome)); return !!(b&&b.status==='conectada'); }
+function minhaTaxa(){
+  const emDia=MORADOR.emDia, valor=COND.taxa;
+  const txid='APTO'+MORADOR.un.replace('-','')+'-2026-0'+(emDia?7:6);
+  const pix=gerarPix(COND.chavePix, COND.nome, COND.cidade, valor, txid);
+  abrirModal(`<h3>${tIco('cifrao')}Minha taxa — ${MORADOR.un}</h3>
+    <div class="item" style="border-color:var(--${emDia?'verde':'laranja'}); margin-bottom:10px">
+      <div class="linha1"><span class="nome">${tIco(emDia?'check':'alerta')}Taxa de junho · ${fmt(valor)}</span><span class="chip ${emDia?'verde':'laranja'}">${emDia?'paga':'em aberto'}</span></div>
+      <div class="sub" style="margin-top:4px">${emDia?'Pago via PIX em 03/06.':'Em aberto — pague na hora pelo PIX abaixo.'}${MORADOR.papel==='inquilina'?' Como inquilina, você paga só as despesas ordinárias.':''}</div>
+    </div>
+    ${emDia?`<div class="sub" style="margin:0 0 4px"><b>Comprovante de junho</b></div>
+    <button class="btn claro btn-grande" style="margin-bottom:14px" onclick="toast('No produto final: comprovante em PDF, identificado pela unidade.')">${tIco('clipe')}Baixar comprovante</button>
+    <div class="sub" style="margin:0 0 4px"><b>Adiantar a taxa de julho</b></div>`
+    :`<div class="sub" style="margin:0 0 4px"><b>2ª via — pague pelo PIX</b></div>`}
+    <div class="pix-caixa">${pix}</div>
+    <div class="botoes"><button class="btn principal" onclick="copiar('${pix}','PIX copiado')">${tIco('check')}Copiar PIX</button>
+      <a class="btn zap" target="_blank" href="https://wa.me/?text=${encodeURIComponent('PIX da taxa de '+(emDia?'julho':'junho')+' — '+COND.nome+':\n\n'+pix)}">Enviar pra mim</a></div>
+    ${boletoLigado()
+      ? `<button class="btn claro btn-grande" style="margin-top:8px" onclick="toast('2ª via do boleto registrado gerada — código de barras e linha digitável (simulação).')">${tIco('contrato')}2ª via do boleto registrado</button>`
+      : `<div class="aviso-lgpd" style="margin-top:10px">O boleto bancário (código de barras) sai do ERP da administradora — a integração ainda não está ligada neste condomínio. Por aqui você paga na hora pelo PIX, com baixa automática.</div>`}
+    <div class="aviso-lgpd">Gerado na hora, identificado pela sua unidade — sem procurar boleto no e-mail.</div>`);
+}
 function ediPixJulho(){
   const pix=gerarPix(COND.chavePix, COND.nome, COND.cidade, COND.taxa, 'APTO305-2026-07');
   abrirModal(`<h3>PIX — taxa de julho (${fmt(COND.taxa)})</h3>
@@ -4251,7 +4382,7 @@ function notificacoesMorador(){
   const enc=encomendas.find(e=>e.un===MORADOR.un&&e.status==='aguardando');
   if(enc) out.push({ic:'pacote', t:'Encomenda na portaria', sub:`${enc.transp} · chegou ${enc.chegada}`, q:enc.chegada, lida:false, go:`irPara('mhome')`});
   if(enquete.ativa&&enquete.votou===null) out.push({ic:'grafico', t:'Enquete aberta', sub:`"${enquete.q}" — seu voto conta`, q:'', lida:false, go:`irPara('mhome')`});
-  if(!MORADOR.emDia) out.push({ic:'cifrao', t:'Taxa em aberto', sub:'Toque pra gerar o PIX', q:'', lida:false, go:`irPara('mhome')`});
+  if(!MORADOR.emDia) out.push({ic:'cifrao', t:'Taxa em aberto', sub:'Toque pra gerar o PIX / 2ª via', q:'', lida:false, go:`minhaTaxa()`});
   avisosDoMorador().forEach(a=>{const ix=avisos.indexOf(a); const lida=(a.lidoPor||[]).includes(MORADOR.un);
     out.push({ic:'megafone', t:a.t, sub:a.d, q:a.quando, lida, go:`confirmarLeitura(${ix})`});});
   const ref=ocorrencias.find(o=>o.un===MORADOR.un&&o.tipo==='Reforma'&&o.status==='em execução');
@@ -4323,7 +4454,7 @@ function salvarComunicado(){
 }
 /* ===== AVISO OPERACIONAL — operação (zelador/portaria) publica, escopado e auditado ===== */
 const avisoOpCard=`<button class="item" style="width:100%; text-align:left; display:block" onclick="avisoOperacional()">
-  <div class="linha1"><span class="nome">${tIco('megafone')}Enviar aviso operacional</span><span class="chip verde">novo ›</span></div>
+  <div class="linha1"><span class="nome">${tIco('megafone')}Enviar aviso operacional</span><span style="color:var(--cinza)">›</span></div>
   <div class="sub" style="margin-top:5px">Água, elevador, portão, limpeza — vai à torre afetada, assinado por você.</div></button>`;
 function avisoOperacional(){
   comTorreSel='todas';
