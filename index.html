@@ -401,7 +401,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.18';
+const VERSAO='v4.19';
 /* ============================================================
    Viva — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -4433,6 +4433,20 @@ function zapResp(q){
   return {t:r.t, fonte:r.fonte};   // demais: só texto + citação da fonte
 }
 function zapAct(reply){ chatZap.push({de:'bot', t:reply}); verEdiZap(); }
+/* Edi PROATIVO: ele começa a conversa (diferencial de co-piloto, não só reativo). */
+function zapProativo(tipo){
+  if(tipo==='encomenda'){
+    chatZap=[{de:'bot', proat:1, t:'📦 Chegou uma encomenda sua na portaria (Mercado Livre, na guarita). Quer que eu autorize a entrega na sua porta?', act:{label:'Autorizar entrega na porta', reply:'Feito! Avisei a portaria pra subir sua encomenda. Você recebe a confirmação aqui quando for entregue.'}}];
+  } else if(tipo==='taxa'){
+    const pix=gerarPix(COND.chavePix, COND.nome, COND.cidade, COND.taxa, 'APTO305-2026-07');
+    chatZap=[{de:'bot', proat:1, t:`Oi! Sua taxa de julho (${fmt(COND.taxa)}) vence em 3 dias. Já deixei o PIX pronto — é só copiar e pagar:`, pix}];
+  } else if(tipo==='votacao'){
+    chatZap=[{de:'bot', proat:1, t:'🗳️ Abriu uma votação no prédio: "Troca do portão da garagem". Faltam 12 votos pro quórum e encerra domingo. Quer votar agora?', act:{label:'Ver e votar', reply:'No produto final isso abre a cédula da votação aqui mesmo — seu voto é registrado e conta pro quórum na hora.'}}];
+  } else if(tipo==='manutencao'){
+    chatZap=[{de:'bot', proat:1, t:`⚠️ ${nomeAssist} pro síndico: a manutenção do elevador vence em 30 dias (prazo legal). Posso pedir orçamento às 3 empresas vetadas e te trazer pra aprovar?`, act:{label:'Pedir os 3 orçamentos', reply:'Pedido enviado às 3 empresas. Assim que responderem, eu te mostro o comparativo aqui e você aprova com um toque — nada é contratado sem o seu sim.'}}];
+  }
+  verEdiZap();
+}
 function abrirEdiZap(){
   chatZap=[{de:'bot', t:`Oi! Aqui é o ${nomeAssist}, do ${COND.nome}. Pode perguntar como você perguntaria pra qualquer pessoa — ou tocar num atalho abaixo.`}];
   verEdiZap();
@@ -4450,7 +4464,8 @@ function bolhaZap(m,i){
   if(m.de==='eu') return `<div style="display:flex; justify-content:flex-end; margin:5px 0"><div style="background:#d9fdd3; color:#111b21; border-radius:10px 10px 2px 10px; padding:7px 10px 5px; max-width:80%; font-size:.9rem; line-height:1.35; box-shadow:0 1px .5px rgba(0,0,0,.13)">${m.t}<span style="float:right; font-size:.62rem; color:#667781; margin:5px 0 -2px 10px">${hora} ✓✓</span></div></div>`;
   const pixHtml=m.pix?`<div style="margin-top:6px; font-family:monospace; font-size:.72rem; background:#f0f4f2; border-radius:8px; padding:7px 9px; color:#0a5c48; word-break:break-all">${m.pix}</div><button onclick="copiar('${m.pix}','PIX copiado')" style="margin-top:6px; background:#075e54; color:#fff; border:none; border-radius:16px; padding:6px 14px; font-size:.78rem; cursor:pointer">Copiar PIX</button>`:'';
   const actHtml=m.act?`<button onclick="zapAct('${m.act.reply}')" style="margin-top:7px; background:#075e54; color:#fff; border:none; border-radius:16px; padding:7px 14px; font-size:.8rem; cursor:pointer">${m.act.label}</button>`:'';
-  return `<div style="display:flex; justify-content:flex-start; margin:5px 0"><div style="background:#fff; color:#111b21; border-radius:10px 10px 10px 2px; padding:7px 10px 6px; max-width:84%; font-size:.9rem; line-height:1.35; box-shadow:0 1px .5px rgba(0,0,0,.13)">${m.t}${m.fonte?`<div style="font-size:.72rem; color:#0a5c48; font-weight:700; margin-top:3px; display:flex; align-items:center; gap:4px">${clip()}${m.fonte}</div>`:''}${pixHtml}${actHtml}<span style="display:block; text-align:right; font-size:.62rem; color:#8696a0; margin-top:2px">${hora}</span></div></div>`;
+  const proatHtml=m.proat?`<span style="display:inline-block; background:#fff6d8; color:#9a7b1e; font-size:.6rem; font-weight:700; padding:1px 7px; border-radius:7px; margin-bottom:4px">✦ ${nomeAssist} iniciou</span><br>`:'';
+  return `<div style="display:flex; justify-content:flex-start; margin:5px 0"><div style="background:#fff; color:#111b21; border-radius:10px 10px 10px 2px; padding:7px 10px 6px; max-width:84%; font-size:.9rem; line-height:1.35; box-shadow:0 1px .5px rgba(0,0,0,.13)">${proatHtml}${m.t}${m.fonte?`<div style="font-size:.72rem; color:#0a5c48; font-weight:700; margin-top:3px; display:flex; align-items:center; gap:4px">${clip()}${m.fonte}</div>`:''}${pixHtml}${actHtml}<span style="display:block; text-align:right; font-size:.62rem; color:#8696a0; margin-top:2px">${hora}</span></div></div>`;
 }
 function verEdiZap(){
   const chips=(EDI_CHIPS.morador||[]);
@@ -4463,6 +4478,7 @@ function verEdiZap(){
     </div>
     <div id="zap-chat" style="background:#e7ded4; padding:12px 10px; max-height:44vh; overflow-y:auto">
       <div style="text-align:center; margin-bottom:10px"><span style="background:#fff6d8; color:#7a6a3a; font-size:.7rem; padding:5px 11px; border-radius:8px; display:inline-block; max-width:92%; line-height:1.3">Simulação — no produto final é o WhatsApp real (Cloud API). É o mesmo ${nomeAssist} do app.</span></div>
+      <div style="text-align:center; margin-bottom:10px"><div style="font-size:.66rem; color:#5a6b63; margin-bottom:5px">Ou veja o ${nomeAssist} <b>proativo</b> — ele começa a conversa:</div><div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center">${[['encomenda','📦 Encomenda'],['taxa','💰 Taxa a vencer'],['votacao','🗳️ Votação'],['manutencao','🛗 Síndico']].map(([k,r])=>`<button class="chip" style="border:1px solid #c8a23a; background:#fff; color:#7a6a3a; font-size:.7rem" onclick="zapProativo('${k}')">${r}</button>`).join('')}</div></div>
       <div style="text-align:center; margin-bottom:8px"><span style="background:#cfe9df; color:#0a5c48; font-size:.66rem; padding:2px 9px; border-radius:8px">hoje</span></div>
       ${corpo}
     </div>
