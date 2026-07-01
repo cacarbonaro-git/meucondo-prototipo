@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.34';
+const VERSAO='v4.35';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1074,9 +1074,9 @@ function abrirModal(html){ $('#modal').innerHTML=`<button class="fechar-x" oncli
 function fecharModal(){ $('#fundo-modal').classList.remove('on'); }
 
 const MENUS = {
-  sindico:[['inicio','casa','Início'],['inadimplencia','cifrao','Cobrança'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['reservas','calendario','Reservas']],
+  sindico:[['inicio','casa','Início'],['inadimplencia','cifrao','Cobrança'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['comunicados','megafone','Comunicados']],
   portaria:[['encomendas','pacote','Encomendas'],['visitantes','porta','Visitantes'],['acessos','chave','Acessos']],
-  zelador:[['rotina','checklist','Rotina'],['livro','caderno','Livro'],['manuzel','chave','Manutenção'],['triagem','maleta','Triagem'],['estoque','prancheta','Estoque']],
+  zelador:[['rotina','checklist','Rotina'],['livro','caderno','Livro'],['manuzel','chave','Preventiva'],['triagem','maleta','Resolver'],['estoque','prancheta','Estoque']],
   conselho:[['ccontas','grafico','Contas'],['cdocs','pasta','Documentos']],
   morador:[['mhome','casa','Início'],['mreservar','calendario','Reservar'],['mfalar','balao','Falar'],['mavisos','megafone','Avisos']],
   administradora:[['carteira','predio','Carteira'],['admcobranca','cifrao','Cobrança'],['admatend','balao','Atendimento']],
@@ -1333,8 +1333,7 @@ TELAS.inicio = () => {
     ${gerirEntrada('maleta','Gestão / administradora',"verGestao()")}
     ${gerirEntrada('checklist','Trilha de auditoria',"verAuditoria()",[''+auditoria.length,'cinza'])}
     ${gerirEntrada('importar','Integrações',"irPara('integracoes')",(()=>{const p=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;return[p?''+p:'ok',p?'laranja':'verde'];})())}
-    ${gerirEntrada('megafone','Criar comunicado',"criarComunicado()")}
-    ${COND.painelElevador?gerirEntrada('elevador','Painel do elevador',"verPainelElevador()",[painelFila.length?painelFila.length+' no ar':'vazio',painelFila.length?'verde':'cinza']):''}
+    ${gerirEntrada('calendario','Agenda de reservas',"irPara('reservas')")}
     ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
   </div>
 <h2>Balancete de maio</h2>
@@ -3245,13 +3244,12 @@ TELAS.rotina = () => {
   <button class="item" style="width:100%; text-align:left; display:block" onclick="document.getElementById('rotina-lista').scrollIntoView({behavior:'smooth',block:'start'})">
     <div class="linha1"><span class="nome">${tIco('check')}Rotina: ${feitos} de ${rotina.length} feitas</span><span class="chip ${feitos===rotina.length?'verde':'laranja'}">${rotina.length-feitos} pendentes ›</span></div>
     <div class="cat-trilha" style="margin-top:8px; height:8px"><div class="cat-barra" style="width:${Math.round(feitos/rotina.length*100)}%"></div></div>
+    <div class="sub" style="margin-top:6px">Cada tarefa marcada vira prova de serviço (hora + foto), pronta pra mandar ao síndico.</div>
   </button>
   <button class="item" style="width:100%; text-align:left; display:block" onclick="verProvaDia()">
-    <div class="linha1"><span class="nome">${tIco('checklist')}Minha prova do dia</span><span class="chip verde">${feitos} feitas ›</span></div>
-    <div class="sub" style="margin-top:5px">O que você já registrou hoje, com hora e foto — sua prova de serviço, pronta pra mandar ao síndico.</div></button>
+    <div class="linha1"><span class="nome">${tIco('checklist')}Minha prova do dia</span><span class="chip cinza">ver ›</span></div>
+    <div class="sub" style="margin-top:5px">Tudo que você registrou hoje, com hora e foto — mande ao síndico num toque.</div></button>
   ${provaReconhecida?`<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="linha1"><span class="nome">${tIco('check')}O síndico deu visto na sua prova</span><span class="chip verde">${provaReconhecida}</span></div><div class="sub" style="margin-top:3px">Seu trabalho foi reconhecido — obrigado.</div></div>`:''}
-  <button class="btn perigo btn-grande" style="margin:4px 0 12px" onclick="emergencia()">${tIco('alerta')}Emergência</button>
-  <div class="item"><div class="linha1"><span class="nome">${tIco('pessoas')}Escala de hoje</span></div><div class="sub">${ESCALA_HOJE}</div></div>
   <div class="secao" id="rotina-lista">ROTINA</div>
   ${rotina.map((r,ix)=>({r,ix})).sort((a,b)=>(a.r.feito?1:0)-(b.r.feito?1:0)).map(({r,ix})=>`<div class="item ${r.feito?'feito':''}">
     <div class="linha1"><span class="nome">${r.feito?tIco('check'):''}${r.t}</span><span class="chip ${r.feito?'verde':'cinza'}">${r.freq}</span></div>
@@ -3260,8 +3258,10 @@ TELAS.rotina = () => {
   <div class="aviso-lgpd">Cada marcação registra quem fez e quando. Leituras (caixa d'água) pedem o número — o valor de hoje comparado ao de ontem é o que denuncia vazamento.</div>
   ${modOn('reservas')&&eventos.length?`<div class="secao">EVENTOS A PREPARAR</div>
   ${eventos.map(r=>`<div class="item"><div class="linha1"><span class="nome">${tIco('calendario')}${r.a}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.mes).padStart(2,'0')}</span></div><div class="sub">Unidade ${r.u} · deixar limpo e liberar o acesso na data</div></div>`).join('')}`:''}
-  <div class="secao">OUTRAS AÇÕES</div>
-  <button class="btn claro btn-grande" style="margin-bottom:8px" onclick="passagemTurno()">${tIco('troca')}Passagem de turno</button>
+  <div class="secao">EQUIPE &amp; TURNO</div>
+  <div class="item"><div class="linha1"><span class="nome">${tIco('pessoas')}Escala de hoje</span></div><div class="sub">${ESCALA_HOJE}</div></div>
+  <button class="btn claro btn-grande" style="margin:8px 0" onclick="passagemTurno()">${tIco('troca')}Passagem de turno</button>
+  <button class="item" style="width:100%; text-align:left; display:block; border-color:var(--vermelho); border-width:1.5px" onclick="emergencia()"><div class="linha1"><span class="nome" style="color:var(--vermelho)">${tIco('alerta')}Emergência — contatos 24h</span><span style="color:var(--vermelho)">›</span></div></button>
   ${avisoOpCard}
 </div>`;
 };
@@ -4802,6 +4802,19 @@ function marcarTudoLido(){
   avisosDoMorador().forEach(a=>{a.lidoPor=a.lidoPor||[]; if(!a.lidoPor.includes(MORADOR.un)) a.lidoPor.push(MORADOR.un);});
   fecharModal(); atualizar(); toast('Avisos marcados como lidos.');
 }
+/* Aba Comunicados do síndico — criar + painel do elevador + mural com leituras */
+TELAS.comunicados = () => `<div class="tela on">
+  <div class="topo"><h1>${tIco("megafone")}Comunicados</h1><p>Publique, reforce no WhatsApp e no painel — com confirmação de leitura</p></div>
+  <button class="btn principal btn-grande" onclick="criarComunicado()">${tIco('megafone')}Criar comunicado</button>
+  ${COND.painelElevador?`<button class="item" style="width:100%; text-align:left; display:block; margin-top:10px" onclick="verPainelElevador()">
+    <div class="linha1"><span class="nome">${tIco('elevador')}Painel do elevador</span><span class="chip ${painelFila.length?'verde':'cinza'}">${painelFila.length?painelFila.length+' no ar ›':'vazio ›'}</span></div>
+    <div class="sub" style="margin-top:5px">${painelFila.length?'Cards rodando na tela do elevador agora — toque pra ver e conferir a validade.':'Nada rodando. Ao publicar um comunicado, marque "Exibir no painel do elevador".'}</div></button>`:''}
+  <h2>No mural</h2>
+  ${avisos.map(a=>{const leituras=(a.lidoPor||[]).length;
+    return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px; flex:0 0 auto">${a.cat==='operação'?'<span class="chip cinza">operação</span>':''}<span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div>
+      <div class="sub">${a.d}</div>
+      <div class="sub" style="margin-top:3px; font-size:.78rem">por ${a.autor||'Síndico'} · ${leituras} leitura(s)</div></div>`;}).join('')||vazio('megafone','Mural vazio','Publique o primeiro comunicado — ele aparece aqui com a contagem de leituras.')}
+</div>`;
 function comunicadoCardSindico(){
   const ultimo=avisos[0]; const tot=avisos.length;
   const leituras=ultimo?(ultimo.lidoPor||[]).length:0;
