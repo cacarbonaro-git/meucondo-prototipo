@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.31';
+const VERSAO='v4.32';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -3344,6 +3344,7 @@ let pessoas=[
   {nome:'Mariana Dias',   papel:'Conselho fiscal',  status:'ativo',     info:'mandato até 03/2027'},
   {nome:'Paulo Esteves',  papel:'Conselho fiscal',  status:'ativo',     info:'mandato até 03/2027'},
   {nome:'Sônia Rocha',    papel:'Conselho fiscal',  status:'convidado', info:'convite há 2 dias'},
+  {nome:'Tânia Melo',     papel:'Auxiliar de gestão', status:'ativo',   info:'delegado pelo síndico · 3 permissões · alçada R$ 500,00', escopo:['Responder ocorrências e publicar comunicados','Gerir reservas e áreas comuns','Acompanhar manutenção — abrir OS, cobrar prestador'], alcada:500, delegadoPor:'Síndico'},
   {nome:'Carlos Nunes',   papel:'Zelador',          status:'ativo',     info:'desde 2024'},
   {nome:'João Pereira',   papel:'Portaria',         status:'ativo',     info:'turno dia'},
   {nome:'Pedro Lima',     papel:'Portaria',         status:'ativo',     info:'turno noite'},
@@ -3354,7 +3355,7 @@ TELAS.pessoas = () => {
   const linha=p=>{const ix=pessoas.indexOf(p), c=stChip(p);
     return `<button class="item" style="width:100%; text-align:left; display:block; cursor:pointer${p.status==='bloqueado'?'; opacity:.6':''}" onclick="verPessoa(${ix})"><div class="linha1"><span class="nome">${p.nome}${p.voce?' <span class="chip cinza" style="border:none; font-size:.62rem">você</span>':''}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${c[1]}">${c[0]}</span><span style="color:var(--cinza)">›</span></span></div>
       <div class="sub" style="margin-top:3px">${p.papel} · ${p.info}</div></button>`;};
-  const grupos=[['Gestão',['Síndico','Conselho fiscal']],['Operação',['Zelador','Portaria']]];
+  const grupos=[['Gestão',['Síndico','Subsíndico','Auxiliar de gestão','Conselho fiscal']],['Operação',['Zelador','Portaria']]];
   const moradAtivos=Object.values(unidades).filter(u=>u.app).length, moradPend=Object.values(unidades).filter(u=>!u.app).length;
   return `<div class="tela on">
     <div class="topo"><h1>${tIco('pessoas')}Pessoas & papéis</h1><p>Quem tem acesso, em qual papel — e o status de cada convite</p></div>
@@ -3371,22 +3372,76 @@ TELAS.pessoas = () => {
     <div class="aviso-lgpd">Cada convite e cada encerramento de vínculo entra na trilha de auditoria. Mandatos (síndico, conselho) têm prazo: ao vencer, o vínculo é renovado ou encerrado.</div>
   </div>`;
 };
+const PERMS_AUX=[
+  ['ocorrencias','Responder ocorrências e publicar comunicados'],
+  ['reservas','Gerir reservas e áreas comuns'],
+  ['manutencao','Acompanhar manutenção — abrir OS, cobrar prestador'],
+  ['cobranca','Enviar lembrete de inadimplência'],
+  ['edi','Treinar o Edi (curadoria de fontes)'],
+];
 function convidarPessoa(){
   abrirModal(`<h3>${tIco('pessoas')}Convidar pessoa</h3>
-    <label>Papel</label>
-    <select id="cp-papel" onchange="document.getElementById('cp-un-wrap').style.display=this.value==='Morador'?'block':'none'">${['Conselho fiscal','Zelador','Portaria','Morador','Síndico'].map(p=>`<option>${p}</option>`).join('')}</select>
-    <label style="margin-top:8px">Nome</label><input id="cp-nome" placeholder="Nome completo">
-    <label style="margin-top:8px">WhatsApp</label><input id="cp-tel" placeholder="(11) 90000-0000">
-    <div id="cp-un-wrap" style="display:none"><label style="margin-top:8px">Unidade</label><input id="cp-un" placeholder="Ex.: A-305"></div>
+    <label for="cp-papel">Papel</label>
+    <select id="cp-papel" onchange="cpPapelMudou()">${['Conselho fiscal','Zelador','Portaria','Morador','Auxiliar de gestão','Subsíndico','Síndico'].map(p=>`<option>${p}</option>`).join('')}</select>
+    <label style="margin-top:8px" for="cp-nome">Nome</label><input id="cp-nome" placeholder="Nome completo">
+    <label style="margin-top:8px" for="cp-tel">WhatsApp</label><input id="cp-tel" placeholder="(11) 90000-0000">
+    <div id="cp-un-wrap" style="display:none"><label style="margin-top:8px" for="cp-un">Unidade</label><input id="cp-un" placeholder="Ex.: A-305"></div>
+    <div id="cp-aux-wrap" style="display:none; margin-top:10px">
+      <div class="secao" style="margin-top:4px">O QUE ELE PODE FAZER</div>
+      ${PERMS_AUX.map(([k,l])=>`<label style="display:flex; align-items:center; gap:9px; padding:7px 2px; font-weight:500; cursor:pointer"><input type="checkbox" id="cpx-${k}" checked style="width:18px; height:18px; flex:0 0 auto">${l}</label>`).join('')}
+      <label style="margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap" for="cp-alcada"><span style="display:inline-flex; align-items:center; gap:6px">${tIco('balanca')}Aprovar despesa até R$</span><input id="cp-alcada" type="number" value="500" style="width:96px; display:inline-block"></label>
+      <div class="sub" style="margin-top:2px">Acima do teto, a aprovação volta pro síndico.</div>
+      <div class="item" style="background:var(--cinza-claro); margin-top:10px"><div class="sub" style="margin:0; line-height:1.75"><b>Sempre com o síndico</b> (indelegável):<br>${tIco('cadeado')}assinar ata e convocar assembleia · mudar regra/convenção · aprovar reforma estrutural · bloquear acesso de pessoas · trocar administradora</div></div>
+      <div class="aviso-lgpd" style="margin-top:8px">Toda ação do auxiliar entra na trilha de auditoria como <b>"sob delegação do síndico"</b> — a responsabilidade continua sua (CC art. 1.348). O acesso tem mandato e você revoga quando quiser.</div>
+    </div>
+    <div id="cp-sub-wrap" style="display:none; margin-top:10px">
+      <div class="item" style="border-left:3px solid var(--laranja)"><div class="sub" style="margin:0; line-height:1.75"><span style="display:inline-flex; align-items:center; gap:6px">${tIco('balanca')}<b>Subsíndico transfere poderes</b>, não só tarefas.</span> Pelo <b>CC art. 1.348 §2º</b>, isso exige <b>previsão na convenção</b> ou <b>aprovação em assembleia</b> — não basta o seu convite.</div></div>
+      <label style="display:flex; align-items:center; gap:9px; margin-top:10px; font-weight:500; cursor:pointer"><input type="checkbox" id="cp-sub-pauta" checked style="width:18px; height:18px; flex:0 0 auto">Adicionar "eleição de subsíndico" à pauta da próxima assembleia</label>
+    </div>
     <div class="aviso-lgpd" style="margin:10px 0">A pessoa recebe o convite no WhatsApp, confirma a identidade e aceita a convenção (consentimento LGPD) antes de ter acesso. Você (ou a administradora) é quem autoriza o papel.</div>
     <button class="btn principal btn-grande" onclick="enviarConvitePessoa()">Enviar convite</button>`);
+}
+function cpPapelMudou(){
+  const v=$('#cp-papel').value;
+  $('#cp-un-wrap').style.display  = v==='Morador'?'block':'none';
+  $('#cp-aux-wrap').style.display = v==='Auxiliar de gestão'?'block':'none';
+  $('#cp-sub-wrap').style.display = v==='Subsíndico'?'block':'none';
+}
+function editarDelegacao(ix){
+  const p=pessoas[ix]; if(!p) return;
+  abrirModal(`<h3>${tIco('pessoas')}Permissões — ${p.nome}</h3>
+    <div class="sub" style="margin-bottom:8px">Delegação de tarefas pelo síndico. Ajuste o que ${p.nome.split(' ')[0]} pode fazer e o teto de alçada.</div>
+    <div class="secao" style="margin-top:0">O QUE ELE PODE FAZER</div>
+    ${PERMS_AUX.map(([k,l])=>`<label style="display:flex; align-items:center; gap:9px; padding:7px 2px; font-weight:500; cursor:pointer"><input type="checkbox" id="edx-${k}" ${(p.escopo||[]).includes(l)?'checked':''} style="width:18px; height:18px; flex:0 0 auto">${l}</label>`).join('')}
+    <label style="margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap" for="ed-alcada"><span style="display:inline-flex; align-items:center; gap:6px">${tIco('balanca')}Aprovar despesa até R$</span><input id="ed-alcada" type="number" value="${p.alcada||0}" style="width:96px"></label>
+    <button class="btn principal btn-grande" onclick="salvarDelegacao(${ix})">Salvar permissões</button>`);
+}
+function salvarDelegacao(ix){
+  const p=pessoas[ix]; if(!p) return;
+  p.escopo=PERMS_AUX.filter(([k])=>$('#edx-'+k)&&$('#edx-'+k).checked).map(([k,l])=>l);
+  p.alcada=parseInt($('#ed-alcada').value)||0;
+  p.info=`delegado pelo síndico · ${p.escopo.length} ${p.escopo.length===1?'permissão':'permissões'} · alçada ${fmt(p.alcada)}`;
+  logAudit(`ajustou a delegação de ${p.nome} (auxiliar): ${p.escopo.length} permissões, alçada ${fmt(p.alcada)}`,'Síndico');
+  fecharModal(); atualizar(); toast('Permissões atualizadas.');
 }
 function enviarConvitePessoa(){
   const nome=($('#cp-nome').value||'').trim(); if(!nome){ toast('Informe o nome.'); return; }
   const papel=$('#cp-papel').value, un=papel==='Morador'?($('#cp-un').value||'').trim():'';
-  pessoas.push({nome, papel, status:'convidado', info: un?`unidade ${un} · convite enviado`:'convite enviado'});
-  logAudit(`convidou ${nome} como ${papel}${un?` (${un})`:''}`, perfil==='administradora'||admContexto?'Administradora':'Síndico');
-  fecharModal(); atualizar(); toast(`Convite enviado a ${nome.split(' ')[0]} (${papel}) — aguardando a ativação.`);
+  const p={nome, papel, status:'convidado', info: un?`unidade ${un} · convite enviado`:'convite enviado'};
+  let extraToast='';
+  if(papel==='Auxiliar de gestão'){
+    p.escopo=PERMS_AUX.filter(([k])=>$('#cpx-'+k)&&$('#cpx-'+k).checked).map(([k,l])=>l);
+    p.alcada=parseInt($('#cp-alcada').value)||0; p.delegadoPor='Síndico';
+    p.info=`delegado pelo síndico · ${p.escopo.length} ${p.escopo.length===1?'permissão':'permissões'} · alçada ${fmt(p.alcada)}`;
+  }
+  if(papel==='Subsíndico'){
+    const pauta=$('#cp-sub-pauta')&&$('#cp-sub-pauta').checked; p.requerAssembleia=true;
+    p.info=pauta?'transferência de poderes · aguardando assembleia (CC 1.348 §2º)':'transferência de poderes · requer convenção/assembleia';
+    if(pauta) extraToast=' "Eleição de subsíndico" entrou na pauta da próxima assembleia.';
+  }
+  pessoas.push(p);
+  logAudit(`convidou ${nome} como ${papel}${un?` (${un})`:''}${papel==='Auxiliar de gestão'?` — delegação de tarefas, alçada ${fmt(p.alcada)}`:''}`, perfil==='administradora'||admContexto?'Administradora':'Síndico');
+  fecharModal(); atualizar(); toast(`Convite enviado a ${nome.split(' ')[0]} (${papel}) — aguardando a ativação.`+extraToast);
 }
 function reenviarConvite(nome){ logAudit(`reenviou o convite de ${nome}`,'Síndico'); toast(`Convite reenviado a ${nome.split(' ')[0]} no WhatsApp.`); }
 function aprovarClaim(ix){ const c=claims[ix]; if(!c) return; pessoas.push({nome:c.nome, papel:'Morador', status:'ativo', info:`unidade ${c.un}`}); claims.splice(ix,1); logAudit(`aprovou ${c.nome} como morador da ${c.un} (self-claim)`,'Síndico'); atualizar(); toast(`${c.nome.split(' ')[0]} aprovado(a) na ${c.un}.`); }
@@ -3396,6 +3451,10 @@ function verPessoa(ix){
   const c=p.status==='ativo'?['ativo','verde']:p.status==='bloqueado'?['bloqueado','vermelho']:['convite enviado','laranja'];
   abrirModal(`<h3>${tIco('pessoas')}${p.nome}</h3>
     <div class="item" style="border-color:var(--${c[1]}); margin-bottom:10px"><div class="linha1"><span class="nome">${p.papel}</span><span class="chip ${c[1]}">${c[0]}</span></div><div class="sub" style="margin-top:3px">${p.info}</div></div>
+    ${p.escopo?`<div class="item" style="margin-bottom:10px"><div class="sub" style="margin:0; line-height:1.9"><b>Pode fazer</b> — delegado pelo síndico:<br>${p.escopo.map(e=>`<span style="display:flex; align-items:center; gap:6px">${tIco('check')}${e}</span>`).join('')}<span style="display:flex; align-items:center; gap:6px">${tIco('balanca')}Aprovar despesa até <b>${fmt(p.alcada||0)}</b> — acima volta pro síndico</span></div></div>
+    <div class="botoes" style="margin-bottom:10px"><button class="btn claro" style="flex:0 0 auto; padding:10px 15px" onclick="editarDelegacao(${ix})">Editar permissões</button></div>
+    <div class="aviso-lgpd" style="margin-bottom:10px">As ações deste auxiliar entram na trilha de auditoria como <b>"sob delegação do síndico"</b>; o indelegável (assinar ata, mudar regra, aprovar reforma, bloquear acesso) segue só com você.</div>`:''}
+    ${p.requerAssembleia?`<div class="aviso-lgpd" style="border-left:3px solid var(--laranja); margin-bottom:10px">Transferência de poderes de síndico: só vale com <b>previsão na convenção ou aprovação em assembleia</b> (CC art. 1.348 §2º). Enquanto não aprovada, o papel fica pendente.</div>`:''}
     ${p.voce
       ? `<div class="aviso-lgpd">Este é o seu próprio acesso. A troca de síndico é tratada em <b>Gestão / administradora</b> (com mandato), não aqui.</div>`
       : p.status==='convidado'
