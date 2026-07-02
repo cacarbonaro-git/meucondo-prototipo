@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.35';
+const VERSAO='v4.45';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -599,9 +599,10 @@ let visitantes = [
 ];
 /* unidade é permanente; o OCUPANTE é um vínculo (inquilino × proprietário) que muda. Trocar inquilino = encerrar e abrir vínculo + cascata. */
 let unidades = {
-  'A-305':{ocupante:'Carla Mendes',  tipo:'inquilino',            desde:'03/2024', proprietario:'João Pereira',  cobrancaPara:'proprietário', acesso:['facial','tag veicular'], app:true},
-  'A-110':{ocupante:'José Santos',   tipo:'inquilino',            desde:'08/2023', proprietario:'Marília Costa', cobrancaPara:'inquilino',    acesso:['cartão'], app:true},
-  'B-502':{ocupante:'Beatriz Rocha', tipo:'proprietário-morador', desde:'01/2020', proprietario:'Beatriz Rocha', cobrancaPara:'proprietário', acesso:['facial'], app:true},
+  'A-305':{ocupante:'Carla Mendes',  tipo:'inquilino',            desde:'03/2024', proprietario:'João Pereira',  cobrancaPara:'proprietário', acesso:['facial','tag veicular'], app:true, fracao:1.15},
+  'A-110':{ocupante:'José Santos',   tipo:'inquilino',            desde:'08/2023', proprietario:'Marília Costa', cobrancaPara:'inquilino',    acesso:['cartão'], app:true, fracao:1.15},
+  'B-502':{ocupante:'Beatriz Rocha', tipo:'proprietário-morador', desde:'01/2020', proprietario:'Beatriz Rocha', cobrancaPara:'proprietário', acesso:['facial'], app:true, fracao:1.30},
+  'B-1201':{ocupante:'Ricardo e Ana Duarte', tipo:'proprietário-morador', desde:'06/2019', proprietario:'Ricardo Duarte', cobrancaPara:'proprietário', acesso:['facial'], app:true, fracao:1.95, duplex:true, pavimentos:'12º e 13º'},
 };
 /* quem recebe o boleto, por extenso */
 function respCobranca(u){ return u.cobrancaPara==='inquilino' ? `${u.ocupante} (inquilino)` : `${u.proprietario} (proprietário)`; }
@@ -928,6 +929,15 @@ function resetWL(){ corBg=null; corCustom=null; corGold=null; marcaModo='viva'; 
    Junta num lugar só tudo que é "de protótipo" — escolher/trocar o perfil que
    está acessando, tema e texto grande — pra a barra de cima não carregar 5
    botões em toda tela. O perfil é definido aqui logo na entrada. */
+/* toggle de demo: autogestão (síndico) × com administradora */
+function setGestaoDemo(auto){
+  COND.administradora = auto ? null : 'Imobiliária Horizonte';
+  /* integrações da carteira (ERP/banco/WhatsApp) trocam de dono conforme a gestão */
+  integracoes.forEach(i=>{ if(i.dono==='carteira' && i.autor!=='—') i.autor = auto ? 'Síndico' : 'Administradora'; });
+  /* na autogestão o perfil Administradora não existe — se estiver nele, cai pro síndico */
+  if(auto && perfil==='administradora') perfil='sindico';
+  atualizar(); menuDemo();
+}
 function menuDemo(){
   const txtG=document.documentElement.classList.contains('txt-grande');
   const entrada=!perfil;
@@ -935,7 +945,7 @@ function menuDemo(){
     <div class="sub" style="margin-bottom:10px">${entrada
       ? 'Este é um protótipo de demonstração. Escolha por qual perfil quer navegar — dá pra trocar quando quiser por aqui.'
       : 'Você está vendo como '+(PERFIS_NOMES[perfil]||'—')+'. Toque em outro perfil pra trocar.'}</div>
-    ${Object.entries(PERFIS_NOMES).filter(([k])=>k!=='portaria'||modOn('portaria')).map(([k,nome])=>{const atual=k===perfil;
+    ${Object.entries(PERFIS_NOMES).filter(([k])=>(k!=='portaria'||modOn('portaria'))&&(k!=='administradora'||COND.administradora)).map(([k,nome])=>{const atual=k===perfil;
       return `<button class="item" style="width:100%; text-align:left; display:block${atual?'; border-color:var(--verde)':''}" ${atual?'aria-pressed="true"':''} onclick="fecharModal();trocarPerfil('${k}')">
       <div class="linha1"><span class="nome">${nome}</span>${atual?'<span class="chip verde" style="border:none">vendo agora</span>':'<span style="opacity:.4">›</span>'}</div>
     </button>`;}).join('')}
@@ -978,6 +988,13 @@ function menuDemo(){
       <div style="display:flex; gap:6px">
         <button class="chip ${MORADOR.emDia?'verde':'cinza'}" style="border:none; flex:1" onclick="MORADOR.emDia=true;menuDemo()">Em dia</button>
         <button class="chip ${!MORADOR.emDia?'verde':'cinza'}" style="border:none; flex:1" onclick="MORADOR.emDia=false;menuDemo()">Em atraso</button>
+      </div></div>
+    <div class="item" style="display:block">
+      <div class="linha1"><span class="nome">${tIco('maleta')}Gestão (demo)</span><span class="chip ${COND.administradora?'verde':'cinza'}" style="border:none">${COND.administradora?'com administradora':'autogestão'}</span></div>
+      <div class="sub" style="margin:3px 0 8px">Alterna entre condomínio <b>autogerido pelo síndico</b> e <b>com administradora</b> — muda a tela de Gestão, o dono das integrações da carteira (ERP, banco, WhatsApp) e some com o perfil Administradora.</div>
+      <div style="display:flex; gap:6px">
+        <button class="chip ${!COND.administradora?'verde':'cinza'}" style="border:none; flex:1" onclick="setGestaoDemo(true)">Autogestão</button>
+        <button class="chip ${COND.administradora?'verde':'cinza'}" style="border:none; flex:1" onclick="setGestaoDemo(false)">Com administradora</button>
       </div></div>
     </details>
     <div class="sub" style="margin:16px 0 8px"><b>Entrada real</b></div>
@@ -1332,6 +1349,7 @@ TELAS.inicio = () => {
     ${gerirEntrada('grafico','Seu impacto',"verImpacto()")}
     ${gerirEntrada('maleta','Gestão / administradora',"verGestao()")}
     ${gerirEntrada('checklist','Trilha de auditoria',"verAuditoria()",[''+auditoria.length,'cinza'])}
+    ${gerirEntrada('pasta','Documentos & laudos',"irPara('cdocs')",(()=>{const venc=laudos.some(l=>validadeStatus(l.validade).cor==='vermelho');const prox=laudos.some(l=>validadeStatus(l.validade).cor==='laranja');return[venc?'vencido':prox?'a vencer':'ok',venc?'vermelho':prox?'laranja':'verde'];})())}
     ${gerirEntrada('importar','Integrações',"irPara('integracoes')",(()=>{const p=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;return[p?''+p:'ok',p?'laranja':'verde'];})())}
     ${gerirEntrada('calendario','Agenda de reservas',"irPara('reservas')")}
     ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
@@ -1478,6 +1496,11 @@ function verManutencao(ix){
       <div class="sub" style="margin:0 0 5px">${prazoManu(m)}</div>
       <div class="sub" style="margin:0"><b>Última execução:</b> ${m.ultima}${m.por?` — registrada pelo ${m.por}`:''}</div>
     </div>
+    ${(()=>{const l=laudoDaManu(m); if(!l) return ''; const s=validadeStatus(l.validade); const li=laudos.indexOf(l);
+      return `<button class="item" style="width:100%; text-align:left; display:block; margin-bottom:10px" onclick="abrirLaudoDoc(${li})">
+      <div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('balanca')}${l.tipo} recebido — abrir</span><span class="chip ${s.cor}">${s.label} ›</span></div>
+      <div class="sub" style="margin-top:3px">${l.resp} · ${l.crea}${l.validade!=='—'?' · validade '+l.validade:''}</div></button>
+    <div class="sub" style="margin:-4px 0 8px; text-align:right"><button class="chip cinza" style="border:none; cursor:pointer" onclick="verLaudosArts()">ver todos os laudos &amp; ARTs ›</button></div>`;})()}
     <div class="sub" style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px">${m.empresa?`${tIco('predio')}<span>Item de empresa certificada: o zelador arquiva o laudo e você aprova a conclusão.</span>`:`${tIco('chave')}<span>Verificação interna do zelador — registrada direto, sem aprovação; aqui é só para sua ciência.</span>`}</div>
     ${m.status==='aprovacao'?`<div class="sub" style="margin-bottom:6px; display:flex; align-items:flex-start; gap:5px">${clip()}<span>Laudo arquivado pelo zelador em ${m.pend.data} — confira antes de aprovar.</span></div>
     <div class="botoes" style="margin-top:12px">
@@ -2564,16 +2587,94 @@ function parecerConselho(){
     <div class="aviso-lgpd">O parecer fica arquivado com as contas do mês e vai junto para a assembleia.</div>`);
 }
 function verDoc(t, info){
+  const tEsc=(t||'').replace(/['"]/g,'');
+  const msg=`Documento do ${COND.nome} — ${t}. ${info}`;
   abrirModal(`<h3>${tIco('pasta')}${t}</h3>
     <div class="sub" style="margin-bottom:10px">${info}</div>
     <div class="item" style="text-align:center; padding:26px; background:var(--cinza-claro); color:var(--cinza)">${tIco('pasta')}<div class="sub" style="margin-top:6px">Pré-visualização do PDF (simulação)</div></div>
-    <div class="botoes" style="margin-top:10px"><button class="btn claro btn-grande" onclick="toast('No produto final: o PDF abre para leitura e download.')">${tIco('clipe')}Baixar PDF</button></div>
-    <div class="aviso-lgpd">Acervo somente leitura para o conselho. Documentos de guarda obrigatória (atas, prestação de contas) não podem ser apagados.</div>`);
+    <div class="botoes" style="margin-top:10px">
+      <a class="btn zap" style="flex:0 0 auto" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}" onclick="logAudit('compartilhou o documento: ${tEsc}');toast('Compartilhado — registrado na trilha de auditoria')">${tIco('enviar')}Compartilhar</a>
+      <button class="btn claro" style="flex:0 0 auto" onclick="toast('No produto final: o PDF abre para leitura e download.')">${tIco('clipe')}Baixar PDF</button>
+    </div>
+    <div class="aviso-lgpd">Documento técnico/institucional — <b>compartilhar é rastreado na trilha de auditoria</b> e leva a validade junto. Acervo somente leitura para o conselho; guarda obrigatória (atas, prestação de contas) não pode ser apagada.</div>`);
+}
+/* ===== LAUDOS & ARTs — acervo de documentos de responsabilidade técnica ===== */
+let laudos = [
+  {tipo:'ART',        titulo:'Elevador Torre A — manutenção', resp:'Eng. Marcelo Prado',   crea:'CREA-SP 5069841', emitido:'02/06/2026', validade:'—',          norma:'NBR NM 207 · NR-12', manut:'Elevador Torre A'},
+  {tipo:'Laudo',      titulo:'SPDA / para-raios',             resp:'Eng. Marcelo Prado',   crea:'CREA-SP 5069841', emitido:'03/04/2026', validade:'03/04/2027', norma:'NBR 5419',           manut:'Para-raios (SPDA)'},
+  {tipo:'ART',        titulo:'Recarga de extintores',         resp:'Téc. Anderson Lima',   crea:'CFT 1120334',     emitido:'20/07/2025', validade:'20/07/2026', norma:'NBR 12962',          manut:'Extintores'},
+  {tipo:'Laudo',      titulo:'Inspeção predial — fachada e estrutura', resp:'Eng. Civ. Renata Souza', crea:'CREA-SP 5088120', emitido:'10/03/2026', validade:'10/03/2031', norma:'NBR 16747 · CC 1.341', manut:null},
+  {tipo:'Certificado',titulo:'AVCB — Auto de Vistoria do Corpo de Bombeiros', resp:'CBPMESP', crea:'—',          emitido:'15/05/2025', validade:'15/05/2027', norma:'IT-01 CBPMESP',       manut:null},
+];
+function validadeStatus(v){
+  if(!v||v==='—') return {label:'por execução', cor:'cinza'};
+  const p=v.split('/'); const d=new Date(+p[2],+p[1]-1,+p[0]);
+  const dias=Math.round((d-hoje)/86400000);
+  if(dias<0) return {label:'vencido', cor:'vermelho'};
+  if(dias<=60) return {label:'vence '+v, cor:'laranja'};
+  return {label:'válido até '+v, cor:'verde'};
+}
+function laudoDaManu(m){ return laudos.find(l=>l.manut && (m.item||'').includes(l.manut)); }
+function verLaudosArts(){
+  const ord=l=>{const c=validadeStatus(l.validade).cor; return c==='vermelho'?0:c==='laranja'?1:c==='verde'?2:3;};
+  const lst=[...laudos].sort((a,b)=>ord(a)-ord(b));
+  abrirModal(`<h3>${tIco('pasta')}Laudos &amp; ARTs técnicos</h3>
+    <div class="sub" style="margin-bottom:10px">Documentos de responsabilidade técnica recebidos — <b>ART</b>, <b>laudo</b> e <b>certificado</b>, com o responsável (CREA/CFT) e a validade. O ${nomeAssist} sabe quais obras exigem ART e avisa quando faltar ou vencer.</div>
+    ${lst.map(l=>{const s=validadeStatus(l.validade); const i=laudos.indexOf(l);
+      return `<button class="item" style="width:100%; text-align:left; display:block" onclick="abrirLaudoDoc(${i})">
+      <div class="linha1"><span class="nome" style="font-size:.92rem"><span class="chip cinza" style="border:none; margin-right:5px">${l.tipo}</span>${l.titulo}</span><span class="chip ${s.cor}">${s.label} ›</span></div>
+      <div class="sub" style="margin-top:3px">${l.resp} · ${l.crea} · emitido ${l.emitido} · ${l.norma}</div></button>`;}).join('')}
+    <div class="aviso-lgpd">Guarda a prova de conformidade que a lei exige (elétrica NR-10, elevador NR-12, estrutural CC art. 1.341, SPDA NBR 5419, gás). Somente leitura para o conselho; sobrevive à troca de síndico.</div>`);
+}
+function abrirLaudoDoc(i){
+  const l=laudos[i]; if(!l) return;
+  const info=`Responsável: ${l.resp} (${l.crea}) · emitido ${l.emitido} · validade ${l.validade==='—'?'por execução':l.validade} · norma ${l.norma}${l.manut?' · manutenção: '+l.manut:''}`;
+  verDoc(`${l.tipo} — ${l.titulo}`, info);
+}
+/* ===== ASSINATURA DIGITAL — fluxo via provedor certificado, com a régua do Edi para o tipo ===== */
+const TIPO_ASSINATURA = {
+  ata:        {rot:'Eletrônica avançada (com trilha)',        base:'Lei 14.063/2020 · assembleia virtual/híbrida (CC 1.354-A · Lei 14.309/2022)', cor:'verde',   nota:'Ata interna: identidade do signatário + carimbo de tempo já dão validade.'},
+  convencao:  {rot:'Qualificada — ICP-Brasil / gov.br ouro',  base:'MP 2.200-2/2001 — exigida para averbar no cartório', cor:'laranja', nota:'Mudança de convenção vai a registro: pede a assinatura mais forte.'},
+  comunicado: {rot:'Eletrônica simples',                      base:'Lei 14.063/2020', cor:'cinza',  nota:'Aviso/aceite: assinatura simples com trilha basta.'},
+  contrato:   {rot:'Eletrônica avançada',                     base:'Lei 14.063/2020', cor:'verde',  nota:'Contrato de prestador: avançada com trilha.'},
+};
+let assinatura=null;    // pedido de assinatura em curso
+let docsAssinados=[];   // documentos já assinados (vão pro acervo)
+function enviarParaAssinatura(titulo, tipoKey){
+  assinatura={titulo, tipoKey, provedor:'Clicksign',
+    signatarios:[{nome:'Roberto Alves', papel:'Síndico · Presidente da mesa', status:''},
+                 {nome:'Mariana Dias',  papel:'Secretária',                    status:''}]};
+  verAssinatura();
+}
+function verAssinatura(){
+  const a=assinatura; if(!a) return; const t=TIPO_ASSINATURA[a.tipoKey]||TIPO_ASSINATURA.ata;
+  const faltam=a.signatarios.filter(s=>!s.status).length;
+  abrirModal(`<h3>${tIco('contrato')}Enviar para assinatura</h3>
+    <div class="sub" style="margin-bottom:8px"><b>${a.titulo}</b> · via ${a.provedor}</div>
+    <div class="item" style="border-left:3px solid var(--${t.cor}); margin-bottom:10px"><div class="sub" style="margin:0; line-height:1.55; display:flex; align-items:flex-start; gap:7px">${ediMini}<span><b>${nomeAssist}:</b> este documento pede <b>${t.rot}</b>. ${t.nota}<br><span style="font-size:.76rem; color:var(--cinza)">Base: ${t.base}</span></span></div></div>
+    <div class="secao" style="margin-top:0">SIGNATÁRIOS</div>
+    ${a.signatarios.map((s,ix)=>`<div class="item" style="padding:11px 13px"><div class="linha1"><span class="nome" style="font-size:.9rem">${s.nome}</span>${s.status?`<span class="chip verde">${s.status}</span>`:`<button class="btn principal" style="flex:0 0 auto; padding:6px 13px; font-size:13px" onclick="assinarComo(${ix})">Assinar</button>`}</div><div class="sub" style="margin-top:2px">${s.papel}</div></div>`).join('')}
+    ${faltam===0?`<button class="btn principal btn-grande" style="margin-top:10px" onclick="concluirAssinatura()">${tIco('check')}Arquivar assinada no acervo</button>`:`<div class="sub" style="margin-top:8px; text-align:center">Faltam ${faltam} assinatura(s)</div>`}
+    <div class="aviso-lgpd">Vale porque o provedor <b>identifica quem assina</b> e gera o log (autoria + carimbo de tempo + hash) — não é o traço na tela. O documento assinado vai pro acervo e o envio entra na auditoria.</div>`);
+}
+function assinarComo(ix){
+  assinatura.signatarios[ix].status='assinou · '+agora();
+  logAudit(`assinou digitalmente "${assinatura.titulo}" (${assinatura.signatarios[ix].papel})`, assinatura.signatarios[ix].nome.split(' ')[0]);
+  verAssinatura();
+}
+function concluirAssinatura(){
+  const a=assinatura, t=TIPO_ASSINATURA[a.tipoKey]||TIPO_ASSINATURA.ata;
+  docsAssinados.unshift({titulo:a.titulo, info:`assinada ${hojeData()} · ${a.provedor} · ${t.rot} · ${a.signatarios.length} signatários`});
+  logAudit(`arquivou no acervo a ata assinada: "${a.titulo}"`,'Síndico');
+  assinatura=null; fecharModal(); atualizar();
+  toast('Assinada e arquivada no acervo (Documentos).');
 }
 TELAS.cdocs = () => `<div class="tela on">
   <div class="topo"><h1>${tIco("pasta")}Documentos do condomínio</h1><p>Acervo que sobrevive à troca de síndico</p></div>
+  ${docsAssinados.length?`<div class="secao" style="margin-top:0">ASSINADOS RECENTEMENTE</div>${docsAssinados.map(d=>`<button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verDoc('${d.titulo.replace(/['"]/g,'')}','${d.info.replace(/['"]/g,'')}')"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('contrato')}${d.titulo}</span><span class="chip verde">assinada ›</span></div><div class="sub">${d.info}</div></button>`).join('')}<div class="secao">ACERVO</div>`:''}
   ${[['Convenção condominial','registrada em cartório · 1998'],['Regimento interno','última revisão 03/2024'],['Atas de assembleia','12 documentos · 2019–2026'],['Apólice do seguro obrigatório','vigência até 20/08/2026'],['AVCB','válido até 15/05/2027'],['Prestações de contas','mensais desde 01/2024'],['Contratos de prestadores','elevador, limpeza, dedetização']].map(d=>`
   <button class="item" style="width:100%; text-align:left; display:block" onclick="verDoc('${d[0]}','${d[1]}')"><div class="linha1"><span class="nome" style="font-size:.9rem">${d[0]}</span><span style="color:var(--cinza)">›</span></div><div class="sub">${d[1]}</div></button>`).join('')}
+  <button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verLaudosArts()"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('balanca')}Laudos &amp; ARTs técnicos</span><span class="chip ${laudos.some(l=>validadeStatus(l.validade).cor==='vermelho')?'vermelho':laudos.some(l=>validadeStatus(l.validade).cor==='laranja')?'laranja':'verde'}">${laudos.length} docs ›</span></div><div class="sub">ART, laudo e certificado — responsável técnico (CREA/CFT) e validade</div></button>
   <div class="aviso-lgpd" style="margin-top:6px">Acervo somente leitura para o conselho. Os documentos de guarda obrigatória (atas, prestação de contas) não podem ser apagados.</div>
 </div>`;
 
@@ -2971,8 +3072,9 @@ function ataRascunhoHtml(){
     <div class="msg-preview" style="white-space:pre-wrap; margin-top:10px">${ata}</div>
     <div class="aviso-lgpd" style="background:var(--amarelo-claro)">Rascunho gerado por IA — <b>não é a ata final nem parecer jurídico</b>. Revise, ajuste e colha as assinaturas da mesa. Os alertas apontam risco; a decisão é sua (ou do seu advogado).</div>
     <div class="botoes">
-      <button class="btn principal" onclick="copiar(document.querySelector('.msg-preview').textContent,'Ata-rascunho copiada — revise e assine')">Copiar ata-rascunho</button>
-      <button class="btn claro" onclick="encerrarAssembleiaVivo()">Encerrar modo ao vivo</button>
+      <button class="btn principal" onclick="enviarParaAssinatura('Ata da Assembleia Geral Ordinária — 25/06/2026','ata')">${tIco('contrato')}Enviar para assinatura</button>
+      <button class="btn claro" onclick="copiar(document.querySelector('.msg-preview').textContent,'Ata-rascunho copiada — revise e assine')">Copiar rascunho</button>
+      <button class="btn claro" onclick="encerrarAssembleiaVivo()">Encerrar</button>
     </div>`;
 }
 function ataAssembleiaHtml(){
@@ -3349,7 +3451,7 @@ let pessoas=[
   {nome:'João Pereira',   papel:'Portaria',         status:'ativo',     info:'turno dia'},
   {nome:'Pedro Lima',     papel:'Portaria',         status:'ativo',     info:'turno noite'},
 ];
-let claims=[{nome:'Fernanda Souza', un:'A-204', quando:'há 1 h'}];   /* self-claim pendente de aprovação */
+let claims=[{nome:'Fernanda Souza', un:'A-204', quando:'há 1 h', prop:'Marília Costa', tel:'5511990000000', confere:''}];   /* self-claim pendente de aprovação (confere: ''|'confirmado') */
 TELAS.pessoas = () => {
   const stChip=p=>p.status==='ativo'?['ativo','verde']:p.status==='bloqueado'?['bloqueado','vermelho']:['convite enviado','laranja'];
   const linha=p=>{const ix=pessoas.indexOf(p), c=stChip(p);
@@ -3363,8 +3465,8 @@ TELAS.pessoas = () => {
     <button class="btn principal btn-grande" onclick="convidarPessoa()">+ Convidar pessoa</button>
     ${claims.length?`<div class="secao">AGUARDANDO SUA APROVAÇÃO</div>
     ${claims.map((c,ix)=>`<div class="item" style="border-left:3px solid var(--laranja)"><div class="linha1"><span class="nome">${tIco('pessoas')}${c.nome}</span><span class="chip laranja">self-claim</span></div>
-      <div class="sub" style="margin-top:3px">Pediu pra entrar como morador da <b>${c.un}</b> · ${c.quando}</div>
-      <div class="botoes" style="justify-content:flex-end; margin-top:8px"><button class="btn claro" style="flex:0 0 auto; padding:7px 13px; font-size:13px" onclick="recusarClaim(${ix})">Recusar</button><button class="btn principal" style="flex:0 0 auto; padding:7px 13px; font-size:13px" onclick="aprovarClaim(${ix})">Aprovar</button></div></div>`).join('')}`:''}
+      <div class="sub" style="margin-top:3px">Pediu pra entrar como morador da <b>${c.un}</b> · ${c.quando}${c.confere==='confirmado'?' · <span style="color:var(--verde-escuro); font-weight:600">proprietário confirmou</span>':''}</div>
+      <div class="botoes" style="justify-content:flex-end; margin-top:8px"><button class="btn claro" style="flex:0 0 auto; padding:7px 13px; font-size:13px" onclick="recusarClaim(${ix})">Recusar</button><button class="btn principal" style="flex:0 0 auto; padding:7px 13px; font-size:13px" onclick="verClaim(${ix})">Conferir e aprovar</button></div></div>`).join('')}`:''}
     ${grupos.map(([t,paps])=>{const lst=pessoas.filter(p=>paps.includes(p.papel)); return lst.length?`<div class="secao">${t.toUpperCase()}</div>${lst.map(linha).join('')}`:'';}).join('')}
     <div class="secao">MORADORES</div>
     <button class="item" style="width:100%; text-align:left; display:block" onclick="abrirUnidades()"><div class="linha1"><span class="nome">${tIco('predio')}Moradores por unidade</span><span class="chip ${moradPend?'laranja':'verde'}">${moradAtivos} ativos${moradPend?` · ${moradPend} a ativar`:''} ›</span></div>
@@ -3444,7 +3546,47 @@ function enviarConvitePessoa(){
   fecharModal(); atualizar(); toast(`Convite enviado a ${nome.split(' ')[0]} (${papel}) — aguardando a ativação.`+extraToast);
 }
 function reenviarConvite(nome){ logAudit(`reenviou o convite de ${nome}`,'Síndico'); toast(`Convite reenviado a ${nome.split(' ')[0]} no WhatsApp.`); }
-function aprovarClaim(ix){ const c=claims[ix]; if(!c) return; pessoas.push({nome:c.nome, papel:'Morador', status:'ativo', info:`unidade ${c.un}`}); claims.splice(ix,1); logAudit(`aprovou ${c.nome} como morador da ${c.un} (self-claim)`,'Síndico'); atualizar(); toast(`${c.nome.split(' ')[0]} aprovado(a) na ${c.un}.`); }
+/* self-claim: aprovação corroborada — mostra o proprietário e pede a confirmação dele antes de liberar */
+function verClaim(ix){
+  const c=claims[ix]; if(!c) return;
+  const conf=c.confere==='confirmado';
+  const msg=`Olá, ${c.prop.split(' ')[0]}! Aqui é do ${COND.nome}. ${c.nome} pediu para entrar no app como morador da ${c.un}. Você confirma que essa pessoa ocupa a unidade? (quem autoriza o ocupante é o proprietário)`;
+  abrirModal(`<h3>${tIco('pessoas')}Entrada de morador — ${c.un}</h3>
+    <div class="item" style="border-color:var(--laranja); margin-bottom:10px"><div class="linha1"><span class="nome">${c.nome}</span><span class="chip laranja">self-claim · ${c.quando}</span></div>
+      <div class="sub" style="margin-top:3px">Pediu para entrar como <b>morador</b> da ${c.un} pelo link público.</div></div>
+    <div class="sub" style="margin:0 0 4px"><b>Conferência</b></div>
+    <div class="item" style="padding:11px 13px; margin-bottom:10px; ${conf?'border-color:var(--verde)':'border-color:var(--laranja)'}"><div class="sub" style="margin:0; line-height:1.9; display:flex; flex-direction:column; gap:2px">
+      <span style="display:flex; align-items:center; gap:6px">${tIco('predio')}Proprietário da ${c.un}: <b>${c.prop}</b></span>
+      <span style="display:flex; align-items:center; gap:6px">${tIco(conf?'check':'alerta')}${conf?'<b style="color:var(--verde-escuro)">Confirmado pelo proprietário</b>':'<b style="color:var(--laranja)">Sem convite correspondente — não confirmado</b>'}</span>
+      <span style="display:flex; align-items:center; gap:6px">${tIco('cadeado')}Documento/contrato: ${conf?'anexado':'não enviado'}</span>
+    </div></div>
+    <div class="aviso-lgpd" style="margin-bottom:10px">Aprovar liga esta pessoa à unidade — dá <b>voto</b> na assembleia, <b>acesso</b> físico e visão do <b>financeiro</b> da unidade. Quem designa o ocupante é o <b>proprietário</b>: confirme com ele antes de aprovar (proteção contra impersonação).</div>
+    ${!conf?`<a class="btn zap btn-grande" target="_blank" href="https://wa.me/${c.tel}?text=${encodeURIComponent(msg)}" onclick="marcarConfConfirmado(${ix})">${tIco('enviar')}Pedir confirmação ao proprietário</a>`:''}
+    <div class="botoes" style="margin-top:10px">
+      <button class="btn perigo" style="flex:0 0 auto; padding:11px 16px" onclick="recusarClaim(${ix});fecharModal()">Recusar</button>
+      <button class="btn ${conf?'principal':'claro'}" style="flex:0 0 auto; padding:11px 16px" onclick="${conf?`aprovarClaim(${ix})`:`aprovarClaimSemConf(${ix})`}">${conf?tIco('check')+'Aprovar entrada':'Aprovar assim mesmo'}</button>
+    </div>`);
+}
+function marcarConfConfirmado(ix){
+  const c=claims[ix]; if(!c) return;
+  c.confere='confirmado';
+  logAudit(`pediu confirmação ao proprietário (${c.prop}) sobre a entrada de ${c.nome} na ${c.un}`,'Síndico');
+  toast('Pedido enviado ao proprietário. No produto final, libera quando ele confirmar.');
+  setTimeout(()=>verClaim(ix), 50);
+}
+function aprovarClaimSemConf(ix){
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('alerta')}Aprovar sem confirmar?</h3>
+    <div class="sub" style="margin-bottom:10px">Você está aprovando <b>sem a confirmação do proprietário</b>. Fica registrado na auditoria que foi sem corroboração — o ideal é confirmar antes (protege contra impersonação).</div>
+    <div class="botoes"><button class="btn claro" style="flex:0 0 auto; padding:11px 16px" onclick="verClaim(${ix})">Voltar</button><button class="btn perigo" style="flex:0 0 auto; padding:11px 16px" onclick="aprovarClaim(${ix})">Aprovar mesmo assim</button></div>`);
+}
+function aprovarClaim(ix){
+  const c=claims[ix]; if(!c) return;
+  const corrob = c.confere==='confirmado' ? 'confirmado pelo proprietário' : 'SEM confirmação do proprietário';
+  pessoas.push({nome:c.nome, papel:'Morador', status:'ativo', info:`unidade ${c.un}`});
+  claims.splice(ix,1);
+  logAudit(`aprovou ${c.nome} como morador da ${c.un} (self-claim — ${corrob})`,'Síndico');
+  fecharModal(); atualizar(); toast(`${c.nome.split(' ')[0]} aprovado(a) na ${c.un}.`);
+}
 function recusarClaim(ix){ const c=claims[ix]; if(!c) return; const nm=c.nome.split(' ')[0]; claims.splice(ix,1); atualizar(); toast(`Pedido de ${nm} recusado.`); }
 function verPessoa(ix){
   const p=pessoas[ix]; if(!p) return;
@@ -3611,6 +3753,8 @@ function listaUnidades(){
     <div id="unid-cnt" class="sub" style="margin-bottom:6px; color:var(--cinza)">${unidContagem(ents)}</div>
     <div id="unid-lista">${unidLinhasHtml(ents)}</div>`);
 }
+const FRACAO_BASE=1.15; /* fração de uma unidade padrão — base do rateio proporcional na demo */
+function taxaFracao(u){ return Math.round(COND.taxa*((u.fracao||FRACAO_BASE)/FRACAO_BASE)); }
 function verUnidade(un){
   const u=unidades[un]; if(!u) return;
   const encPend=encomendas.filter(e=>e.un===un&&e.status==='aguardando').length;
@@ -3630,6 +3774,15 @@ function verUnidade(un){
       <span style="display:flex; align-items:center; gap:6px">${tIco('pacote')}Encomendas aguardando: ${encPend}</span>
       <span style="display:flex; align-items:center; gap:6px">${tIco('cifrao')}Financeiro: ${inad?`<b style="color:var(--vermelho)">${inad.dias} dias em atraso</b>`:'em dia'}</span>
     </div></div>
+    ${u.fracao?`<div class="sub" style="margin:0 0 4px"><b>Fração ideal, voto e taxa</b></div>
+    <div class="item" style="padding:11px 13px; ${u.duplex?'border-color:var(--verde);':''}"><div class="sub" style="margin:0; line-height:1.7; display:flex; flex-direction:column; gap:6px">
+      <span style="display:flex; align-items:flex-start; gap:7px">${tIco('balanca')}<span>Fração ideal: <b>${u.fracao.toFixed(2)}%</b>${u.duplex?` <span class="chip verde" style="border:none; white-space:nowrap">duplex · ${u.pavimentos}</span>`:''}</span></span>
+      <span style="display:flex; align-items:flex-start; gap:7px">${tIco('prancheta')}<span>Assembleia: <b>1 voto</b> — peso pela fração ideal</span></span>
+      ${(()=>{const tf=taxaFracao(u); return tf===COND.taxa
+        ? `<span style="display:flex; align-items:flex-start; gap:7px">${tIco('cifrao')}<span>Taxa: <b>${fmt(COND.taxa)}</b> — igual nos dois rateios (fração da unidade padrão)</span></span>`
+        : `<span style="display:flex; align-items:flex-start; gap:7px">${tIco('cifrao')}<span>Taxa: <b>${fmt(tf)}</b> no rateio por fração · <b>${fmt(COND.taxa)}</b> no igualitário</span></span>`;})()}
+    </div></div>
+    ${u.duplex?`<div class="aviso-lgpd" style="margin:8px 0 10px">Duplex é <b>uma unidade só</b> (uma matrícula em ${u.pavimentos}): conta como <b>1 voto</b> na assembleia — com peso maior porque a fração ideal é maior — e paga <b>uma taxa</b> proporcional à fração (CC art. 1.336, I). Se fossem <b>dois apartamentos juntados</b> sem unificação no cartório, seriam <b>duas unidades</b>: dois votos e duas taxas. O EdiVita segue a <b>matrícula/convenção</b>, não a planta.</div>`:''}`:''}
     ${mudancaHtml(un)}
     <div class="botoes" style="margin-top:12px">
       ${!u.app?`<button class="btn principal" style="flex:0 0 auto; padding:11px 16px" onclick="ativarMorador('${un}')">${tIco('chave')}Ativar acesso</button>`:''}
@@ -3750,7 +3903,7 @@ function praAgir(){
   const itens=[];
   manutencoes.forEach((m,ix)=>{ if(m.status==='aprovacao') itens.push({cor:'laranja', tit:`Conferir laudo — ${nomeManu(m)}`, ctx:'O zelador arquivou o laudo; sua aprovação fecha o item.', acao:'Aprovar', fn:`aprovarDaFila(${ix})`, sec:'Ver', secfn:`fecharModal();verManutencao(${ix})`}); });
   ocorrencias.forEach(o=>{ if(o.tipo==='Reforma' && o.status!=='resolvida' && o.status!=='em execução') itens.push({cor:'laranja', tit:`Aprovar reforma — ${o.un}`, ctx:o.titulo, acao:'Abrir', fn:`fecharModal();verOcorrencia(${o.id})`}); });
-  ocorrencias.forEach(o=>{ if(o.tipo!=='Reforma' && o.status!=='resolvida' && !o.resposta) itens.push({cor:'laranja', tit:`Responder — ${o.titulo}`, ctx:`${o.un} · ${o.tipo}`, acao:'Responder', fn:`fecharModal();verOcorrencia(${o.id})`, sec:'Rascunho Edi', secfn:`rascunhoEdi('resposta')`}); });
+  ocorrencias.forEach(o=>{ if(o.tipo!=='Reforma' && o.status!=='resolvida' && !o.resposta) itens.push({cor:'laranja', tit:`Responder — ${o.titulo}`, ctx:`${o.un} · ${o.tipo}`, acao:'Responder', fn:`fecharModal();verOcorrencia(${o.id})`, sec:'Rascunho Edi', secfn:`rascunhoEdi('resposta',${o.id})`}); });
   if(typeof compra!=='undefined' && compra.status!=='aprovada') itens.push({cor:'acao', tit:'Revisar cotações do zelador', ctx:'2-3 orçamentos por escrito prontos pra sua decisão.', acao:'Revisar', fn:`fecharModal();irPara('compras')`});
   if(!provaReconhecida) itens.push({cor:'verde', tit:'Dar visto na operação do zelador', ctx:'Reconheça o que ele já fez e registrou hoje.', acao:'Ver e dar visto', fn:`fecharModal();verProvaSindico()`});
   if(!assembleia.convocada) itens.push({cor:'acao', tit:'Convocar a assembleia 25/06', ctx:'Pauta minutada — falta convocar pelos canais.', acao:'Convocar', fn:`fecharModal();irPara('assembleia')`, sec:'Rascunho Edi', secfn:`rascunhoEdi('convocacao')`});
@@ -3800,15 +3953,38 @@ function verPraAgir(){
     <div class="aviso-lgpd">No produto final, esse resumo chega sozinho toda segunda no seu WhatsApp — você abre o app só pra agir.</div>`);
 }
 function aprovarDaFila(ix){ aprovarExecucao(ix); verPraAgir(); }
-function rascunhoEdi(assunto){
-  const txt={
-    convocacao:`CONVOCAÇÃO — Assembleia Geral Ordinária · ${COND.nome}\n25/06/2026 · 19h30 (1ª chamada) / 20h (2ª), no salão de festas.\nPauta: 1) prestação de contas; 2) eleição do conselho fiscal; 3) assuntos gerais.\nQuem não puder comparecer vota pelo app ou envia procuração.\n— Síndico`,
-    resposta:`Olá! Recebi sua solicitação e já estou verificando com a equipe. Te dou um retorno em até 48h, pelo app e pelo WhatsApp. Obrigado por avisar. — Síndico, ${COND.nome}`
-  }[assunto]||'';
+/* rascunho do Edi contextual: para ocorrência, responde com base na regra (não um "estou verificando" genérico) */
+function rascunhoResposta(o){
+  const nome=(o&&(unidades[o.un]&&unidades[o.un].ocupante||o.un)||'').split(' ')[0];
+  const t=((o&&(o.titulo+' '+(o.desc||'')))||'').toLowerCase();
+  if(o && /barulho|festa|som|23h|22h|silên|perturba/.test(t))
+    return {fonte:'Regimento interno — silêncio das 22h às 8h', fora:false,
+      txt:`Olá, ${nome}! Recebi sua reclamação sobre o barulho após as 23h. O regimento fixa silêncio das 22h às 8h, então a unidade responsável vai ser notificada formalmente; havendo reincidência, cabe advertência e multa conforme a convenção. Já registrei e te aviso do desfecho pelo app. — Síndico, ${COND.nome}`};
+  if(o && /vazamento|infiltra|pingando|água|umidade|goteira/.test(t))
+    return {fonte:'Convenção — reparo por quem deu causa (área comum × unidade)', fora:false,
+      txt:`Olá, ${nome}! Sobre o vazamento: o zelador vai verificar a origem ainda hoje. Se vier de coluna ou área comum, o condomínio resolve; se for de uma unidade, acionamos o responsável — a reparação é de quem deu causa. Volto com o diagnóstico e o prazo do reparo. — Síndico, ${COND.nome}`};
+  if(o && o.tipo==='Sugestão')
+    return {fonte:'Decisão coletiva — pauta de assembleia', fora:false,
+      txt:`Olá, ${nome}! Boa sugestão. Como envolve gasto coletivo, vou levá-la à pauta da próxima assembleia pra o condomínio decidir. Registrei no sistema e te aviso do resultado. — Síndico, ${COND.nome}`};
+  /* fora das fontes: não afirma nada — dá só o encaminhamento, honesto */
+  return {fonte:'', fora:true,
+    txt:`Olá${nome?', '+nome:''}! Recebi sua ${o?o.tipo.toLowerCase():'solicitação'}${o?` sobre "${o.titulo}"`:''}. Vou verificar${o&&o.tipo==='Reclamação'?' com o zelador':''} e te dou um retorno em até 48h, pelo app e no WhatsApp. Obrigado por avisar. — Síndico, ${COND.nome}`};
+}
+function rascunhoEdi(assunto, ocId){
+  let txt='', fonte='', fora=false;
+  if(assunto==='convocacao'){
+    txt=`CONVOCAÇÃO — Assembleia Geral Ordinária · ${COND.nome}\n25/06/2026 · 19h30 (1ª chamada) / 20h (2ª), no salão de festas.\nPauta: 1) prestação de contas; 2) eleição do conselho fiscal; 3) assuntos gerais.\nQuem não puder comparecer vota pelo app ou envia procuração.\n— Síndico`;
+    fonte='Convocação alcançando todos (CC art. 1.354)';
+  } else {
+    const o=ocorrencias.find(x=>x.id===ocId);
+    const r=rascunhoResposta(o); txt=r.txt; fonte=r.fonte; fora=r.fora;
+  }
   abrirModal(`<h3>${tIco('robo')}Rascunho do ${nomeAssist}</h3>
-    <div class="sub" style="margin-bottom:8px">O ${nomeAssist} preparou — é só revisar e enviar. No produto final ele usa a convenção e o histórico do prédio.</div>
-    <div class="item" style="white-space:pre-wrap; font-size:.9rem; line-height:1.55">${txt}</div>
-    <div class="botoes" style="margin-top:10px"><a class="btn zap" style="flex:0 0 auto" target="_blank" href="https://wa.me/?text=${encodeURIComponent(txt)}">Enviar no WhatsApp</a><button class="btn claro" style="flex:0 0 auto" onclick="verPraAgir()">Voltar à fila</button></div>`);
+    <div class="sub" style="margin-bottom:8px">${fora
+      ? `Este caso está <b>fora das fontes</b> do ${nomeAssist} — então ele não afirma nada: dá só o encaminhamento, pra você resolver. Revise e envie.`
+      : `O ${nomeAssist} respondeu <b>com base na regra</b> — revise e envie.`}</div>
+    <div class="item" style="white-space:pre-wrap; font-size:.9rem; line-height:1.55">${txt}${fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700; display:inline-block; margin-top:8px; white-space:normal">${clip()}${fonte}</span>`:''}</div>
+    <div class="botoes" style="margin-top:10px"><a class="btn zap" style="flex:0 0 auto" target="_blank" href="https://wa.me/?text=${encodeURIComponent(txt)}">Enviar no WhatsApp</a><button class="btn claro" style="flex:0 0 auto" onclick="${ocId?`verOcorrencia(${ocId})`:'verPraAgir()'}">Voltar</button></div>`);
 }
 /* entrada compacta do grid "Gerir o condomínio" (ícone + rótulo + badge), 2 colunas */
 function gerirEntrada(ic,lbl,oc,badge){
@@ -4242,6 +4418,7 @@ function verOcorrencia(id){
             : `<button class="btn principal" style="background:var(--laranja)" onclick="aprovarReforma(${o.id})">Aprovar com condições</button>`)
           +`<button class="btn claro" onclick="responderOcorrencia(${o.id})">Responder</button>`
         : `<button class="btn principal" onclick="responderOcorrencia(${o.id})">${o.resposta?'Atualizar resposta':'Responder'}</button>
+           ${!o.resposta?`<button class="btn claro" onclick="rascunhoEdi('resposta',${o.id})">${tIco('robo')}Rascunho do ${nomeAssist}</button>`:''}
            <button class="btn claro" onclick="avancarOcorrencia(${o.id});verOcorrencia(${o.id})">Avançar → ${proxStatus(o.status)}</button>
            ${o.status!=='aberta'?`<button class="btn claro" onclick="voltarOcorrencia(${o.id});verOcorrencia(${o.id})">↩ Voltar → ${antStatus(o.status)}</button>`:''}
            ${o.tipo==='Reclamação'?`<button class="btn perigo" onclick="ritoNotificacao(${o.id})">Notificar infrator</button>`:''}`}
