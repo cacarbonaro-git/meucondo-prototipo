@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.45';
+const VERSAO='v4.47';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1434,6 +1434,7 @@ function confirmaBaixa(ix){
 }
 
 let abaManuSind='contratuais';
+let manuView='lista'; /* visão da manutenção: 'lista' | 'quadro' (Kanban por situação legal) */
 let filtroManuStatus='Todas'; /* deep-link/filtro de situação: 'Todas'|'Vencidas'|'Vencendo'|'A conferir'|'Em dia' */
 TELAS.manutencao = () => {
   const ordem={vencida:0, aprovacao:1, breve:2, ok:3};
@@ -1463,12 +1464,33 @@ TELAS.manutencao = () => {
   const stCnt={'Vencidas':nVenc,'Vencendo':nBreve,'A conferir':nAprov,'Em dia':nOk};
   /* mesmo modelo de chip do filtro "Tipo" das Ocorrências: contornado inativo, verde ativo, "Rótulo (N)" */
   const chipSt=lbl=>{const on=filtroManuStatus===lbl;
-    return `<button class="chip ${on?'verde':'cinza'}" style="border:${on?'1px solid var(--verde)':'1px solid var(--borda)'}; background:${on?'var(--verde-claro)':'transparent'}" aria-pressed="${on}" onclick="filtroManuStatus=${on?"'Todas'":JSON.stringify(lbl)};atualizar()">${lbl} (${stCnt[lbl]})</button>`;};
+    return `<button class="chip ${on?'verde':'cinza'}" style="border:${on?'1px solid var(--verde)':'1px solid var(--borda)'}; background:${on?'var(--verde-claro)':'transparent'}" aria-pressed="${on}" onclick="filtroManuStatus='${on?'Todas':lbl}';atualizar()">${lbl} (${stCnt[lbl]})</button>`;};
   const resumo=`<div style="display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin:-2px 0 12px">
     <span style="font-size:.74rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--cinza); margin-right:2px">Situação</span>
     ${['Vencidas','Vencendo','A conferir','Em dia'].filter(k=>stCnt[k]>0).map(k=>chipSt(k)).join('')}
     ${filtroManuStatus!=='Todas'?`<button class="chip cinza" style="border:none" onclick="filtroManuStatus='Todas';atualizar()">✕ limpar</button>`:''}
   </div>`;
+  const viewToggle=`<div style="display:flex; justify-content:flex-end; margin:-2px 0 10px"><div style="display:inline-flex; border:1px solid var(--borda); border-radius:10px; overflow:hidden">
+    <button class="chip" style="border:none; border-radius:0; padding:6px 14px; ${manuView==='lista'?'background:var(--verde-claro); color:var(--verde-escuro); font-weight:700':'background:transparent; color:var(--cinza)'}" onclick="manuView='lista';atualizar()">☰ Lista</button>
+    <button class="chip" style="border:none; border-radius:0; padding:6px 14px; ${manuView==='quadro'?'background:var(--verde-claro); color:var(--verde-escuro); font-weight:700':'background:transparent; color:var(--cinza)'}" onclick="manuView='quadro';atualizar()">▦ Quadro</button>
+  </div></div>`;
+  const baseAll=todos.filter(x=> abaManuSind==='contratuais' ? x.m.empresa : !x.m.empresa);
+  const cardMini=(m,ix)=>{const dd=proxManu(m); const l=laudoDaManu(m);
+    const prazo = dd ? (dd<hoje?`<b style="color:var(--vermelho)">venceu ${dd.toLocaleDateString('pt-BR')}</b>`:(m.status==='breve'?`<b style="color:var(--laranja)">vence ${dd.toLocaleDateString('pt-BR')}</b>`:`vence ${dd.toLocaleDateString('pt-BR')}`)) : `última ${m.ultima}`;
+    return `<button class="item" style="width:100%; text-align:left; display:block; padding:9px 11px; margin:0 0 7px" onclick="verManutencao(${ix})">
+      <div class="nome" style="font-size:.84rem; line-height:1.25">${nomeManu(m)}</div>
+      <div class="sub" style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap; align-items:center"><span class="chip cinza" style="border:none; padding:1px 7px; font-size:.62rem; font-weight:700">${escopoManu(m)}</span><span style="font-size:.72rem">${prazo}</span></div>
+      ${l?`<div class="sub" style="margin-top:4px; font-size:.68rem; color:var(--verde-escuro); display:flex; align-items:center; gap:4px">${tIco('balanca')}${l.tipo} · ${validadeStatus(l.validade).label}</div>`:''}
+    </button>`;};
+  const colsBoard=[['Vencidas','vencida','vermelho'],['A conferir','aprovacao','laranja'],['Vencendo','breve','laranja'],['Em dia','ok','verde']];
+  const boardHtml=`<div style="display:flex; gap:10px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:8px; margin-bottom:8px">
+    ${colsBoard.map(([lbl,st,cor])=>{const its=baseAll.filter(x=>x.m.status===st);
+      return `<div style="flex:0 0 80%; max-width:290px; min-width:225px; background:var(--cinza-claro); border-radius:12px; padding:10px">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:9px"><span style="width:9px; height:9px; border-radius:50%; background:var(--${cor}); flex:0 0 auto"></span><span style="font-weight:700; font-size:.82rem">${lbl}</span><span class="chip cinza" style="border:none; padding:1px 7px; font-size:.66rem; background:#fff">${its.length}</span></div>
+        ${its.length?its.map(x=>cardMini(x.m,x.ix)).join(''):`<div class="sub" style="opacity:.55; font-size:.74rem; padding:6px 2px">nada aqui</div>`}
+      </div>`;}).join('')}
+  </div>
+  <div class="sub" style="margin:-2px 0 10px; font-size:.76rem; color:var(--cinza)">Arraste as colunas de lado. As colunas são a <b>situação legal</b>; toque num card para ver o prazo, o laudo e agir — as mudanças de status (aprovar laudo, registrar execução) acontecem no detalhe.</div>`;
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("chave")}Manutenção preventiva</h1><p>Prazos legais do prédio sob controle</p></div>
   ${filtroTorreHtml()}
@@ -1476,12 +1498,13 @@ TELAS.manutencao = () => {
     <button class="${abaManuSind==='contratuais'?'on':''}" onclick="abaManuSind='contratuais';atualizar()">Contratuais (${contratuais.length})${pend?` · ${pend} p/ aprovar`:''}</button>
     <button class="${abaManuSind==='internas'?'on':''}" onclick="abaManuSind='internas';atualizar()">Internas (${internas.length})</button>
   </div>
-  ${resumo}
-  <div class="sub" style="margin:-4px 0 12px">${abaManuSind==='contratuais'
+  <div class="sub" style="margin:-4px 0 10px">${abaManuSind==='contratuais'
     ?'Itens de empresa certificada: o zelador arquiva o laudo e <b>você</b> aprova a conclusão — é onde sua ação é necessária.'
     :'Verificações internas do zelador — aqui é só para sua ciência: ele executa e registra direto, sem aprovação.'}</div>
+  ${viewToggle}
+  ${manuView==='quadro' ? boardHtml : `${resumo}
   ${lista.length?'':`<div style="margin:2px 0 12px">${vazio('check','Nada nesta situação','Troque o filtro de situação ou de torre para ver os demais itens.')}</div>`}
-  ${lista.map(x=>linha(x.m,x.ix)).join('')}
+  ${lista.map(x=>linha(x.m,x.ix)).join('')}`}
   <div class="aviso-lgpd">Itens obrigatórios pré-cadastrados (NBR 5674 e normas locais). As periodicidades são editáveis — a exigência exata varia por município.</div>
 </div>`;
 };
