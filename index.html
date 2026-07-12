@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.55';
+const VERSAO='v4.56';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -3424,15 +3424,17 @@ function verPrestacao(finKey){
 }
 
 /* ===== ZELADOR: rotina, triagem e estoque (Seu Carlos approved) ===== */
+/* ponto = adesivo QR/NFC fixo no local (prova de presença); via/quando/foto = como foi comprovada.
+   Tarefas sem ponto (ronda geral itinerante) só têm registro manual, marcado "sem QR". */
 let rotina = [
-  {t:'Ronda geral das áreas comuns', freq:'Diária', feito:true,  resp:'Carlos (zelador)'},
-  {t:'Leitura do nível da caixa d’água', freq:'Diária', feito:true, resp:'Carlos (zelador)', leitura:'14.200 L'},
-  {t:'Conferência de portões e iluminação', freq:'Diária', feito:false, resp:'João (porteiro dia)'},
-  {t:'Limpeza hall, elevadores e escadas', freq:'Diária', feito:false, resp:'Maria (auxiliar)'},
-  {t:'Teste do gerador em vazio', freq:'Semanal (sex)', feito:false, resp:'Carlos (zelador)'},
-  {t:'Verificação das luzes de emergência', freq:'Semanal', feito:false, resp:'Pedro (porteiro noite)'},
-  {t:'Extintores: lacre, pressão e validade', freq:'Mensal', feito:false, resp:'Carlos (zelador)'},
-  {t:'Ronda de infiltração — cobertura e subsolo', freq:'Mensal', feito:false, resp:'Carlos (zelador)'},
+  {t:'Ronda geral das áreas comuns', freq:'Diária', feito:true,  resp:'Carlos (zelador)', via:'manual', quando:'10/06 07:12'},
+  {t:'Leitura do nível da caixa d’água', freq:'Diária', feito:true, resp:'Carlos (zelador)', leitura:'14.200 L', ponto:'Casa de bombas · QR-CX01', via:'qr', quando:'10/06 07:34', foto:true},
+  {t:'Conferência de portões e iluminação', freq:'Diária', feito:false, resp:'João (porteiro dia)', ponto:'Portaria · QR-POR'},
+  {t:'Limpeza hall, elevadores e escadas', freq:'Diária', feito:false, resp:'Maria (auxiliar)', ponto:'Hall térreo · QR-HAL'},
+  {t:'Teste do gerador em vazio', freq:'Semanal (sex)', feito:false, resp:'Carlos (zelador)', ponto:'Casa de máquinas · QR-GER'},
+  {t:'Verificação das luzes de emergência', freq:'Semanal', feito:false, resp:'Pedro (porteiro noite)', ponto:'Escada pressurizada · QR-EMG'},
+  {t:'Extintores: lacre, pressão e validade', freq:'Mensal', feito:false, resp:'Carlos (zelador)', ponto:'Corredor subsolo · QR-EXT'},
+  {t:'Ronda de infiltração — cobertura e subsolo', freq:'Mensal', feito:false, resp:'Carlos (zelador)', ponto:'Cobertura · QR-INF'},
 ];
 const ESCALA_HOJE='Carlos (zelador) 7h–16h · João (porteiro) 6h–18h · Pedro (porteiro) 18h–6h · Maria (auxiliar) 8h–17h';
 TELAS.rotina = () => {
@@ -3458,9 +3460,16 @@ TELAS.rotina = () => {
   <div class="secao" id="rotina-lista">ROTINA</div>
   ${rotina.map((r,ix)=>({r,ix})).sort((a,b)=>(a.r.feito?1:0)-(b.r.feito?1:0)).map(({r,ix})=>`<div class="item ${r.feito?'feito':''}">
     <div class="linha1"><span class="nome">${r.feito?tIco('check'):''}${r.t}</span><span class="chip ${r.feito?'verde':'cinza'}">${r.freq}</span></div>
-    <div class="linha1" style="margin-top:4px; align-items:center; gap:8px"><span class="sub" style="margin:0; min-width:0">responsável: <b>${r.resp}</b>${r.leitura?` · leitura: <b>${r.leitura}</b>`:''}</span>${!r.feito?`<button class="btn claro" style="flex:0 0 auto; padding:7px 13px; font-size:13px; margin:0" onclick="marcarRotina(${ix})">${tIco('check')}Marcar feito</button>`:''}</div>
+    <div class="sub" style="margin-top:4px">responsável: <b>${r.resp}</b>${r.leitura?` · leitura: <b>${r.leitura}</b>`:''}</div>
+    ${r.feito
+      ? `<div style="margin-top:6px; display:flex; align-items:center; gap:7px; flex-wrap:wrap">${r.via==='qr'
+          ? `<span class="chip verde" style="font-size:.72rem; border:none">${tIco('check')}QR no local</span><span class="sub" style="margin:0; font-size:.78rem">${r.ponto||''} · ${r.quando||''}${r.foto?' · 📷 foto':''}</span>`
+          : `<span class="chip laranja" style="font-size:.72rem; border:none">manual · sem QR</span><span class="sub" style="margin:0; font-size:.78rem">${r.quando||''}</span>`}</div>`
+      : `<div class="botoes" style="margin-top:8px">${r.ponto
+          ? `<button class="btn principal" style="flex:1; padding:9px; font-size:13px" onclick="escanearRotina(${ix})">${tIco('camera')}Escanear no local</button><button class="btn claro" style="flex:0 0 auto; padding:9px 14px; font-size:13px" onclick="marcarRotina(${ix},'manual')">manual</button>`
+          : `<button class="btn claro" style="width:100%; padding:9px; font-size:13px" onclick="marcarRotina(${ix},'manual')">${tIco('check')}Registrar — ronda itinerante (sem QR)</button>`}</div>`}
   </div>`).join('')}
-  <div class="aviso-lgpd">Cada marcação registra quem fez e quando. Leituras (caixa d'água) pedem o número — o valor de hoje comparado ao de ontem é o que denuncia vazamento.</div>
+  <div class="aviso-lgpd">O <b>QR/adesivo no ponto</b> comprova que a verificação foi feita ali, na hora (não dá pra assinar de longe). A ronda itinerante fica como registro manual, <b>sinalizado ao síndico</b>. Leituras pedem o número — o valor de hoje comparado ao de ontem denuncia vazamento. Tudo vai à trilha de auditoria: quem, quando e com qual prova.</div>
   ${modOn('reservas')&&eventos.length?`<div class="secao">EVENTOS A PREPARAR</div>
   ${eventos.map(r=>`<div class="item"><div class="linha1"><span class="nome">${tIco('calendario')}${r.a}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.mes).padStart(2,'0')}</span></div><div class="sub">Unidade ${r.u} · deixar limpo e liberar o acesso na data</div></div>`).join('')}`:''}
   <div class="secao">EQUIPE &amp; TURNO</div>
@@ -3470,21 +3479,47 @@ TELAS.rotina = () => {
   ${avisoOpCard}
 </div>`;
 };
-function marcarRotina(ix){
-  const r=rotina[ix];
+let rotinaFotoTmp=false;
+/* comprovação de execução: QR no ponto (presença) × manual (sem QR), com foto opcional */
+function concluirRotina(ix, via, foto){
+  const r=rotina[ix]; if(!r) return;
+  r.feito=true; r.via=via; r.quando=agora(); if(foto) r.foto=true;
+  logAudit(`registrou a rotina "${r.t}" (${via==='qr'?'QR no local · '+(r.ponto||''):'manual, sem QR'})`,'Zelador');
+  fecharModal(); atualizar();
+  toast(via==='qr'?`Comprovado no local por QR · ${r.quando}`:`Registrado (manual, sem QR) · ${r.quando}`);
+}
+function marcarRotina(ix, via){
+  via=via||'manual'; const r=rotina[ix];
   if(r.t.toLowerCase().includes('leitura')){
     abrirModal(`<h3>${r.t}</h3>
+      <div class="sub" style="margin-bottom:8px">${via==='qr'?'QR do ponto lido ✓ — agora informe o valor medido.':'Registro manual (sem leitura do QR do ponto).'}</div>
       <label>Valor da leitura</label><input id="rt-v" placeholder="Ex.: 14.150 L">
-      <button class="btn principal btn-grande" onclick="registrarLeituraRotina(${ix})">Registrar</button>`);
+      <button class="btn principal btn-grande" onclick="registrarLeituraRotina(${ix},'${via}')">Registrar</button>`);
     return;
   }
-  r.feito=true; atualizar(); toast(`Registrado: ${r.resp}, ${agora()}`);
+  concluirRotina(ix, via, false);
 }
-function registrarLeituraRotina(ix){
+function registrarLeituraRotina(ix, via){
   const v=$('#rt-v').value.trim();
   if(!v){ toast('Informe o valor — leitura sem número não detecta vazamento.'); return; }
-  rotina[ix].feito=true; rotina[ix].leitura=v;
-  fecharModal(); atualizar(); toast('Leitura registrada com valor');
+  rotina[ix].leitura=v;
+  concluirRotina(ix, via||'manual', rotinaFotoTmp); rotinaFotoTmp=false;
+}
+function escanearRotina(ix){
+  const r=rotina[ix]; if(!r) return;
+  const ehLeitura=r.t.toLowerCase().includes('leitura');
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('camera')}Escanear no local</h3>
+    <div class="sub" style="margin-bottom:10px">Aproxime a câmera do adesivo em <b>${r.ponto||'no ponto'}</b>. Ler o QR ali prova que a verificação foi feita no local, na hora.</div>
+    <div style="background:#0a2e25; border-radius:14px; padding:16px; text-align:center">
+      <div style="color:#eab14a; font-size:.7rem; letter-spacing:.08em; font-weight:700; text-transform:uppercase">${r.ponto||'Ponto de verificação'}</div>
+      <div style="margin:12px auto 6px; width:118px; background:#fff; border-radius:8px; padding:9px; color:#0a2e25">${qrSvg(r.t, 100)}</div>
+      <div style="font-size:.78rem; color:#8fb7a6">simulação — no app real usa a câmera</div>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin:12px 0 6px"><input type="checkbox" id="rt-foto" style="width:auto; margin:0"> Anexar foto do estado (lacre, manômetro, nível…)</label>
+    ${ehLeitura
+      ? `<button class="btn principal btn-grande" onclick="rotinaFotoTmp=document.getElementById('rt-foto').checked; marcarRotina(${ix},'qr')">${tIco('check')}Confirmar QR e informar leitura</button>`
+      : `<button class="btn principal btn-grande" onclick="concluirRotina(${ix},'qr',document.getElementById('rt-foto').checked)">${tIco('check')}Confirmar leitura do QR</button>`}
+    <div class="aviso-lgpd">Fica registrado o ponto, a hora e quem escaneou — vira prova de serviço na trilha de auditoria.</div>`);
 }
 function passagemTurno(){
   /* invertido: quem registra É o turno que sai (contexto fixo). Só pergunta
@@ -3981,7 +4016,7 @@ function verProvaDia(){
   abrirModal(`<h3>${tIco('check')}Minha prova do dia</h3>
     <div class="sub" style="margin-bottom:10px">Tudo que você registrou hoje, com hora e foto — a prova de que o serviço foi feito. Dá pra mandar pro síndico num toque.</div>
     <div class="secao" style="margin-top:0">ROTINA CONCLUÍDA (${feitos.length}/${rotina.length})</div>
-    ${feitos.map(r=>`<div class="item" style="padding:10px 12px"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('check')}${r.t}</span><span class="chip verde" style="border:none; font-size:.7rem">${r.leitura||'feito'}</span></div></div>`).join('')||'<div class="sub" style="margin-bottom:8px">Nenhuma tarefa marcada ainda hoje.</div>'}
+    ${feitos.map(r=>`<div class="item" style="padding:10px 12px"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('check')}${r.t}</span><span class="chip ${r.via==='qr'?'verde':'laranja'}" style="border:none; font-size:.7rem">${r.via==='qr'?'QR no local':'manual'}</span></div><div class="sub" style="margin-top:3px; font-size:.76rem">${r.via==='qr'&&r.ponto?r.ponto+' · ':''}${r.quando||''}${r.leitura?' · leitura '+r.leitura:''}${r.foto?' · 📷 foto':''}</div></div>`).join('')||'<div class="sub" style="margin-bottom:8px">Nenhuma tarefa marcada ainda hoje.</div>'}
     <div class="secao">REGISTROS NO LIVRO (${regs.length})</div>
     ${regs.map(r=>`<div class="item" style="padding:10px 12px"><div class="linha1"><span class="nome" style="font-size:.9rem">${r.t}</span></div><div class="sub" style="display:flex; gap:5px; align-items:center; margin-top:3px">${r.foto?`<span class="chip cinza" style="border:none; padding:1px 7px; font-size:.66rem; display:inline-flex; gap:3px; align-items:center">${tIco('camera')}foto</span>`:''}<span>${r.quando}</span></div></div>`).join('')||'<div class="sub">Nada no livro ainda.</div>'}
     <div class="botoes" style="margin-top:12px"><a class="btn zap btn-grande" style="display:block" target="_blank" href="https://wa.me/?text=${encodeURIComponent(provaTxt(feitos,regs))}">Mandar minha prova (não pede ação)</a></div>
