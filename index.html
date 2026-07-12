@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.47';
+const VERSAO='v4.55';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -622,10 +622,20 @@ function logAcesso(quem,un,metodo,dir){ acessos.unshift({quem,un,metodo,dir,hora
 /* aviso tem alvo: 'todas' as torres ou só uma — aviso da torre errada é o que
    faz morador silenciar notificação */
 let avisos = [
-  {t:'Assembleia ordinária — 25/06 às 19h30', d:'Pauta: prestação de contas e eleição do conselho. Salão de festas.', quando:'08/06', torre:'todas', autor:'Síndico', cat:'oficial'},
-  {t:'Limpeza da caixa d’água — Torre A', d:'Faltará água na TORRE A no sábado 14/06, das 8h às 14h. Encham as reservas.', quando:'05/06', torre:'A', autor:'Zelador', cat:'operação'},
-  {t:'Nova academia liberada', d:'Funcionamento das 6h às 22h. Regras no mural.', quando:'01/06', torre:'todas', autor:'Síndico', cat:'oficial'},
+  {t:'Assembleia ordinária — 25/06 às 19h30', d:'Pauta: prestação de contas e eleição do conselho. Salão de festas.', quando:'08/06', torre:'todas', autor:'Síndico', cat:'oficial', uteisBase:0, uteis:[]},
+  {t:'Limpeza da caixa d’água — Torre A', d:'Faltará água na TORRE A no sábado 14/06, das 8h às 14h. Encham as reservas.', quando:'05/06', torre:'A', autor:'Zelador', cat:'operação', uteisBase:9, uteis:[]},
+  {t:'Nova academia liberada', d:'Funcionamento das 6h às 22h. Regras no mural.', quando:'01/06', torre:'todas', autor:'Síndico', cat:'oficial', uteisBase:31, uteis:[]},
 ];
+const utilN=a=>(a.uteisBase||0)+((a.uteis||[]).length);
+/* convocação é ato legal — só ciência (confirmar leitura), sem reação "útil" que banaliza */
+const ehConvocacao=a=>/convoca|assembleia/i.test((a&&a.t)||'');
+function reagirUtil(ix){
+  const a=avisos[ix]; if(!a) return;
+  a.uteis=a.uteis||[];
+  const i=a.uteis.indexOf(MORADOR.un);
+  if(i>=0){ a.uteis.splice(i,1); } else { a.uteis.push(MORADOR.un); }
+  atualizar();
+}
 const avisosDoMorador=()=>avisos.filter(a=>a.torre==='todas'||a.torre===daTorre(MORADOR.un));
 let comTorreSel='todas';   /* comunicado: torre-alvo */
 let comAnexo=false;        /* comunicado: PDF anexado (simulação) */
@@ -699,6 +709,7 @@ function ehHex(s){return /^#?[0-9a-fA-F]{6}$/.test((s||'').trim());}
 function normHex(s){s=(s||'').trim();return s[0]==='#'?s:'#'+s;}
 
 function aplicarTema(){
+  if(wlEditing) return;   /* durante a edição de marca, não repinta o app — só a prévia (aplica no "Pronto") */
   /* tema personalizado = qualquer uma das 3 cores definida (fundo/destaque/detalhe).
      Quando há custom, saímos dos presets e montamos sobre a base limpa, pra não brigar
      com os hardcodes de cada tema. */
@@ -730,8 +741,15 @@ function aplicarTema(){
 }
 
 /* ===== MARCA / WHITE-LABEL ===== */
+/* Edição em duas etapas: enquanto o modal de marca está aberto (wlEditing), as
+   mudanças só repintam a PRÉVIA — o app inteiro só é repintado no "Pronto"
+   (wlCommit). Fechar no ✕ descarta e volta ao estado salvo (wlSnap). */
+let wlEditing=false, wlSnap=null;
+function _wlCap(){ return {temaAtual,corBg,corCustom,corGold,marcaModo,nome:COND.nome,nomeAssist,logoWL,logoWLDark,brandLock,loginBg,loginMsg,loginSuporte}; }
+function _wlPut(s){ temaAtual=s.temaAtual; corBg=s.corBg; corCustom=s.corCustom; corGold=s.corGold; marcaModo=s.marcaModo; COND.nome=s.nome; nomeAssist=s.nomeAssist; logoWL=s.logoWL; logoWLDark=s.logoWLDark; brandLock=s.brandLock; loginBg=s.loginBg; loginMsg=s.loginMsg; loginSuporte=s.loginSuporte; }
+function wlCommit(){ wlEditing=false; wlSnap=null; aplicarTema(); atualizar(); fecharModal(); toast('Marca aplicada ao app.'); }
 /* marca exibida (marcaModo): 'viva' = logo EdiVita inline · 'nome' = nome do condomínio · 'logo' = imagem enviada */
-function marcaHTML(ctx, forceDark){
+function marcaHTML(ctx, forceDark, opts){
   const big = ctx==='login' ? ' big' : '';
   const dark = (forceDark!==undefined) ? forceDark : temaEscuro();
   /* logo próprio enviado (white-label de imagem) — escolhe a variante pelo fundo */
@@ -739,16 +757,27 @@ function marcaHTML(ctx, forceDark){
     const src = dark ? (logoWLDark||logoWL) : (logoWL||logoWLDark);
     return `<div class="viva-logo${big}" style="justify-content:center"><img src="${src}" alt="Logo do condomínio" style="max-height:${ctx==='login'?'70px':'42px'}; max-width:220px; object-fit:contain"></div>`;
   }
-  const telhado = marcaModo==='nome' ? 'var(--verde-escuro)' : 'var(--gold)';
-  const palavra = marcaModo==='nome' ? `<span class="vl-word">${COND.nome}</span>` : `<span class="vl-word">Edi<b>Vita</b></span>`;
+  /* cores por parâmetro na prévia (as CSS vars ficam congeladas durante a edição); no app, dos hex de tema */
+  const accHex = (opts&&opts.verde) || corCustom || (TEMAS[temaAtual]&&TEMAS[temaAtual].cores[1]) || '#0e7a5f';
+  const goldHex = (opts&&opts.gold) || corGold || (TEMAS[temaAtual]&&TEMAS[temaAtual].cores[2]) || '#eab14a';
+  const bgHex = (opts&&opts.bg) || corBg || (dark ? '#0f172a' : '#ffffff');
+  /* palavra segue a marca, mas cai pra branco/tinta se a cor não tiver contraste no fundo (legibilidade) */
+  const legivel = c => (contraste(c, bgHex) >= 3 ? c : (dark ? '#ffffff' : '#13231e'));
+  const cEdi = legivel(accHex);            // "Edi" = destaque
+  const cVita = legivel(goldHex);          // "Vita" = detalhe (dourado)
+  const vd = (opts&&opts.verde) || 'var(--verde)';
+  const telhado = marcaModo==='nome' ? corShade(accHex,-0.22) : ((opts&&opts.gold)||'var(--gold)');
+  const palavra = marcaModo==='nome'
+    ? `<span class="vl-word" style="color:${cEdi}">${COND.nome}</span>`
+    : `<span class="vl-word" style="color:${cEdi}">Edi<b style="color:${cVita}">Vita</b></span>`;
   return `<div class="viva-logo${big}${dark?' vl-dark':''}">
     <svg class="vl-mark" viewBox="0 0 100 100" aria-hidden="true">
-      <path d="M50 12 L86 40 V86 a4 4 0 0 1-4 4 H18 a4 4 0 0 1-4-4 V40 Z" fill="var(--verde)"/>
+      <path d="M50 12 L86 40 V86 a4 4 0 0 1-4 4 H18 a4 4 0 0 1-4-4 V40 Z" fill="${vd}"/>
       <path d="M50 12 L86 40 H14 Z" fill="${telhado}"/>
       <rect x="33" y="50" width="34" height="30" rx="7" fill="#fff"/>
-      <circle cx="43" cy="62" r="3.8" fill="var(--verde)"/>
-      <circle cx="57" cy="62" r="3.8" fill="var(--verde)"/>
-      <path d="M43 70 q7 5 14 0" fill="none" stroke="var(--verde)" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="43" cy="62" r="3.8" fill="${vd}"/>
+      <circle cx="57" cy="62" r="3.8" fill="${vd}"/>
+      <path d="M43 70 q7 5 14 0" fill="none" stroke="${vd}" stroke-width="2.8" stroke-linecap="round"/>
     </svg>${palavra}
   </div>`;
 }
@@ -757,26 +786,46 @@ function marcaBar(){
   const acc = corCustom || (TEMAS[temaAtual].cores[1]) || '#0e7a5f';
   const cr = contraste('#ffffff', acc);
   const ok = cr >= 3.2;
+  const accText = ok ? '#ffffff' : '#171717';   /* mantém a prévia legível; o aviso abaixo orienta a corrigir */
   /* claro/escuro do preview vem do FUNDO escolhido (ou do tema) — sem toggle separado */
   const bgRef = corBg || TEMAS[temaAtual].cores[0] || '#ffffff';
   const d = _lum(bgRef) < 0.42;
   const cardBg = corBg || (d?'#0c1424':'var(--branco)');
   const cardBord = d?'#2a3340':'var(--borda)';
-  const innerBg = d ? (corBg?corMix(corBg,'#ffffff',0.10):'#111c33') : 'var(--branco)';
-  const bord = d?'#2a3340':'var(--borda)', mute=d?'#9fb0c8':'var(--cinza)';
+  const screenBg = d ? (corBg?corMix(corBg,'#ffffff',0.10):'#111c33') : '#ffffff';
+  const frame = d?'#243044':'#e5e7eb';
+  const bord = d?'#2a3340':'#edf0f2', mute=d?'#9fb0c8':'#8a93a0', ink=d?'#eef2f7':'#13231e';
+  const gold = corGold || (TEMAS[temaAtual].cores[2]) || '#eab14a';
+  const accSoft = corMix(acc, screenBg, 0.82);   /* trilha suave na cor de destaque */
   return `<div class="wl-card" style="background:${cardBg}; border-color:${cardBord}">
-    ${marcaHTML('preview', d)}
-    <div style="margin-top:10px; border:1px solid ${bord}; border-radius:10px; overflow:hidden; text-align:left">
-      <div style="background:var(--verde); color:#fff; padding:7px 12px; font-weight:700; font-size:.8rem">${COND.nome}</div>
-      <div style="padding:8px 12px; background:${innerBg}; display:flex; justify-content:space-between; align-items:center; gap:8px">
-        <button class="btn principal" style="padding:7px 14px; font-size:.82rem; flex:0 0 auto; width:auto">Ação principal</button>
-        <span class="chip vermelho" style="font-size:.68rem">6 atrasados</span>
+    ${marcaHTML('preview', d, {verde:acc, gold:gold, bg:(corBg||(d?'#0c1424':'#ffffff'))})}
+    <div style="max-width:238px; margin:10px auto 0; border:6px solid ${frame}; border-radius:24px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.18); text-align:left">
+      <div style="background:${acc}; color:${accText}; padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px">
+        <span style="font-weight:800; font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${COND.nome}</span>
+        <span aria-hidden="true" style="opacity:.9; font-size:.9rem">🔔</span>
+      </div>
+      <div style="background:${screenBg}; padding:10px; display:flex; flex-direction:column; gap:8px">
+        <div style="border:1px solid ${bord}; border-radius:10px; padding:8px 10px">
+          <div style="display:flex; justify-content:space-between; font-size:.72rem; font-weight:700; color:${ink}"><span>Arrecadação de junho</span><span style="color:${acc}">90%</span></div>
+          <div style="height:6px; background:${accSoft}; border-radius:4px; margin-top:6px; overflow:hidden"><div style="width:90%; height:100%; background:${acc}"></div></div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+          <span style="background:${acc}; color:${accText}; font-weight:700; font-size:.74rem; padding:7px 12px; border-radius:8px">Ação principal</span>
+          <span class="chip vermelho" style="font-size:.64rem">6 atrasados</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; font-size:.72rem">
+          <span style="color:${acc}; font-weight:700">Ver balancete ›</span>
+          <span class="chip verde" style="font-size:.64rem">contas em dia</span>
+        </div>
+      </div>
+      <div style="display:flex; border-top:1px solid ${bord}; background:${screenBg}">
+        ${[['Início',1],['Reservar',0],['Avisos',0]].map(([l,on])=>`<div style="flex:1; text-align:center; padding:7px 0; font-size:.62rem; font-weight:${on?'800':'600'}; color:${on?acc:mute}">${l}</div>`).join('')}
       </div>
     </div>
-    <div style="margin-top:8px; font-size:.74rem; font-weight:700; color:${ok?(d?'#6fe0b8':'var(--verde-escuro)'):(d?'#ff9b9b':'var(--vermelho)')}">
-      ${ok?`Contraste do texto: OK (${cr.toFixed(1)}:1)`:`Contraste baixo (${cr.toFixed(1)}:1) — escureça a cor de destaque pro texto branco ficar legível`}
+    <div style="margin-top:9px; font-size:.74rem; font-weight:700; text-align:center; color:${ok?(d?'#6fe0b8':'var(--verde-escuro)'):(d?'#ff9b9b':'var(--vermelho)')}">
+      ${ok?`✓ Contraste do texto: OK (${cr.toFixed(1)}:1)`:`⚠ Contraste baixo (${cr.toFixed(1)}:1) — escureça o destaque pro texto branco ficar legível`}
     </div>
-    <div style="margin-top:4px; font-size:.72rem; color:${mute}">As cores de status (atrasado, alerta) ficam fixas — a marca não muda o significado.</div>
+    <div style="margin-top:4px; font-size:.7rem; text-align:center; color:${mute}">As cores de status (atrasado, em dia, alerta) ficam fixas — a marca muda a aparência, nunca o significado.</div>
   </div>`;
 }
 function logoSlotHTML(key,label,val){
@@ -793,8 +842,9 @@ function logoSlotHTML(key,label,val){
 }
 function wlRefresh(){ const p=$('#wl-preview'); if(p) p.innerHTML=marcaBar(); }
 
-/* seletor de identidade + white-label: aplica na hora, com cartão de preview no topo */
+/* seletor de identidade + white-label: prévia ao vivo, aplica no app só no "Pronto" */
 function escolherTema(){
+  if(!wlEditing){ wlEditing=true; wlSnap=_wlCap(); }   /* captura o estado salvo p/ poder descartar no ✕ */
   const swatches=['#0e7a5f','#1f6feb','#7c3aed','#c0392b','#e07b00','#0f766e'];
   const golds=['#eab14a','#d8b36a','#e0a93b','#b8860b','#9c6b3f','#8a93a6'];
   const bgs=['#ffffff','#faf6ee','#f3f4f6','#0f172a','#1e293b','#050816'];
@@ -824,7 +874,7 @@ function escolherTema(){
     <div class="sub" style="font-weight:700; margin:16px 0 6px">Assistente (IA)</div>
     <input id="wl-assist" value="${(nomeAssist||'Edi').replace(/"/g,'&quot;')}" oninput="nomeAssist=this.value.trim()||'Edi';wlRefresh()" placeholder="Nome do assistente — padrão: ${nomeAssist}">
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px">
-      <button class="chip cinza" style="border:none" onclick="fecharModal();irPara('fontesEdi')">${tIco('robo')}Treinar / ver fontes ›</button>
+      <button class="chip cinza" style="border:none" onclick="wlCommit();irPara('fontesEdi')">${tIco('robo')}Treinar / ver fontes ›</button>
     </div>
 
     <div class="sub" style="font-weight:700; margin:18px 0 2px">Tema personalizado <span style="color:var(--cinza); font-weight:400">· 3 cores</span></div>
@@ -870,7 +920,7 @@ function escolherTema(){
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px">
       <label class="btn claro" style="display:inline-flex; align-items:center; cursor:pointer; width:auto; padding:9px 13px; margin:0">${tIco('camera')}${loginBg?'Trocar fundo':'Imagem de fundo'}<input type="file" accept="image/*" style="display:none" onchange="wlLoginBg(event)"></label>
       ${loginBg?`<button class="chip cinza" style="border:none" onclick="loginBg=null;escolherTema()">remover</button>`:''}
-      <button class="chip cinza" style="border:none" onclick="verLoginDemo()">ver a tela ›</button>
+      <button class="chip cinza" style="border:none" onclick="wlCommit();verLoginDemo()">ver a tela ›</button>
     </div>
     <input placeholder="Mensagem de boas-vindas (opcional)" value="${(loginMsg||'').replace(/"/g,'&quot;')}" oninput="loginMsg=this.value">
     <input style="margin-top:8px" placeholder="Contato de suporte — ex.: (11) 9 9999-0000" value="${(loginSuporte||'').replace(/"/g,'&quot;')}" oninput="loginSuporte=this.value">
@@ -885,9 +935,10 @@ function escolherTema(){
     <div class="sub" style="font-weight:700; margin:18px 0 6px">Onde a marca aparece</div>
     <div class="sub" style="margin-top:-2px">Tela de login · app dos moradores · nome do remetente no WhatsApp e e-mail · descritivo do PIX/boleto. <span style="color:var(--cinza)">(canais externos no produto final)</span></div>
 
-    <div class="botoes" style="margin-top:14px">
+    <div class="sub" style="margin-top:14px; color:var(--cinza); font-size:.74rem">As mudanças ficam só nesta prévia — o app todo muda quando você tocar em <b>Pronto</b>. Fechar no ✕ descarta.</div>
+    <div class="botoes" style="margin-top:8px">
       <button class="btn claro" onclick="resetWL()">↺ Restaurar tudo</button>
-      <button class="btn principal" onclick="fecharModal();atualizar()">Pronto</button>
+      <button class="btn principal" onclick="wlCommit()">Pronto — aplicar no app</button>
     </div>`);
 }
 function wlSetModo(m){ marcaModo=m;
@@ -1088,7 +1139,7 @@ function toastAcao(m,rotulo,fn){
   t.style.display='block'; clearTimeout(t._x); t._x=setTimeout(()=>t.style.display='none',7000);
 }
 function abrirModal(html){ $('#modal').innerHTML=`<button class="fechar-x" onclick="fecharModal()" aria-label="Fechar">✕</button>`+html; $('#fundo-modal').classList.add('on'); }
-function fecharModal(){ $('#fundo-modal').classList.remove('on'); }
+function fecharModal(){ if(wlEditing){ wlEditing=false; if(wlSnap){ _wlPut(wlSnap); wlSnap=null; aplicarTema(); atualizar(); } } $('#fundo-modal').classList.remove('on'); }
 
 const MENUS = {
   sindico:[['inicio','casa','Início'],['inadimplencia','cifrao','Cobrança'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['comunicados','megafone','Comunicados']],
@@ -1342,6 +1393,8 @@ TELAS.inicio = () => {
 
   ${praAgirCard()}
   ${enqueteResumoSindico()}
+  ${participacaoCardSindico()}
+  ${pautaColabCardSindico()}
   <h2>Gerir o condomínio</h2>
   <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px">
     ${gerirEntrada('predio','Unidades & moradores',"abrirUnidades()")}
@@ -2171,6 +2224,7 @@ TELAS.mhome = () => {
   </div>
   <div id="mhome-resposta"></div>
 
+  ${resumoMoradorCard()}
   <div class="secao">AGORA</div>
   ${(()=>{const est=estadoVotacao(); const j=assembleia.votoJanela; const votou=!!assembleia.votoRemoto[MORADOR.un]; const proc=assembleia.procuracoes[MORADOR.un];
     if(est==='agendada') return `<div class="item"><div class="linha1"><span class="nome">${tIco('checklist')}Assembleia 25/06</span><span class="chip cinza">votação abre ${j.abre}</span></div>
@@ -2194,6 +2248,7 @@ TELAS.mhome = () => {
 <div class="sub" style="margin-top:4px">${MORADOR.emDia?'Pago em 03/06 · toque pra comprovante ou 2ª via':'Toque pra gerar o PIX / 2ª via'}${MORADOR.papel==='inquilina'?' · como inquilina, só despesas ordinárias':''}</div></button>
 
   <div class="secao">ESTA SEMANA</div>
+  ${pulsoMoradorCard()}
   ${enqueteHtml()}
   ${avisosDoMorador().slice(0,2).map(a=>`<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px">${a.cat==='operação'?'<span class="chip cinza">operação</span>':''}<span class="chip cinza">${a.quando}</span></span></div><div class="sub">${a.d}</div><div class="sub" style="margin-top:3px; font-size:.78rem">por ${a.autor||'Síndico'}</div></div>`).join('')}
 
@@ -2966,22 +3021,28 @@ function ediTestar(){
 let assembleia={
   data:'25/06/2026, 19h30 (2ª chamada 20h)', local:'Salão de Festas',
   pauta:[
-    {t:'Prestação de contas 2025/2026', q:'maioria simples dos presentes'},
-    {t:'Eleição do conselho fiscal', q:'maioria dos presentes'},
-    {t:'Orçamento 2026/2027 e valor da taxa', q:'maioria simples dos presentes'},
-    {t:'Cobertura do bicicletário (obra útil)', q:'maioria absoluta — 31 unidades (CC art. 1.341)'},
+    {t:'Prestação de contas 2025/2026', q:'maioria simples dos presentes', modo:'aovivo', doc:'Balancete 2025/2026 + parecer do conselho', motivo:'contas se aprovam após o debate (pode caber ressalva)'},
+    {t:'Eleição do conselho fiscal', q:'maioria dos presentes', modo:'aovivo', doc:'Edital de candidatura', motivo:'candidatos podem se apresentar na assembleia'},
+    {t:'Orçamento 2026/2027 e valor da taxa', q:'maioria simples dos presentes', modo:'antecipado', doc:'Proposta orçamentária 2026/2027'},
+    {t:'Cobertura do bicicletário (obra útil)', q:'maioria absoluta — 31 unidades (CC art. 1.341)', modo:'antecipado', doc:'3 orçamentos da obra'},
   ],
   convocada:false, presentes:[], canais:{zap:false, app:false, print:false, painel:false},
   modoVivo:false, gravando:false, presentesN:34, votos:[], offPauta:false, ataGerada:false,
   votoJanela:{abre:'08/06', fecha:'25/06 19h30', modo:'híbrido', forcar:null}, // forcar: null | 'abrir' | 'fechar' (hoje da demo = 10/06)
-  votoRemoto:{ 'A-110':{0:'sim',1:'sim',2:'sim',3:'nao'}, 'B-408':{0:'sim',1:'sim',2:'nao',3:'sim'}, 'A-204':{0:'abst',1:'sim',2:'sim',3:'sim'} },
+  votoRemoto:{ 'A-110':{2:'sim',3:'nao'}, 'B-408':{2:'nao',3:'sim'}, 'A-204':{2:'sim',3:'sim'} },   // só itens de voto antecipado (2 e 3); os "ao vivo" são votados na assembleia
   procuracoes:{ 'B-605':'A-204' },
+  /* pauta colaborativa: morador propõe, vizinhos apoiam; ao bater META_PAUTA o síndico pode incluir na convocação */
+  propostas:[
+    {t:'Instalar bicicletário coberto na garagem', por:'B-502', apoios:['B-502','A-110','A-204','B-408','A-101','A-210','A-304','B-605','A-102','B-1201','A-401','A-502'], incluida:false},
+    {t:'Rever horário de silêncio aos domingos', por:'A-110', apoios:['A-110','B-408','A-204'], incluida:false},
+  ],
 };
+const META_PAUTA=15;   /* apoios p/ virar item de pauta — ~1/4 das 60 unidades (alusão ao quórum de convocação por condôminos) */
 let abaAsm='convocacao';
 const UNIDADES_DEMO=['A-101','A-102','A-110','A-204','A-210','A-304','A-305','B-408','B-502','B-605'];
 TELAS.assembleia = () => {
   const a=assembleia;
-  const edital=`EDITAL DE CONVOCAÇÃO — ASSEMBLEIA GERAL ORDINÁRIA\n\n${COND.nome}\nData: ${a.data}\nLocal: ${a.local}\n\nPAUTA:\n${a.pauta.map((p,i)=>`${i+1}. ${p.t}`).join('\n')}\n\nNos termos da convenção e do art. 1.354 do Código Civil, ficam convocados TODOS os condôminos.\n\nSíndico — ${COND.nome}`;
+  const edital=`EDITAL DE CONVOCAÇÃO — ASSEMBLEIA GERAL ORDINÁRIA\n\n${COND.nome}\nData: ${a.data}\nLocal: ${a.local}\n\nPAUTA:\n${a.pauta.map((p,i)=>`${i+1}. ${p.t} — ${p.modo==='aovivo'?'voto na assembleia (após debate)':'voto antecipado admitido'}`).join('\n')}\n\nRegras de voto remoto por item nos termos do art. 1.354-A do Código Civil (Lei 14.309/2022). Nos termos da convenção e do art. 1.354, ficam convocados TODOS os condôminos.\n\nSíndico — ${COND.nome}`;
   const abas=`<div class="abas">
     <button class="${abaAsm==='convocacao'?'on':''}" onclick="abaAsm='convocacao';atualizar()"><span class="ico-in">${ico('megafone')}</span> Convocação</button>
     <button class="${abaAsm==='presenca'?'on':''}" onclick="abaAsm='presenca';atualizar()"><span class="ico-in">${ico('pessoas')}</span> Presença</button>
@@ -3005,8 +3066,14 @@ TELAS.assembleia = () => {
       <button class="btn" style="${cn.painel?'background:var(--verde-claro); color:var(--verde-escuro); border:1px solid var(--verde)':'background:var(--cinza-claro); color:var(--texto); border:1px solid var(--borda)'}" aria-pressed="${cn.painel}" onclick="convocarCanal('painel')"><span class="ico-in">${ico(cn.painel?'check':'elevador')}</span> Painel do elevador</button>
       ${painelFila.length?`<button class="btn claro" onclick="verPainelElevador()"><span class="ico-in">${ico('elevador')}</span> Ver painel (${painelFila.length})</button>`:''}
     </div>`:''}
-<h2>Quóruns da pauta</h2>
-    ${a.pauta.map(p=>`<div class="item"><div class="nome" style="font-size:.88rem">${p.t}</div><div class="sub">quórum: ${p.q}</div></div>`).join('')}
+<h2>Pauta — quórum e modo de voto</h2>
+    <div class="sub" style="margin:-4px 0 8px">A Lei 14.309/2022 (CC art. 1.354-A) pede que a convocação <b>detalhe as regras de voto por item</b>. Defina o que aceita <b>voto antecipado</b> (proposta fechada) e o que fica <b>pra decidir no dia</b>, após o debate.</div>
+    ${a.pauta.map((p,i)=>{const aovivo=p.modo==='aovivo';
+      return `<div class="item"><div class="linha1"><span class="nome" style="font-size:.88rem">${i+1}. ${p.t}</span><span class="chip ${aovivo?'laranja':'verde'}" style="flex:0 0 auto">${aovivo?'voto no dia':'voto antecipado'}</span></div>
+        <div class="sub">quórum: ${p.q}${p.doc?` · doc: ${p.doc}`:''}</div>
+        ${aovivo&&p.motivo?`<div class="sub" style="margin-top:2px; font-size:.78rem">motivo: ${p.motivo}</div>`:''}
+        <div class="botoes" style="margin-top:8px"><button class="btn claro" style="padding:7px 12px; font-size:12px" onclick="togglePautaModo(${i})">Mudar p/ ${aovivo?'voto antecipado':'voto no dia'}</button></div>
+      </div>`;}).join('')}
     ${painelVotacaoSindico()}`;
   }
   if(abaAsm==='presenca'){
@@ -3181,13 +3248,18 @@ function renderVotacao(){
   const a=assembleia, meu=votoRemotoTmp;
   abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('checklist')}Votar — Assembleia 25/06</h3>
     <div class="item" style="border-color:var(--verde); background:var(--verde-claro); padding:10px 13px"><div class="sub" style="margin:0">${tIco('check')}Votação <b>aberta até ${assembleia.votoJanela.fecha}</b> · modo ${assembleia.votoJanela.modo}. Você pode <b>alterar seu voto</b> até lá; em itens polêmicos, dá pra rever depois do debate.</div></div>
-    <div class="sub" style="margin:10px 0">Vote em cada item à distância. O voto remoto <b>vale como presença</b> e entra na apuração com peso por fração ideal.</div>
-    ${a.pauta.map((p,i)=>{const e=meu[i];
-      return `<div class="item"><div class="nome" style="font-size:.9rem">${i+1}. ${p.t}</div><div class="sub" style="margin:2px 0 0">quórum: ${p.q}</div>
-        <div style="display:flex; gap:6px; margin-top:8px">
-          ${[['sim','A favor','verde'],['nao','Contra','vermelho'],['abst','Abstenção','cinza']].map(([k,lbl,cor])=>`<button class="chip ${e===k?cor:'cinza'}" style="border:none; flex:1" onclick="setVotoRemoto(${i},'${k}')">${lbl}</button>`).join('')}
-        </div></div>`;}).join('')}
-    <button class="btn principal btn-grande" onclick="salvarVotoRemoto()">${Object.keys(assembleia.votoRemoto[MORADOR.un]||{}).length?'Atualizar meu voto':'Registrar meu voto'}</button>
+    <div class="sub" style="margin:10px 0">Vote nos itens <b>abertos ao voto antecipado</b>. Os demais são deliberados <b>na assembleia</b> (após o debate) — mas os documentos já ficam disponíveis pra você chegar informado. O voto remoto <b>vale como presença</b> e entra na apuração com peso por fração ideal.</div>
+    ${a.pauta.map((p,i)=>{const e=meu[i]; const aovivo=p.modo==='aovivo';
+      return `<div class="item"><div class="linha1"><span class="nome" style="font-size:.9rem">${i+1}. ${p.t}</span><span class="chip ${aovivo?'laranja':'verde'}" style="flex:0 0 auto">${aovivo?'voto no dia':'voto antecipado'}</span></div>
+        <div class="sub" style="margin:2px 0 0">quórum: ${p.q}</div>
+        ${p.doc?`<button class="btn claro" style="margin-top:8px; padding:7px 12px; font-size:12px" onclick="toast('No produto final: abre o documento — ${p.doc.replace(/'/g,'')}')">${clip()}${p.doc}</button>`:''}
+        ${aovivo
+          ? `<div class="sub" style="margin-top:8px; display:flex; align-items:flex-start; gap:6px">${tIco('checklist')}<span>Deliberado na assembleia (após o debate)${p.motivo?` — ${p.motivo}`:''}. Compareça ou dê procuração.</span></div>`
+          : `<div style="display:flex; gap:6px; margin-top:8px">
+              ${[['sim','A favor','verde'],['nao','Contra','vermelho'],['abst','Abstenção','cinza']].map(([k,lbl,cor])=>`<button class="chip ${e===k?cor:'cinza'}" style="border:none; flex:1" onclick="setVotoRemoto(${i},'${k}')">${lbl}</button>`).join('')}
+            </div>`}
+        </div>`;}).join('')}
+    <button class="btn principal btn-grande" onclick="salvarVotoRemoto()">${Object.keys(assembleia.votoRemoto[MORADOR.un]||{}).length?'Atualizar meu voto':'Registrar meu voto antecipado'}</button>
     <div class="botoes"><button class="btn claro" onclick="darProcuracao()"><span class="ico-in">${ico('pessoas')}</span> Não vou — dar procuração</button></div>
     <div class="aviso-lgpd">Seu voto é individual e sigiloso na apuração agregada. A convenção limita quantas procurações cada pessoa pode levar à assembleia.</div>`);
 }
@@ -3212,6 +3284,14 @@ function salvarProcuracao(){
   fecharModal(); atualizar(); toast('Procuração registrada —'+u+' vota por você.');
 }
 function cancelarProcuracao(){ delete assembleia.procuracoes[MORADOR.un]; fecharModal(); atualizar(); abrirVotacao(); }
+/* síndico define, por item, se aceita voto antecipado ou só no dia (Lei 14.309/2022) */
+function togglePautaModo(i){
+  const p=assembleia.pauta[i]; if(!p) return;
+  p.modo = p.modo==='aovivo' ? 'antecipado' : 'aovivo';
+  if(p.modo==='aovivo'){ Object.values(assembleia.votoRemoto).forEach(v=>{ delete v[i]; }); }  // item vira só ao vivo: descarta votos antecipados nele
+  logAudit(`definiu o item "${p.t}" como ${p.modo==='aovivo'?'voto no dia (deliberação presencial)':'voto antecipado'}`,'Síndico');
+  atualizar(); toast(p.modo==='aovivo'?'Item marcado para voto no dia — votos antecipados nele foram descartados.':'Item aberto ao voto antecipado.');
+}
 function togglePresenca(u){
   const p=assembleia.presentes;
   const i=p.indexOf(u);
@@ -3395,12 +3475,12 @@ function marcarRotina(ix){
   if(r.t.toLowerCase().includes('leitura')){
     abrirModal(`<h3>${r.t}</h3>
       <label>Valor da leitura</label><input id="rt-v" placeholder="Ex.: 14.150 L">
-      <button class="btn principal btn-grande" onclick="confirmarLeitura(${ix})">Registrar</button>`);
+      <button class="btn principal btn-grande" onclick="registrarLeituraRotina(${ix})">Registrar</button>`);
     return;
   }
   r.feito=true; atualizar(); toast(`Registrado: ${r.resp}, ${agora()}`);
 }
-function confirmarLeitura(ix){
+function registrarLeituraRotina(ix){
   const v=$('#rt-v').value.trim();
   if(!v){ toast('Informe o valor — leitura sem número não detecta vazamento.'); return; }
   rotina[ix].feito=true; rotina[ix].leitura=v;
@@ -4310,6 +4390,7 @@ TELAS.mfalar = () => {
     ${(o.resposta||(o.msgs||[]).length)&&o.status!=='resolvida'?`<div class="botoes"><button class="btn claro" onclick="responderMorador(${o.id})">↩ Responder ao síndico</button></div>`:''}
   </div>`;}).join('')||vazio('balao','Nenhuma solicitação ainda','Use os botões acima pra mandar uma sugestão, reclamação ou comunicar uma reforma.')}
   <div class="aviso-lgpd">Privacidade: sua solicitação é vista apenas por você e pelo síndico — nunca vira exposição no mural ou no grupo.</div>
+  ${pautaColabMorador()}
 </div>`;
 };
 function novaOcorrencia(pre){
@@ -4906,6 +4987,209 @@ function enqueteResumoSindico(){
       return `<div class="sub" style="margin-top:6px; color:var(--verde-escuro); font-weight:600">Liderando: ${lider[0]} — ${pct}%</div>`;})():''}
   </button>`;
 }
+/* ===== #1 TERMÔMETRO DE PARTICIPAÇÃO (síndico) + satisfação (pulso) ===== */
+const TOTAL_UN=60;
+let participacao={
+  appAtivo:48,        // unidades com app ativo (de 60)
+  leituraOficial:41,  // leram o último comunicado oficial (baseline da demo)
+  assembleiaUlt:34,   // participaram da última assembleia (presença+remoto+procuração)
+  satisf:{nota:7.8, respostas:23, delta:+0.4},   // atalho de exibição (nota atual do trimestre)
+};
+/* ===== #4 PULSO DE SATISFAÇÃO — 1 pergunta anônima, morador responde, síndico vê a distribuição ===== */
+let pulso={
+  ativo:true,
+  pergunta:'De 0 a 10, como você avalia a gestão do condomínio neste trimestre?',
+  soma:179.4, respostas:23,           // média = soma/respostas (≈7,8)
+  dist:{det:4, neu:11, prom:8},       // 0–6 detrator · 7–8 neutro · 9–10 promotor
+  respondi:false,
+};
+function pulsoNota(){ return pulso.respostas?pulso.soma/pulso.respostas:0; }
+function pulsoNPS(){ return pulso.respostas?Math.round((pulso.dist.prom-pulso.dist.det)/pulso.respostas*100):0; }
+function pctUn(n){ return Math.round(n/TOTAL_UN*100); }
+function enqueteVotos(){ return enquete.ativa?enquete.opcoes.reduce((s,o)=>s+o[1],0):0; }
+function participacaoCardSindico(){
+  const votos=enqueteVotos();
+  const media=Math.round((pctUn(participacao.appAtivo)+pctUn(participacao.leituraOficial)+pctUn(votos)+pctUn(participacao.assembleiaUlt))/4);
+  return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verParticipacao()">
+    <div class="linha1"><span class="nome">${tIco('grafico')}Participação da comunidade</span><span class="chip ${media>=66?'verde':media>=40?'laranja':'vermelho'}">${media}% ›</span></div>
+    <div class="sub" style="margin-top:5px">App ${pctUn(participacao.appAtivo)}% · leitura ${pctUn(participacao.leituraOficial)}% · enquete ${pctUn(votos)}% · satisfação ${pulsoNota().toFixed(1)}/10</div>
+  </button>`;
+}
+function barP(lbl,n,extra){
+  const pc=pctUn(n), cor=pc>=66?'var(--verde)':pc>=40?'var(--laranja)':'var(--vermelho)';
+  return `<div style="margin-top:12px"><div class="linha1"><span class="sub" style="margin:0; font-weight:600">${lbl}</span><span class="sub" style="margin:0">${n}/${TOTAL_UN} · ${pc}%</span></div>
+    <div class="cat-trilha" style="margin-top:4px"><div class="cat-barra" style="width:${pc}%; background:${cor}"></div></div>
+    ${extra?`<div class="sub" style="margin-top:3px; font-size:.78rem">${extra}</div>`:''}</div>`;
+}
+function verParticipacao(){
+  const s=participacao.satisf, naoLeu=TOTAL_UN-participacao.leituraOficial, naoAtivou=TOTAL_UN-participacao.appAtivo;
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('grafico')}Participação da comunidade</h3>
+    <div class="sub" style="margin-bottom:6px">O pulso do engajamento — quem usa e participa de fato, só em números agregados, sem expor ninguém.</div>
+    ${barP('Unidades com app ativo', participacao.appAtivo, naoAtivou?naoAtivou+' ainda não ativaram — reenvie o convite':'todas ativaram')}
+    ${barP('Leram o último comunicado oficial', participacao.leituraOficial, 'prova de ciência — vale em convocação de assembleia (CC art. 1.354)')}
+    ${barP('Votaram na enquete atual', enqueteVotos(), enquete.ativa?`"${enquete.q}" · encerra ${enquete.encerra}`:'nenhuma enquete no ar')}
+    ${barP('Participaram da última assembleia', participacao.assembleiaUlt, 'presença + voto remoto + procuração')}
+    <button class="item" style="width:100%; text-align:left; display:block; margin-top:14px; border-color:var(--verde)" onclick="fecharModal();verSatisfacao()">
+      <div class="linha1"><span class="nome">${tIco('grafico')}Satisfação com a gestão</span><span style="display:flex; align-items:center; gap:6px"><span class="chip verde">${pulsoNota().toFixed(1)}/10</span><span style="color:var(--cinza)">›</span></span></div>
+      <div class="sub" style="margin-top:4px">${pulso.respostas} respostas no pulso do trimestre · ${s.delta>=0?'▲ +':'▼ '}${Math.abs(s.delta).toFixed(1)} vs. trimestre anterior · toque pra distribuição</div>
+    </button>
+    <div class="botoes" style="margin-top:12px">
+      <button class="btn claro" onclick="fecharModal();toast('${naoLeu} moradores lembrados no WhatsApp de ler o último comunicado.')">${tIco('megafone')}Cutucar quem não leu</button>
+      <button class="btn claro" onclick="fecharModal();verSatisfacao()">${tIco('grafico')}Pulso de satisfação</button>
+    </div>
+    <div class="aviso-lgpd" style="margin-top:10px">Tudo agregado: você vê percentuais e médias, nunca o voto ou a nota de um morador específico (LGPD).</div>
+    <button class="btn principal btn-grande" onclick="fecharModal()">Fechar</button>`);
+}
+/* pulso — lado do síndico: distribuição + abrir/encerrar */
+function verSatisfacao(){
+  const d=pulso.dist, tot=pulso.respostas||1;
+  const linha=(lbl,n,cor)=>{const pc=Math.round(n/tot*100);
+    return `<div style="margin-top:10px"><div class="linha1"><span class="sub" style="margin:0; font-weight:600">${lbl}</span><span class="sub" style="margin:0">${n} · ${pc}%</span></div>
+      <div class="cat-trilha" style="margin-top:4px"><div class="cat-barra" style="width:${pc}%; background:${cor}"></div></div></div>`;};
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('grafico')}Pulso de satisfação</h3>
+    <div class="sub" style="margin-bottom:6px">Uma pergunta anônima por trimestre. Você vê a média, a distribuição e um índice de recomendação (NPS) — nunca a nota de um morador.</div>
+    <div class="cards"><div class="card ok"><div class="num">${pulsoNota().toFixed(1)}<span style="font-size:.9rem">/10</span></div><div class="lbl">nota média · ${pulso.respostas} respostas</div></div>
+      <div class="card"><div class="num">${pulsoNPS()>=0?'+':''}${pulsoNPS()}</div><div class="lbl">NPS (promotores − detratores)</div></div></div>
+    ${linha('Promotores (9–10)', d.prom, 'var(--verde)')}
+    ${linha('Neutros (7–8)', d.neu, 'var(--laranja)')}
+    ${linha('Detratores (0–6)', d.det, 'var(--vermelho)')}
+    <div class="item" style="margin-top:12px"><div class="linha1"><span class="nome" style="font-size:.9rem">"${pulso.pergunta}"</span><span class="chip ${pulso.ativo?'verde':'cinza'}">${pulso.ativo?'no ar':'encerrado'}</span></div>
+      <div class="sub" style="margin-top:3px">${pulso.ativo?`Disparado a todos os moradores · ${TOTAL_UN-pulso.respostas} ainda não responderam`:'Reabra pra medir o próximo trimestre.'}</div></div>
+    <div class="botoes" style="margin-top:12px">
+      ${pulso.ativo
+        ? `<button class="btn claro" onclick="pulso.ativo=false;fecharModal();atualizar();toast('Pulso encerrado — resultado congelado pro trimestre.')">Encerrar pulso</button>`
+        : `<button class="btn principal" onclick="pulso.ativo=true;fecharModal();atualizar();toast('Pulso reaberto — os moradores recebem a pergunta de novo.')">Abrir novo pulso</button>`}
+      <button class="btn claro" onclick="fecharModal();toast('${TOTAL_UN-pulso.respostas} moradores lembrados no WhatsApp de responder o pulso.')">${tIco('megafone')}Lembrar quem faltou</button>
+    </div>
+    <div class="aviso-lgpd" style="margin-top:10px">Respostas anônimas e agregadas (LGPD) — servem pra sentir o clima, não são votação formal de assembleia.</div>
+    <button class="btn principal btn-grande" onclick="fecharModal()">Fechar</button>`);
+}
+/* pulso — lado do morador: card na home + responder */
+function pulsoMoradorCard(){
+  if(!pulso.ativo||pulso.respondi) return '';
+  return `<div class="item" style="border-color:var(--verde)">
+    <div class="linha1"><span class="nome">${tIco('grafico')}Pulso do trimestre</span><span class="chip laranja">anônimo</span></div>
+    <div class="sub" style="margin-top:6px">${pulso.pergunta}</div>
+    <div style="display:grid; grid-template-columns:repeat(11,1fr); gap:4px; margin-top:10px">
+      ${Array.from({length:11},(_,n)=>`<button class="chip cinza" style="border:none; padding:9px 0; cursor:pointer; text-align:center; font-weight:700" onclick="responderPulso(${n})">${n}</button>`).join('')}
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:5px">
+      <span class="sub" style="margin:0; font-size:.72rem">0 · nada satisfeito</span>
+      <span class="sub" style="margin:0; font-size:.72rem">muito satisfeito · 10</span>
+    </div>
+    <div class="aviso-lgpd" style="margin-top:10px">Sua nota é anônima — o síndico vê só a média do condomínio, nunca quem deu quanto.</div>
+  </div>`;
+}
+function responderPulso(n){
+  if(pulso.respondi) return;
+  pulso.respostas++; pulso.soma+=n; pulso.respondi=true;
+  if(n>=9) pulso.dist.prom++; else if(n>=7) pulso.dist.neu++; else pulso.dist.det++;
+  participacao.satisf.nota=pulsoNota();
+  atualizar(); toast('Obrigado! Sua avaliação anônima entrou na média do trimestre.');
+}
+
+/* ===== #6 DIGEST SEMANAL DO MORADOR — espelho do "Pra agir" do síndico ===== */
+function resumoMoradorDados(){
+  const enc=encomendas.find(e=>e.un===MORADOR.un&&e.status==='aguardando');
+  const res=proximasReservas(99).filter(r=>r.un===MORADOR.un)[0];
+  const naoLidos=avisosDoMorador().filter(a=>!(a.lidoPor||[]).includes(MORADOR.un));
+  const enqAberta=(enquete.ativa&&enquete.votou===null&&(enquete.torre==='todas'||enquete.torre===daTorre(MORADOR.un)));
+  const pautas=assembleia.propostas.filter(p=>!p.incluida&&!p.apoios.includes(MORADOR.un)).length;
+  const votouAsm=!!assembleia.votoRemoto[MORADOR.un]||!!assembleia.procuracoes[MORADOR.un];
+  const asmAberta=estadoVotacao()==='aberta'&&!votouAsm;
+  return {enc, res, naoLidos, enqAberta, pautas, asmAberta, pulso:(pulso.ativo&&!pulso.respondi)};
+}
+function resumoMoradorCard(){
+  const d=resumoMoradorDados();
+  const n=(d.enc?1:0)+(d.naoLidos.length?1:0)+(d.enqAberta?1:0)+(d.asmAberta?1:0)+(d.pulso?1:0)+(d.pautas?1:0);
+  return `<button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verResumoMorador()">
+    <div class="linha1"><span class="nome">${tIco('check')}Seu resumo da semana</span><span class="chip ${n?'laranja':'verde'}">${n?n+' novidade'+(n>1?'s':''):'em dia'} ›</span></div>
+    <div class="sub" style="margin-top:5px">O que rolou no seu prédio, num lugar só. No produto final chega no seu WhatsApp toda segunda.</div></button>`;
+}
+function verResumoMorador(){
+  const d=resumoMoradorDados();
+  const linhas=[];
+  if(d.enc) linhas.push(['pacote','Encomenda na portaria',`${d.enc.transp} · chegou ${d.enc.chegada}`,"fecharModal();irPara('mhome')"]);
+  if(d.res) linhas.push(['calendario','Sua reserva',`${d.res.area} · ${String(d.res.d).padStart(2,'0')}/${String(d.res.m).padStart(2,'0')}`,"fecharModal();irPara('mreservar')"]);
+  if(d.naoLidos.length) linhas.push(['megafone',`${d.naoLidos.length} aviso(s) pra ler`,d.naoLidos[0].t,"fecharModal();irPara('mavisos')"]);
+  if(d.enqAberta) linhas.push(['grafico','Enquete aberta',`"${enquete.q}" — encerra ${enquete.encerra}`,"fecharModal();irPara('mavisos')"]);
+  if(d.asmAberta) linhas.push(['checklist','Votação da assembleia aberta','seu voto vale como presença',"fecharModal();abrirVotacao()"]);
+  if(d.pautas) linhas.push(['lampada',`${d.pautas} proposta(s) de pauta`,'apoie o que você acha importante',"fecharModal();irPara('mfalar')"]);
+  if(d.pulso) linhas.push(['grafico','Pulso do trimestre','1 pergunta anônima sobre a gestão',"fecharModal();irPara('mhome')"]);
+  let zt=`Resumo da semana — ${COND.nome} (${MORADOR.un}):`;
+  linhas.forEach(l=>{ zt+=`\n- ${l[1]}${l[2]?': '+l[2]:''}`; });
+  if(!linhas.length) zt+=`\nTudo tranquilo esta semana. `;
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('check')}Seu resumo da semana</h3>
+    <div class="sub" style="margin-bottom:10px">${linhas.length?'O que precisa da sua atenção no prédio — toque pra resolver.':'Nada pendente pra você esta semana.'}</div>
+    ${linhas.map(l=>`<button class="item" style="width:100%; text-align:left; display:block" onclick="${l[3]}"><div class="linha1"><span class="nome" style="font-size:.92rem">${tIco(l[0])}${l[1]}</span><span style="color:var(--cinza)">›</span></div>${l[2]?`<div class="sub" style="margin-top:2px">${l[2]}</div>`:''}</button>`).join('')||vazio('check','Tudo em dia','Sem novidades no seu prédio esta semana.')}
+    <div class="botoes" style="margin-top:12px"><a class="btn zap btn-grande" style="display:block" target="_blank" href="https://wa.me/?text=${encodeURIComponent(zt)}">Receber no meu WhatsApp</a></div>
+    <div class="aviso-lgpd">No produto final, esse resumo chega sozinho toda segunda — você abre o app só quando quiser agir.</div>`);
+}
+
+/* ===== #3 PAUTA COLABORATIVA (morador propõe/apoia → síndico inclui) ===== */
+function pautaColabCardSindico(){
+  const abertas=assembleia.propostas.filter(p=>!p.incluida);
+  const prontas=abertas.filter(p=>p.apoios.length>=META_PAUTA).length;
+  return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verPautasColab()">
+    <div class="linha1"><span class="nome">${tIco('lampada')}Pauta colaborativa</span><span class="chip ${prontas?'verde':'cinza'}">${prontas?prontas+' pronta'+(prontas>1?'s':'')+' ›':abertas.length+' em apoio ›'}</span></div>
+    <div class="sub" style="margin-top:5px">${prontas?`${prontas} proposta(s) bateram ${META_PAUTA} apoios — inclua na próxima convocação.`:`Moradores sugerem itens; ao atingir ${META_PAUTA} apoios, entram na sua pauta.`}</div>
+  </button>`;
+}
+function verPautasColab(){
+  const ps=assembleia.propostas;
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('lampada')}Pauta colaborativa</h3>
+    <div class="sub" style="margin-bottom:6px">O que os moradores querem discutir. Ao atingir <b>${META_PAUTA} apoios</b> (~¼ das unidades), você inclui na convocação — participação vira pauta formal.</div>
+    ${ps.map((p,ix)=>{const n=p.apoios.length, pc=Math.min(100,Math.round(n/META_PAUTA*100)), pronta=n>=META_PAUTA;
+      return `<div class="item" style="${pronta&&!p.incluida?'border-color:var(--verde)':''}">
+        <div class="linha1"><span class="nome" style="font-size:.92rem">${p.t}</span><span class="chip ${p.incluida||pronta?'verde':'cinza'}">${p.incluida?'na pauta':n+'/'+META_PAUTA}</span></div>
+        <div class="sub" style="margin-top:3px; font-size:.78rem">proposta por ${p.por}</div>
+        <div class="cat-trilha" style="margin-top:6px"><div class="cat-barra" style="width:${pc}%; background:${pronta?'var(--verde)':'var(--cinza)'}"></div></div>
+        ${p.incluida?'<div class="sub" style="margin-top:6px; color:var(--verde-escuro); font-weight:600">Incluída na pauta da assembleia.</div>'
+          :pronta?`<div class="botoes" style="margin-top:8px"><button class="btn principal" onclick="incluirNaPauta(${ix})">${tIco('check')}Incluir na pauta</button></div>`
+          :`<div class="sub" style="margin-top:6px">Faltam ${META_PAUTA-n} apoio(s) pra virar pauta.</div>`}
+      </div>`;}).join('')||vazio('lampada','Sem propostas ainda','Quando um morador sugerir um item pra assembleia, aparece aqui.')}
+    <button class="btn principal btn-grande" onclick="fecharModal()">Fechar</button>`);
+}
+function incluirNaPauta(ix){
+  const p=assembleia.propostas[ix]; if(!p||p.incluida) return;
+  p.incluida=true;
+  assembleia.pauta.push({t:p.t+' (proposta dos moradores)', q:'maioria simples dos presentes'});
+  logAudit(`incluiu na pauta a proposta dos moradores "${p.t}" (${p.apoios.length} apoios)`,'Síndico');
+  fecharModal(); atualizar(); toast('Incluída na pauta — aparece na convocação da assembleia.');
+}
+function pautaColabMorador(){
+  const ps=assembleia.propostas.filter(p=>!p.incluida);
+  return `<h2>Pauta da assembleia</h2>
+  <div class="sub" style="margin:0 0 8px">Sugira um item pra próxima assembleia ou apoie o de um vizinho. Ao atingir ${META_PAUTA} apoios, o síndico inclui na convocação.</div>
+  <button class="btn principal" style="width:100%; margin-bottom:10px" onclick="proporPauta()">${tIco('lampada')}Propor item de pauta</button>
+  ${ps.map(p=>{const ix=assembleia.propostas.indexOf(p), n=p.apoios.length, pc=Math.min(100,Math.round(n/META_PAUTA*100)), apoiei=p.apoios.includes(MORADOR.un), pronta=n>=META_PAUTA;
+    return `<div class="item"><div class="linha1"><span class="nome" style="font-size:.92rem">${p.t}</span><span class="chip ${pronta?'verde':'cinza'}">${n}/${META_PAUTA}</span></div>
+      <div class="sub" style="margin-top:3px; font-size:.78rem">por ${p.por===MORADOR.un?'você':p.por}</div>
+      <div class="cat-trilha" style="margin-top:6px"><div class="cat-barra" style="width:${pc}%; background:${pronta?'var(--verde)':'var(--cinza)'}"></div></div>
+      <div class="botoes" style="margin-top:8px"><button class="btn claro" ${apoiei?'disabled style="opacity:.6"':''} onclick="apoiarPauta(${ix})">${apoiei?tIco('check')+'Você apoiou':'Apoiar esta proposta'}</button></div>
+    </div>`;}).join('')||`<div class="sub">Nenhuma proposta aberta — seja o primeiro a sugerir.</div>`}
+  <div class="aviso-lgpd" style="margin-top:10px">Propor e apoiar é identificado (o síndico vê quem propôs) — é participação formal, não voto secreto.</div>`;
+}
+function proporPauta(){
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('lampada')}Propor item de pauta</h3>
+    <div class="sub" style="margin-bottom:10px">Escreva o que você quer que a assembleia discuta. Os vizinhos poderão apoiar; ao atingir ${META_PAUTA} apoios, o síndico inclui na convocação.</div>
+    <label>Sua proposta</label><textarea id="pp-t" rows="3" placeholder="Ex.: Estudar a troca da empresa de limpeza"></textarea>
+    <button class="btn principal btn-grande" onclick="salvarProposta()">Enviar proposta</button>
+    <div class="aviso-lgpd" style="margin-top:10px">Fica registrado que a proposta é sua — é um item de discussão coletiva, sem dado sensível.</div>`);
+}
+function salvarProposta(){
+  const t=($('#pp-t').value||'').trim();
+  if(!t){ toast('Escreva sua proposta.'); return; }
+  assembleia.propostas.unshift({t, por:MORADOR.un, apoios:[MORADOR.un], incluida:false});
+  fecharModal(); atualizar(); toast('Proposta enviada — seus vizinhos já podem apoiar.');
+}
+function apoiarPauta(ix){
+  const p=assembleia.propostas[ix]; if(!p||p.apoios.includes(MORADOR.un)) return;
+  p.apoios.push(MORADOR.un);
+  atualizar();
+  toast(p.apoios.length>=META_PAUTA?'Apoiada! Bateu a meta — vai pro síndico incluir na pauta.':`Apoio registrado (${p.apoios.length}/${META_PAUTA}).`);
+}
+
 /* seleciona a torre-alvo no modal sem re-renderizar (preserva o que já foi digitado) */
 function enqSetTorre(t){
   enqTorreSel=t;
@@ -5010,10 +5294,11 @@ TELAS.comunicados = () => `<div class="tela on">
     <div class="linha1"><span class="nome">${tIco('elevador')}Painel do elevador</span><span class="chip ${painelFila.length?'verde':'cinza'}">${painelFila.length?painelFila.length+' no ar ›':'vazio ›'}</span></div>
     <div class="sub" style="margin-top:5px">${painelFila.length?'Cards rodando na tela do elevador agora — toque pra ver e conferir a validade.':'Nada rodando. Ao publicar um comunicado, marque "Exibir no painel do elevador".'}</div></button>`:''}
   <h2>No mural</h2>
-  ${avisos.map(a=>{const leituras=(a.lidoPor||[]).length;
+  ${avisos.map((a,i)=>{const leituras=(a.lidoPor||[]).length;
+    const pct=(i===0&&a.cat==='oficial')?pctUn(participacao.leituraOficial):null;
     return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px; flex:0 0 auto">${a.cat==='operação'?'<span class="chip cinza">operação</span>':''}<span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div>
       <div class="sub">${a.d}</div>
-      <div class="sub" style="margin-top:3px; font-size:.78rem">por ${a.autor||'Síndico'} · ${leituras} leitura(s)</div></div>`;}).join('')||vazio('megafone','Mural vazio','Publique o primeiro comunicado — ele aparece aqui com a contagem de leituras.')}
+      <div class="sub" style="margin-top:3px; font-size:.78rem">por ${a.autor||'Síndico'} · ${pct!==null?`${pct}% leram (${participacao.leituraOficial}/${TOTAL_UN})`:`${leituras} leitura(s)`}${(!ehConvocacao(a)&&utilN(a))?` · 👍 ${utilN(a)} útil`:''}</div></div>`;}).join('')||vazio('megafone','Mural vazio','Publique o primeiro comunicado — ele aparece aqui com a contagem de leituras.')}
 </div>`;
 function comunicadoCardSindico(){
   const ultimo=avisos[0]; const tot=avisos.length;
@@ -5090,7 +5375,11 @@ function salvarAvisoOperacional(){
 function confirmarLeitura(ix){
   const a=avisos[ix]; if(!a) return;
   a.lidoPor=a.lidoPor||[];
-  if(!a.lidoPor.includes(MORADOR.un)) a.lidoPor.push(MORADOR.un);
+  if(!a.lidoPor.includes(MORADOR.un)){
+    a.lidoPor.push(MORADOR.un);
+    /* leitura de oficial alimenta o termômetro do síndico (cap no total de unidades) */
+    if((a.cat==='oficial')&&ix===0&&participacao.leituraOficial<TOTAL_UN) participacao.leituraOficial++;
+  }
   atualizar(); toast('Confirmação de leitura registrada');
 }
 
@@ -5323,7 +5612,13 @@ TELAS.mavisos = () => `<div class="tela on">
     return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px">${a.cat==='operação'?'<span class="chip cinza">operação</span>':''}<span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas as torres':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div><div class="sub">${a.d}</div>
     <div class="sub" style="margin-top:3px; font-size:.78rem">por ${a.autor||'Síndico'}</div>
     ${a.anexo?`<div class="sub" style="margin-top:4px">${clip()}documento anexado</div>`:''}
-    <div class="botoes"><button class="btn claro" ${lido?'disabled style="opacity:.6"':''} onclick="confirmarLeitura(${ix})">${lido?tIco('check')+'Lido':'Confirmar leitura'}</button></div></div>`;}).join('')||vazio('megafone','Nenhum aviso pra sua torre','Quando o síndico ou a portaria publicar algo da sua torre, aparece aqui.')}
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px">
+      ${lido
+        ? `<span class="sub" style="margin:0; display:inline-flex; align-items:center; gap:5px; color:var(--verde-escuro); font-weight:600; font-size:.82rem">${tIco('check')}Leitura confirmada</span>`
+        : `<button class="btn claro" style="margin:0; padding:9px 16px; font-size:13px; flex:0 0 auto" onclick="confirmarLeitura(${ix})">Confirmar leitura</button>`}
+      ${ehConvocacao(a)?'' : (()=>{const on=(a.uteis||[]).includes(MORADOR.un);
+        return `<button aria-pressed="${on}" aria-label="Marcar aviso como útil" onclick="reagirUtil(${ix})" style="flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; cursor:pointer; border-radius:99px; padding:6px 11px; font-size:.8rem; font-weight:700; background:${on?'var(--verde-claro)':'transparent'}; color:${on?'var(--verde-escuro)':'var(--cinza)'}; border:1px solid ${on?'var(--verde)':'var(--borda)'}">👍${utilN(a)?' '+utilN(a):''}<span style="font-weight:400">útil</span></button>`;})()}
+    </div></div>`;}).join('')||vazio('megafone','Nenhum aviso pra sua torre','Quando o síndico ou a portaria publicar algo da sua torre, aparece aqui.')}
 </div>`;
 
 /* ---------- início: tela de login ---------- */
