@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.56';
+const VERSAO='v4.60';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -562,9 +562,9 @@ let manutencoes = [
   {item:'Extintores — recarga',           per:'Anual',     ultima:'20/07/2025', status:'breve',   empresa:true, torre:'geral'},
   {item:'Dedetização',                    per:'Semestral', ultima:'10/01/2026', status:'breve',   empresa:true, torre:'geral'},
   {item:'Para-raios (SPDA) — laudo',      per:'Anual',     ultima:'03/04/2026', status:'ok',      empresa:true, torre:'geral'},
-  {item:'Bombas d’água Torre A — verificação e alternância', per:'Trimestral',ultima:'25/02/2026', status:'vencida', empresa:false, torre:'A'},
-  {item:'Bombas d’água Torre B — verificação e alternância', per:'Trimestral',ultima:'02/04/2026', status:'ok', empresa:false, torre:'B'},
-  {item:'Iluminação de emergência',       per:'Semestral', ultima:'12/03/2026', status:'ok',      empresa:false, torre:'geral'},
+  {item:'Bombas d’água Torre A — verificação e alternância', per:'Trimestral',ultima:'25/02/2026', status:'vencida', empresa:false, torre:'A', ponto:'Casa de bombas A · QR-BMA'},
+  {item:'Bombas d’água Torre B — verificação e alternância', per:'Trimestral',ultima:'02/04/2026', status:'ok', empresa:false, torre:'B', ponto:'Casa de bombas B · QR-BMB'},
+  {item:'Iluminação de emergência',       per:'Semestral', ultima:'12/03/2026', status:'ok',      empresa:false, torre:'geral', ponto:'Escada pressurizada · QR-EMG'},
   {item:'Seguro obrigatório do condomínio — apólice', per:'Anual (CC art. 1.346)', ultima:'20/08/2025', status:'breve', empresa:true, torre:'geral'},
   {item:'AVCB — Auto de Vistoria do Corpo de Bombeiros', per:'Conforme prazo municipal', ultima:'15/05/2024', status:'breve', empresa:true, torre:'geral'},
 ];
@@ -603,7 +603,11 @@ let unidades = {
   'A-110':{ocupante:'José Santos',   tipo:'inquilino',            desde:'08/2023', proprietario:'Marília Costa', cobrancaPara:'inquilino',    acesso:['cartão'], app:true, fracao:1.15},
   'B-502':{ocupante:'Beatriz Rocha', tipo:'proprietário-morador', desde:'01/2020', proprietario:'Beatriz Rocha', cobrancaPara:'proprietário', acesso:['facial'], app:true, fracao:1.30},
   'B-1201':{ocupante:'Ricardo e Ana Duarte', tipo:'proprietário-morador', desde:'06/2019', proprietario:'Ricardo Duarte', cobrancaPara:'proprietário', acesso:['facial'], app:true, fracao:1.95, duplex:true, pavimentos:'12º e 13º'},
+  /* uso misto: unidades comerciais (loja/sala) — ocupante PJ, categoria comercial, rateio próprio */
+  'C-01':{ocupante:'Padaria Pão & Cia', tipo:'inquilino', desde:'02/2023', proprietario:'Espólio Nunes', cobrancaPara:'inquilino', acesso:['tag'], app:true, fracao:2.40, categoria:'comercial', ocupanteTipo:'PJ', cnpj:'12.345.678/0001-90'},
+  'C-202':{ocupante:'Odonto Sorriso Ltda', tipo:'inquilino', desde:'09/2024', proprietario:'Marcos Lemes', cobrancaPara:'proprietário', acesso:['tag','facial'], app:false, fracao:1.20, categoria:'comercial', ocupanteTipo:'PJ', cnpj:'98.765.432/0001-10'},
 };
+const catUnidade=un=>(unidades[un]&&unidades[un].categoria)||'residencial';
 /* quem recebe o boleto, por extenso */
 function respCobranca(u){ return u.cobrancaPara==='inquilino' ? `${u.ocupante} (inquilino)` : `${u.proprietario} (proprietário)`; }
 /* timestamp centralizado: hojeData() = "DD/MM" (só data) · agora() = "DD/MM HH:MM" (data + hora) */
@@ -625,6 +629,7 @@ let avisos = [
   {t:'Assembleia ordinária — 25/06 às 19h30', d:'Pauta: prestação de contas e eleição do conselho. Salão de festas.', quando:'08/06', torre:'todas', autor:'Síndico', cat:'oficial', uteisBase:0, uteis:[]},
   {t:'Limpeza da caixa d’água — Torre A', d:'Faltará água na TORRE A no sábado 14/06, das 8h às 14h. Encham as reservas.', quando:'05/06', torre:'A', autor:'Zelador', cat:'operação', uteisBase:9, uteis:[]},
   {t:'Nova academia liberada', d:'Funcionamento das 6h às 22h. Regras no mural.', quando:'01/06', torre:'todas', autor:'Síndico', cat:'oficial', uteisBase:31, uteis:[]},
+  {t:'Carga e descarga: nova janela 8h–11h na doca', d:'Lojas: a partir de 15/06 a doca opera das 8h às 11h; fora disso o portão fica fechado. Programe as entregas.', quando:'06/06', torre:'todas', autor:'Síndico', cat:'oficial', segmento:'comercial', uteisBase:2, uteis:[]},
 ];
 const utilN=a=>(a.uteisBase||0)+((a.uteis||[]).length);
 /* convocação é ato legal — só ciência (confirmar leitura), sem reação "útil" que banaliza */
@@ -636,8 +641,10 @@ function reagirUtil(ix){
   if(i>=0){ a.uteis.splice(i,1); } else { a.uteis.push(MORADOR.un); }
   atualizar();
 }
-const avisosDoMorador=()=>avisos.filter(a=>a.torre==='todas'||a.torre===daTorre(MORADOR.un));
+const avisosDoMorador=()=>{const cat=catUnidade(MORADOR.un); return avisos.filter(a=>(a.torre==='todas'||a.torre===daTorre(MORADOR.un))&&(!a.segmento||a.segmento==='todos'||a.segmento===cat));};
 let comTorreSel='todas';   /* comunicado: torre-alvo */
+let comSegSel='todos';     /* comunicado: segmento-alvo (uso misto: todos/residencial/comercial) */
+function comSetSeg(s){ comSegSel=s; document.querySelectorAll('#cm-seg button').forEach(b=>{const on=b.dataset.s===s; b.classList.toggle('verde',on); b.classList.toggle('cinza',!on);}); }
 let comAnexo=false;        /* comunicado: PDF anexado (simulação) */
 let painelFila=[];         /* cards rotacionando no painel/tela do elevador (canal de exibição) */
 function painelAdd(titulo, linha, torre, dias){
@@ -1034,6 +1041,11 @@ function menuDemo(){
         ${[['reservas','Reservas'],['edi','Edi (IA)'],['portaria','Portaria'],['elevadores','Elevadores'],['triagem','Triagem'],['estoque','Estoque'],['integracoes','Integrações']].map(([k,l])=>`<button class="chip ${modulos[k]?'verde':'cinza'}" style="border:none" onclick="toggleModulo('${k}')">${l}</button>`).join('')}
       </div></div>
     <div class="item" style="display:block">
+      <div class="linha1"><span class="nome">${tIco('predio')}Uso misto (lojas comerciais)</span><span class="chip ${modOn('comercial')?'verde':'cinza'}" style="border:none">${modOn('comercial')?'ativo':'desligado'}</span></div>
+      <div class="sub" style="margin:3px 0 8px">Prédio com loja/sala no térreo. Liga a <b>categoria comercial</b> — unidade PJ, rateio por centro de custo, avisos por segmento e público de loja na portaria. Muitos condomínios não têm; por isso é opcional.</div>
+      <div style="display:flex; gap:6px"><button class="chip ${modOn('comercial')?'verde':'cinza'}" style="border:none; flex:1" onclick="toggleModulo('comercial')">${modOn('comercial')?'Uso misto ligado — desligar':'Ligar uso misto'}</button></div>
+    </div>
+    <div class="item" style="display:block">
       <div class="linha1"><span class="nome">${tIco('cifrao')}Morador (demo)</span><span class="chip ${MORADOR.emDia?'verde':'laranja'}" style="border:none">${MORADOR.emDia?'em dia':'em atraso'}</span></div>
       <div class="sub" style="margin:3px 0 8px">Alterna a situação da taxa do morador — afeta transparência, notificações e o bloqueio de reserva por inadimplência.</div>
       <div style="display:flex; gap:6px">
@@ -1152,7 +1164,7 @@ const MENUS = {
 const PERFIS_NOMES={sindico:'Síndico', conselho:'Conselho', zelador:'Zelador', portaria:'Portaria', morador:'Morador', administradora:'Administradora'};
 let demoAberto=false; /* mantém o grupo "Demonstração" aberto entre re-renders do menu */
 /* ===== MÓDULOS / PLANO (demo): cada condomínio liga só o que usa — nav, home e telas se adaptam ===== */
-let modulos={reservas:true, edi:true, portaria:true, elevadores:true, triagem:true, estoque:true, integracoes:true};
+let modulos={reservas:true, edi:true, portaria:true, elevadores:true, triagem:true, estoque:true, integracoes:true, comercial:true};
 const NAV_MOD={reservas:'reservas', mreservar:'reservas', triagem:'triagem', estoque:'estoque', mfalar:'edi'};
 function modOn(k){ return modulos[k]!==false; }
 function navItens(p){ return (MENUS[p]||[]).filter(it=>{const mk=NAV_MOD[it[0]]; return !mk || modOn(mk);}); }
@@ -1163,14 +1175,15 @@ const PERFIS_COND={
   simples:['reservas','edi']
 };
 const PERFIL_COND_LABEL={clube:'Condomínio-clube', padrao:'Padrão', simples:'Prédio simples', custom:'Personalizado'};
-function perfilCondAtual(){ const a=Object.keys(modulos).filter(modOn).sort().join(','); for(const p in PERFIS_COND){ if(PERFIS_COND[p].slice().sort().join(',')===a) return p; } return 'custom'; }
+/* 'comercial' (uso misto) é toggle independente — não entra no match dos presets Clube/Padrão/Simples */
+function perfilCondAtual(){ const a=Object.keys(modulos).filter(k=>k!=='comercial'&&modOn(k)).sort().join(','); for(const p in PERFIS_COND){ if(PERFIS_COND[p].slice().sort().join(',')===a) return p; } return 'custom'; }
 function refreshNav(){
   const m=document.getElementById('menu'); if(!m) return;
   const itens=navItens(perfil); if(!itens.length) return; /* na entrada ainda não há perfil */
   m.innerHTML=itens.map(([id,icn,lbl])=>`<button id="mb-${id}" onclick="irPara('${id}')"><span class="ico">${ico(icn)}</span>${lbl}</button>`).join('');
   irPara(itens.some(it=>it[0]===telaAtual)?telaAtual:itens[0][0]);
 }
-function setPerfilCond(p){ const on=PERFIS_COND[p]||[]; Object.keys(modulos).forEach(k=>modulos[k]=on.includes(k)); aposModulo(); }
+function setPerfilCond(p){ const on=PERFIS_COND[p]||[]; Object.keys(modulos).forEach(k=>{ if(k!=='comercial') modulos[k]=on.includes(k); }); aposModulo(); }
 function toggleModulo(k){ modulos[k]=!modulos[k]; aposModulo(); }
 function aposModulo(){
   if(!modOn('portaria') && perfil==='portaria'){ fecharModal(); trocarPerfil('sindico'); menuDemo(); return; }
@@ -1570,7 +1583,7 @@ function verManutencao(ix){
     <div class="sub" style="margin-bottom:10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap"><span class="chip cinza" style="border:none">${m.torre==='geral'?'Condomínio · todas as torres':'Torre '+m.torre}</span><span class="chip ${chip[1]}">${chip[0]}</span><span>· ${m.per}</span></div>
     <div class="item" style="padding:11px 13px; margin-bottom:10px; ${vencida?'border-color:var(--vermelho)':m.status==='breve'?'border-color:var(--laranja)':''}">
       <div class="sub" style="margin:0 0 5px">${prazoManu(m)}</div>
-      <div class="sub" style="margin:0"><b>Última execução:</b> ${m.ultima}${m.por?` — registrada pelo ${m.por}`:''}</div>
+      <div class="sub" style="margin:0"><b>Última execução:</b> ${m.ultima}${m.por?` — registrada pelo ${m.por}`:''}${m.via?(m.via==='qr'?` · ${tIco('check')}QR no local${m.foto?' · 📷 foto':''}`:' · manual (sem QR)'):''}</div>
     </div>
     ${(()=>{const l=laudoDaManu(m); if(!l) return ''; const s=validadeStatus(l.validade); const li=laudos.indexOf(l);
       return `<button class="item" style="width:100%; text-align:left; display:block; margin-bottom:10px" onclick="abrirLaudoDoc(${li})">
@@ -1642,10 +1655,28 @@ function registrarExecZelador(ix){
     <button class="btn claro btn-grande" id="zl-laudo-btn" onclick="anexarLaudo()">${clip()}Anexar laudo da empresa — obrigatório</button>
     <button class="btn principal btn-grande" onclick="confirmarExecZelador(${ix})">Enviar para conferência do síndico</button>`);
 }
-function marcarFeitoInterno(ix){
-  const m=manutencoes[ix];
-  m.status='ok'; m.ultima=fdata(hoje); m.por='zelador';
-  atualizar(); toast('Feito  Registrado com foto, autoria e data — verificação interna não precisa de aprovação.');
+let manuFotoTmp=false;
+/* conclusão de manutenção interna com comprovação: QR no ponto × manual, foto opcional */
+function concluirManu(ix, via, foto){
+  const m=manutencoes[ix]; if(!m) return;
+  m.status='ok'; m.ultima=fdata(hoje); m.por='zelador'; m.via=via; m.quando=agora(); if(foto) m.foto=true;
+  logAudit(`registrou a manutenção interna "${m.item}" (${via==='qr'?'QR no local · '+(m.ponto||''):'manual, sem QR'})`,'Zelador');
+  fecharModal(); atualizar();
+  toast(via==='qr'?`Comprovado no local por QR · ${m.quando}`:`Registrado (manual, sem QR) · ${m.quando}`);
+}
+function marcarFeitoInterno(ix){ concluirManu(ix,'manual',false); }
+function escanearManu(ix){
+  const m=manutencoes[ix]; if(!m) return;
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('camera')}Escanear no local</h3>
+    <div class="sub" style="margin-bottom:10px">Aproxime a câmera do adesivo em <b>${m.ponto||'no ponto'}</b>. Ler o QR ali prova que a verificação foi feita no equipamento, na hora.</div>
+    <div style="background:#0a2e25; border-radius:14px; padding:16px; text-align:center">
+      <div style="color:#eab14a; font-size:.7rem; letter-spacing:.08em; font-weight:700; text-transform:uppercase">${m.ponto||'Ponto de verificação'}</div>
+      <div style="margin:12px auto 6px; width:118px; background:#fff; border-radius:8px; padding:9px; color:#0a2e25">${qrSvg(m.item, 100)}</div>
+      <div style="font-size:.78rem; color:#8fb7a6">simulação — no app real usa a câmera</div>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin:12px 0 6px"><input type="checkbox" id="mn-foto" style="width:auto; margin:0"> Anexar foto do estado (manômetro, alternância, lâmpadas…)</label>
+    <button class="btn principal btn-grande" onclick="concluirManu(${ix},'qr',document.getElementById('mn-foto').checked)">${tIco('check')}Confirmar leitura do QR</button>
+    <div class="aviso-lgpd">Fica registrado o ponto, a hora e quem escaneou — vira prova de execução na trilha de auditoria. Itens contratados (elevador, SPDA, AVCB) seguem comprovados pelo laudo/ART.</div>`);
 }
 function anexarLaudo(){
   window._laudoAnexada=true; window._laudoAnexado=true;
@@ -1688,13 +1719,15 @@ TELAS.manuzel = () => {
     const chip = chipManu(m);
     return `<div class="item">
       <div class="linha1"><span class="nome">${nomeManu(m)}</span><span class="chip ${chip[1]}">${chip[0]}</span></div>
-      <div class="sub" style="display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:3px"><span class="chip cinza" style="border:none; padding:2px 9px; font-size:.7rem; font-weight:700">${escopoManu(m)}</span><span>${m.per} · última execução: ${m.ultima}${m.por?` — registrada pelo ${m.por}`:''}</span></div>
+      <div class="sub" style="display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:3px"><span class="chip cinza" style="border:none; padding:2px 9px; font-size:.7rem; font-weight:700">${escopoManu(m)}</span><span>${m.per} · última execução: ${m.ultima}${m.por?` — registrada pelo ${m.por}`:''}${m.via?(m.via==='qr'?` · QR no local${m.foto?' 📷':''}`:' · manual (sem QR)'):''}</span></div>
       ${(m.status==='vencida'||m.status==='breve')?`<div class="sub" style="margin-top:4px">${prazoManu(m)}</div>`:''}
       ${m.status==='aprovacao'?`<div class="sub" style="margin-top:4px; display:flex; align-items:flex-start; gap:5px">${tIco('check')}<span>Laudo arquivado em ${m.pend.data} — aguardando conferência do síndico.</span></div>`
       : m.status!=='ok'?`<div class="botoes" style="justify-content:flex-end">
         ${m.empresa
           ?`<button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="registrarExecZelador(${ix})">${clip()}Arquivar laudo</button>`
-          :`<button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="marcarFeitoInterno(${ix})">${tIco('check')}Marcar feito</button>`}
+          :(m.ponto
+            ?`<button class="btn principal" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="escanearManu(${ix})">${tIco('camera')}Escanear no local</button><button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="marcarFeitoInterno(${ix})">manual</button>`
+            :`<button class="btn claro" style="flex:0 0 auto; padding:8px 14px; font-size:13px" onclick="marcarFeitoInterno(${ix})">${tIco('check')}Marcar feito</button>`)}
       </div>`:''}
     </div>`;};
   const idx=manutencoes.map((m,ix)=>({m,ix})).filter(x=>passaTorre(x.m.torre)).filter(x=>modOn('elevadores')||!/elevador/i.test(x.m.item));
@@ -1710,7 +1743,7 @@ TELAS.manuzel = () => {
   </div>
   <div class="sub" style="margin:-4px 0 12px">${abaManuZel==='contratuais'
     ?'Empresa certificada executa: você acompanha a visita e arquiva o laudo dela (CNPJ e validade); o síndico confere e aprova.'
-    :'Verificação interna: você executa e marca direto, com foto — sem precisar de aprovação.'}</div>
+    :'Verificação interna: você executa e comprova no local (QR no ponto + foto) ou registra manual — sem precisar de aprovação, mas com prova de que foi feito.'}</div>
   ${lista.map(x=>linha(x.m,x.ix)).join('')}
   <div class="aviso-lgpd">O que você registra aparece na hora pro síndico, com autoria e data.</div>
 </div>`;
@@ -2062,6 +2095,7 @@ TELAS.visitantes = () => {
     <button class="btn principal" style="padding:14px" onclick="validarQR()">${tIco('camera')}Validar QR do visitante</button>
     <button class="btn claro" style="padding:14px" onclick="novaVisita()">+ Registrar na hora</button>
   </div>
+  ${modOn('comercial')&&Object.values(unidades).some(u=>u.categoria==='comercial')?`<button class="btn claro btn-grande" style="margin-bottom:10px" onclick="novoPublicoLoja()">${tIco('predio')}Público de loja (cliente / fornecedor)</button>`:''}
 <h2>No prédio agora (${dentro.length})</h2>
   ${dentro.length?dentro.map(x=>card(x.v,x.ix)).join(''):'<div class="sub" style="margin:-6px 0 12px">Ninguém no prédio no momento.</div>'}
   ${espera.length?`<h2>Esperados hoje (${espera.length})</h2>${espera.map(x=>card(x.v,x.ix)).join('')}`:''}
@@ -2196,6 +2230,29 @@ function registrarVisita(){
   visitantes.unshift({nome:n, un:u, tipo:'Visita', status:'entrou', doc:d, entrada:agora(), saida:''});
   logAcesso(n, u, 'Documento na portaria', 'entrada');
   fecharModal(); atualizar(); toast('Entrada registrada: documento, autorização e hora');
+}
+/* uso misto: público da loja (cliente/fornecedor) — acesso à área comercial, sem autorização por visita */
+function novoPublicoLoja(){
+  const lojas=Object.entries(unidades).filter(([un,u])=>u.categoria==='comercial');
+  if(!lojas.length){ toast('Não há unidades comerciais cadastradas.'); return; }
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('predio')}Público de loja</h3>
+    <div class="sub" style="margin-bottom:10px">Cliente ou fornecedor de uma unidade comercial. Acesso à <b>área comercial</b> em horário de funcionamento — <b>não sobe</b> para a área residencial.</div>
+    <label>Loja / sala</label>
+    <select id="pl-u">${lojas.map(([un,u])=>`<option value="${un}">${un} — ${u.ocupante}</option>`).join('')}</select>
+    <label>Tipo</label>
+    <select id="pl-t"><option>Cliente</option><option>Fornecedor / entrega</option><option>Prestador</option></select>
+    <label>Nome / empresa</label><input id="pl-n" placeholder="Nome do cliente ou da transportadora">
+    <label>Documento <span class="sub" style="font-weight:400">— obrigatório p/ fornecedor e prestador</span></label><input id="pl-d" placeholder="RG/CPF/CNH — ou placa do veículo">
+    <button class="btn principal btn-grande" onclick="registrarPublicoLoja()">Registrar entrada</button>
+    <div class="aviso-lgpd">Loja aberta ao público não exige autorização por visita; fornecedor e prestador pedem documento. O acesso é restrito à área comercial — a integração de portaria não libera as catracas do residencial.</div>`);
+}
+function registrarPublicoLoja(){
+  const un=$('#pl-u').value, t=$('#pl-t').value, n=($('#pl-n').value||'').trim(), d=($('#pl-d').value||'').trim();
+  if(!n){ toast('Informe o nome ou a empresa.'); return; }
+  if(t!=='Cliente' && !d){ toast('Fornecedor e prestador exigem documento ou placa do veículo.'); return; }
+  visitantes.unshift({nome:n, un, tipo:t+' · loja', status:'entrou', doc:d||'—', entrada:agora(), saida:'', comercial:true});
+  logAcesso(n, un, 'Público de loja — área comercial', 'entrada');
+  fecharModal(); atualizar(); toast('Entrada de público de loja registrada — área comercial');
 }
 
 /* ===== MORADOR ===== */
@@ -3860,7 +3917,7 @@ let unidBusca='';
 const CAP_UNID=40;
 function unidFiltradas(){
   const q=unidBusca.trim().toLowerCase();
-  let ents=Object.entries(unidades).filter(([un])=>passaTorre(daTorre(un)));
+  let ents=Object.entries(unidades).filter(([un,u])=>passaTorre(daTorre(un))&&(modOn('comercial')||u.categoria!=='comercial'));
   if(q) ents=ents.filter(([un,u])=>un.toLowerCase().includes(q)||(u.ocupante||'').toLowerCase().includes(q));
   return ents;
 }
@@ -3893,14 +3950,36 @@ function listaUnidades(){
 }
 const FRACAO_BASE=1.15; /* fração de uma unidade padrão — base do rateio proporcional na demo */
 function taxaFracao(u){ return Math.round(COND.taxa*((u.fracao||FRACAO_BASE)/FRACAO_BASE)); }
+/* uso misto: rateio por centro de custo — cada categoria paga só os centros que a servem
+   (CC art. 1.336 §1º permite rateio diferenciado na convenção). Base p/ unidade padrão. */
+const CENTROS=[
+  {n:'Administração e pessoal',              cat:['residencial','comercial'], v:150},
+  {n:'Limpeza e conservação',                cat:['residencial','comercial'], v:90},
+  {n:'Segurança e portaria',                 cat:['residencial','comercial'], v:120},
+  {n:'Áreas de lazer (playground, salão)',   cat:['residencial'],             v:70},
+  {n:'Galeria comercial (fachada, vitrine, carga/descarga)', cat:['comercial'], v:80},
+  {n:'Fundo de reserva',                     cat:['residencial','comercial'], v:50},
+];
+function baseCategoria(cat){ return CENTROS.filter(c=>c.cat.includes(cat)).reduce((s,c)=>s+c.v,0); }
+function taxaComposta(u){ const cat=u.categoria||'residencial'; return Math.round(baseCategoria(cat)*((u.fracao||FRACAO_BASE)/FRACAO_BASE)); }
+function composicaoTaxaHtml(u){
+  const cat=u.categoria||'residencial', fatorF=(u.fracao||FRACAO_BASE)/FRACAO_BASE;
+  return `<div class="sub" style="margin:12px 0 4px"><b>Composição da taxa · rateio por centro de custo</b> <span class="chip ${cat==='comercial'?'laranja':'verde'}" style="border:none">${cat}</span></div>
+    <div class="item" style="padding:11px 13px"><div class="sub" style="margin:0; display:flex; flex-direction:column; gap:6px">
+      ${CENTROS.map(c=>{const paga=c.cat.includes(cat), val=Math.round(c.v*fatorF);
+        return `<span style="display:flex; align-items:center; justify-content:space-between; gap:10px; ${paga?'':'opacity:.5'}"><span style="display:flex; align-items:center; gap:6px">${tIco(paga?'check':'alerta')}${c.n}</span><span style="white-space:nowrap; font-weight:${paga?'600':'400'}">${paga?fmt(val):'<i>isento</i>'}</span></span>`;}).join('')}
+      <span style="display:flex; align-items:center; justify-content:space-between; gap:10px; border-top:1px solid var(--borda); margin-top:2px; padding-top:7px; font-weight:800"><span>Taxa da unidade</span><span>${fmt(taxaComposta(u))}</span></span>
+    </div></div>
+    <div class="aviso-lgpd" style="margin:8px 0 0">Cada categoria paga só os centros que a servem (loja é isenta de lazer; residencial é isento da galeria comercial). Rateio diferenciado conforme a convenção — CC art. 1.336 §1º.</div>`;
+}
 function verUnidade(un){
   const u=unidades[un]; if(!u) return;
   const encPend=encomendas.filter(e=>e.un===un&&e.status==='aguardando').length;
   const inad=inadimplentes.find(i=>i.un===un);
   abrirModal(`<h3>${tIco('predio')}Unidade ${un}</h3>
     <div class="item" style="border-color:var(--verde); margin-bottom:10px">
-      <div class="linha1"><span class="nome">${tIco('pessoas')}${u.ocupante}</span><span class="chip ${u.tipo==='inquilino'?'laranja':'verde'}">${u.tipo}</span></div>
-      <div class="sub" style="margin-top:4px">Mora aqui desde ${u.desde}</div>
+      <div class="linha1"><span class="nome">${tIco(u.ocupanteTipo==='PJ'?'predio':'pessoas')}${u.ocupante}</span><span style="display:flex; gap:5px; flex:0 0 auto">${(u.categoria==='comercial')?'<span class="chip laranja">comercial</span>':''}<span class="chip ${u.tipo==='inquilino'?'laranja':'verde'}">${u.tipo}</span></span></div>
+      <div class="sub" style="margin-top:4px">${u.categoria==='comercial'?'Opera aqui':'Mora aqui'} desde ${u.desde}${u.ocupanteTipo==='PJ'?` · CNPJ ${u.cnpj}`:''}</div>
       ${u.tipo==='inquilino'?`<div class="sub">Proprietário: <b>${u.proprietario}</b></div>`:''}
       <div class="sub">Boleto vai para: <b>${respCobranca(u)}</b></div>
     </div>
@@ -3916,11 +3995,14 @@ function verUnidade(un){
     <div class="item" style="padding:11px 13px; ${u.duplex?'border-color:var(--verde);':''}"><div class="sub" style="margin:0; line-height:1.7; display:flex; flex-direction:column; gap:6px">
       <span style="display:flex; align-items:flex-start; gap:7px">${tIco('balanca')}<span>Fração ideal: <b>${u.fracao.toFixed(2)}%</b>${u.duplex?` <span class="chip verde" style="border:none; white-space:nowrap">duplex · ${u.pavimentos}</span>`:''}</span></span>
       <span style="display:flex; align-items:flex-start; gap:7px">${tIco('prancheta')}<span>Assembleia: <b>1 voto</b> — peso pela fração ideal</span></span>
-      ${(()=>{const tf=taxaFracao(u); return tf===COND.taxa
+      ${(u.categoria==='comercial')
+        ? `<span style="display:flex; align-items:flex-start; gap:7px">${tIco('cifrao')}<span>Taxa: <b>${fmt(taxaComposta(u))}</b> — rateio comercial por centro de custo (veja a composição abaixo)</span></span>`
+        : (()=>{const tf=taxaFracao(u); return tf===COND.taxa
         ? `<span style="display:flex; align-items:flex-start; gap:7px">${tIco('cifrao')}<span>Taxa: <b>${fmt(COND.taxa)}</b> — igual nos dois rateios (fração da unidade padrão)</span></span>`
         : `<span style="display:flex; align-items:flex-start; gap:7px">${tIco('cifrao')}<span>Taxa: <b>${fmt(tf)}</b> no rateio por fração · <b>${fmt(COND.taxa)}</b> no igualitário</span></span>`;})()}
     </div></div>
     ${u.duplex?`<div class="aviso-lgpd" style="margin:8px 0 10px">Duplex é <b>uma unidade só</b> (uma matrícula em ${u.pavimentos}): conta como <b>1 voto</b> na assembleia — com peso maior porque a fração ideal é maior — e paga <b>uma taxa</b> proporcional à fração (CC art. 1.336, I). Se fossem <b>dois apartamentos juntados</b> sem unificação no cartório, seriam <b>duas unidades</b>: dois votos e duas taxas. O EdiVita segue a <b>matrícula/convenção</b>, não a planta.</div>`:''}`:''}
+    ${composicaoTaxaHtml(u)}
     ${mudancaHtml(un)}
     <div class="botoes" style="margin-top:12px">
       ${!u.app?`<button class="btn principal" style="flex:0 0 auto; padding:11px 16px" onclick="ativarMorador('${un}')">${tIco('chave')}Ativar acesso</button>`:''}
@@ -5329,9 +5411,9 @@ TELAS.comunicados = () => `<div class="tela on">
     <div class="linha1"><span class="nome">${tIco('elevador')}Painel do elevador</span><span class="chip ${painelFila.length?'verde':'cinza'}">${painelFila.length?painelFila.length+' no ar ›':'vazio ›'}</span></div>
     <div class="sub" style="margin-top:5px">${painelFila.length?'Cards rodando na tela do elevador agora — toque pra ver e conferir a validade.':'Nada rodando. Ao publicar um comunicado, marque "Exibir no painel do elevador".'}</div></button>`:''}
   <h2>No mural</h2>
-  ${avisos.map((a,i)=>{const leituras=(a.lidoPor||[]).length;
+  ${avisos.filter(a=>modOn('comercial')||a.segmento!=='comercial').map((a,i)=>{const leituras=(a.lidoPor||[]).length;
     const pct=(i===0&&a.cat==='oficial')?pctUn(participacao.leituraOficial):null;
-    return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px; flex:0 0 auto">${a.cat==='operação'?'<span class="chip cinza">operação</span>':''}<span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div>
+    return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px; flex:0 0 auto">${(a.segmento&&a.segmento!=='todos')?`<span class="chip laranja">${a.segmento}</span>`:''}${a.cat==='operação'?'<span class="chip cinza">operação</span>':''}<span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div>
       <div class="sub">${a.d}</div>
       <div class="sub" style="margin-top:3px; font-size:.78rem">por ${a.autor||'Síndico'} · ${pct!==null?`${pct}% leram (${participacao.leituraOficial}/${TOTAL_UN})`:`${leituras} leitura(s)`}${(!ehConvocacao(a)&&utilN(a))?` · 👍 ${utilN(a)} útil`:''}</div></div>`;}).join('')||vazio('megafone','Mural vazio','Publique o primeiro comunicado — ele aparece aqui com a contagem de leituras.')}
 </div>`;
@@ -5352,7 +5434,7 @@ function comSetTorre(t){
   document.querySelectorAll('#cm-torre button').forEach(b=>{const on=b.dataset.t===t; b.classList.toggle('verde',on); b.classList.toggle('cinza',!on);});
 }
 function criarComunicado(){
-  comTorreSel='todas'; comAnexo=false;
+  comTorreSel='todas'; comAnexo=false; comSegSel='todos';
   abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('megafone')}Novo comunicado</h3>
     <div class="sub" style="margin-bottom:10px">Vai pro app dos moradores da torre escolhida, com confirmação de leitura. Opcional: reforço no WhatsApp e no painel do elevador.</div>
     <label>Título</label><input id="cm-t" placeholder="Ex.: Manutenção do elevador — 18/06">
@@ -5361,6 +5443,10 @@ function criarComunicado(){
     <div id="cm-torre" style="display:flex; gap:6px; margin:6px 0 14px">
       ${['todas','A','B'].map(t=>`<button type="button" class="chip ${t==='todas'?'verde':'cinza'}" data-t="${t}" style="border:none" onclick="comSetTorre('${t}')">${t==='todas'?'Todas as torres':'Torre '+t}</button>`).join('')}
     </div>
+    ${modOn('comercial')?`<label>Segmento <span class="sub" style="font-weight:400">(uso misto)</span></label>
+    <div id="cm-seg" style="display:flex; gap:6px; margin:6px 0 14px">
+      ${[['todos','Todos'],['residencial','Residencial'],['comercial','Comercial']].map(([s,r])=>`<button type="button" class="chip ${s==='todos'?'verde':'cinza'}" data-s="${s}" style="border:none" onclick="comSetSeg('${s}')">${r}</button>`).join('')}
+    </div>`:''}
 <div class="botoes" style="margin-bottom:6px"><button class="btn claro" onclick="comAnexo=true;toast('PDF anexado (simulação)')"><span class="ico-in">${ico('clipe')}</span> Anexar PDF</button></div>
     <label style="display:flex; align-items:center; gap:8px; font-weight:400; color:var(--texto); margin:6px 0 10px"><input type="checkbox" id="cm-wpp" checked style="width:auto; margin:0"> Reforçar no WhatsApp (link wa.me — alta abertura)</label>
     ${COND.painelElevador?`<label style="display:flex; align-items:flex-start; gap:8px; font-weight:400; color:var(--texto); margin:0 0 12px"><input type="checkbox" id="cm-painel" style="width:auto; margin:3px 0 0"> <span>Exibir no painel do elevador <span class="sub" style="margin:0">— card curto + QR pro app, da(s) torre(s) escolhida(s). Reforço de alcance, não conta como confirmação de leitura.</span></span></label>`:''}
@@ -5372,7 +5458,7 @@ function salvarComunicado(){
   if(!t){ toast('Escreva o título do comunicado.'); return; }
   const wpp=$('#cm-wpp')?$('#cm-wpp').checked:false;
   const painel=$('#cm-painel')?$('#cm-painel').checked:false;
-  avisos.unshift({t, d:d||'—', quando:fdata(hoje), torre:comTorreSel, anexo:comAnexo, painel, autor:'Síndico', cat:'oficial', lidoPor:[]});
+  avisos.unshift({t, d:d||'—', quando:fdata(hoje), torre:comTorreSel, segmento:comSegSel, anexo:comAnexo, painel, autor:'Síndico', cat:'oficial', lidoPor:[]});
   if(painel) painelAdd(t, d?(d.length>64?d.slice(0,61)+'…':d):'Leia o comunicado completo no app', comTorreSel, 7);
   logAudit(`publicou o comunicado "${t}"`,'Síndico');
   fecharModal(); atualizar();
@@ -5642,7 +5728,7 @@ TELAS.admatend = () => {
 TELAS.mavisos = () => `<div class="tela on">
   <div class="topo"><h1>${tIco("megafone")}Avisos do condomínio</h1><p>Você só recebe o que vale pra sua torre</p></div>
   ${enqueteHtml()}
-  ${avisos.map((a,ix)=>({a,ix})).filter(x=>x.a.torre==='todas'||x.a.torre===daTorre(MORADOR.un)).map(({a,ix})=>{
+  ${avisos.map((a,ix)=>({a,ix})).filter(x=>(x.a.torre==='todas'||x.a.torre===daTorre(MORADOR.un))&&(!x.a.segmento||x.a.segmento==='todos'||x.a.segmento===catUnidade(MORADOR.un))).map(({a,ix})=>{
     const lido=(a.lidoPor||[]).includes(MORADOR.un);
     return `<div class="item"><div class="linha1"><span class="nome">${a.t}</span><span style="display:flex; gap:5px">${a.cat==='operação'?'<span class="chip cinza">operação</span>':''}<span class="chip ${a.torre==='todas'?'cinza':'laranja'}">${a.torre==='todas'?'todas as torres':'Torre '+a.torre}</span><span class="chip cinza">${a.quando}</span></span></div><div class="sub">${a.d}</div>
     <div class="sub" style="margin-top:3px; font-size:.78rem">por ${a.autor||'Síndico'}</div>
