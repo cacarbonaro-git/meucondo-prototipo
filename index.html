@@ -403,7 +403,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.60';
+const VERSAO='v4.78';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -670,6 +670,90 @@ function verPainelElevador(){
 }
 
 const MORADOR = {nome:'Carla Mendes', un:'A-305', emDia:true, papel:'inquilina'};
+/* Multi-imóvel: uma pessoa pode ter vínculos em vários condomínios (mora num, é dona de outro).
+   Um login, um seletor de imóvel. `atual` marca o imóvel em contexto. */
+let meusImoveis = [
+  {cond:'Residencial Jacarandá', un:'A-305', papel:'Moradora (inquilina)', papelCurto:'inquilina', cidade:'São Paulo · SP', tema:'caderno', atual:true},
+  {cond:'Edifício Aurora', un:'402', papel:'Proprietária (alugada)', papelCurto:'proprietária', cidade:'Campinas · SP', tema:'condox', atual:false},
+];
+/* Histórico de assembleias encerradas (acervo navegável, com a ata anexada) */
+let assembleiasAnteriores = [
+  {data:'25/11/2025', tema:'AGO — prestação de contas 2024 e orçamento 2025', resultado:'aprovada', ata:true},
+  {data:'16/07/2024', tema:'AGE — obra da fachada (fundo de obras)', resultado:'aprovada', ata:true},
+  {data:'25/04/2023', tema:'AGO — contas 2022 e eleição do síndico', resultado:'aprovada com ressalva', ata:true},
+  {data:'13/10/2022', tema:'AGE — troca da administradora', resultado:'aprovada', ata:true},
+];
+
+/* ===== INDICAÇÕES DE CONFIANÇA (engajamento, pull-based) =====
+   Morador indica prestador que ELE já usa; vizinho vê a indicação + quem vouchou.
+   Guarda-corpos: pull não push (só abre quem quer), lista não marketplace, ZERO
+   pagamento no app (contrata direto), condomínio/EdiVita NÃO são parte (nem empregador
+   nem intermediário), opt-in de quem indica, síndico não endossa. Sinergia: prestador
+   muito indicado vira pré-cadastro de prestador recorrente na portaria. NÃO é o "morador
+   que presta serviço" (mural social) — isso fica fora por decisão de posicionamento. */
+let indCats=['Todas','Diarista','Elétrica','Hidráulica','Pintura','Ar-condicionado','Marido de aluguel','Pet','Aulas'];
+let indicacoes = [
+  {id:1, cat:'Diarista', nome:'Dona Maria', quem:'A-302', anon:false, nota:5, texto:'Trabalha na minha casa há 3 anos, super de confiança. Passo o contato.', apoios:['A-302','A-110','B-401'], recorrente:true},
+  {id:2, cat:'Elétrica', nome:'Sr. Antônio (eletricista)', quem:'B-401', anon:false, nota:5, texto:'Resolveu o quadro do meu apê rápido e cobrou justo. Tem MEI, dá nota.', apoios:['B-401','A-305'], recorrente:false},
+  {id:3, cat:'Ar-condicionado', nome:'FrioTech (limpeza/instalação)', quem:'A-110', anon:true, nota:4, texto:'Fez a limpeza dos splits do prédio inteiro numa força-tarefa. Bom preço em grupo.', apoios:['A-110','A-302','B-207','A-305'], recorrente:false},
+  {id:4, cat:'Pintura', nome:'Carlos pintor', quem:'B-207', anon:false, nota:4, texto:'Pintou meu apê na mudança, caprichoso e pontual.', apoios:['B-207'], recorrente:false},
+];
+let indFiltro='Todas';
+
+/* ===== INTERFONE VIRTUAL — autorização em tempo real (portaria ↔ morador) =====
+   Complementa o QR de pré-autorização: cobre o visitante/entregador NÃO-marcado que
+   chega agora. Porteiro chama → morador decide ao vivo (autorizar/recusar/deixar) →
+   portaria vê a resposta. Anti-ruído: some quando resolvido; é utilitário, não feed. */
+let chamadas = [
+  {id:1, un:'A-305', nome:'Motoboy · iFood', tipo:'Entregador', quando:'agora', status:'tocando', hora:'19:42'},
+];
+function respPend(un){ return chamadas.find(c=>c.un===un && c.status==='tocando'); }
+
+/* ===== ACHADOS E PERDIDOS (mural pull, low-noise) ===== */
+let perdidos = [
+  {id:1, tipo:'achado', item:'Molho de chaves com chaveiro de coruja', local:'Hall da Torre A', quando:'ontem', status:'aberto', quem:'Portaria', foto:true},
+  {id:2, tipo:'perdido', item:'Guarda-chuva azul-marinho', local:'Garagem / elevador social', quando:'2 dias', status:'aberto', quem:'B-401', foto:false},
+  {id:3, tipo:'achado', item:'Carteira infantil (documento) — retirar na portaria', local:'Playground', quando:'hoje', status:'aberto', quem:'A-110', foto:false},
+];
+let achFiltro='Todos';
+let achFoto=false; /* foto anexada no formulário (simulada no protótipo) */
+
+/* ===== ENTREGA ESPERADA (delivery proativo: morador avisa a portaria ANTES) =====
+   Complementa o interfone (reativo). Reduz a chamada: quando o iFood/mercado/farmácia
+   chega, a portaria já tem o "pode receber" do morador. */
+let entregasEsperadas = [
+  {id:1, un:'A-110', tipo:'Comida (iFood)', quando:'hoje', status:'esperando'},
+];
+function entregaPend(un){ return entregasEsperadas.find(e=>e.un===un && e.status==='esperando'); }
+
+/* ===== BENCHMARK ANÔNIMO (síndico) — médias agregadas da base, região comparável.
+   Fonte: a PRÓPRIA base EdiVita (efeito de rede) + índices de mercado (Secovi/ABADI) como
+   seed no cold-start. Só aparece com COORTE mínima (k-anonimato); nenhum condomínio nominal. */
+const REGIAO = { inadimplencia:14, taxaUnidade:512, leitura:61, assembleia:38, coorte:9 };
+const COORTE_MIN = 7;        /* abaixo disso: "base em formação" (usa índice de mercado) */
+let benchDemoFraca=false;    /* toggle de demo p/ mostrar o estado "base em formação" */
+
+/* ===== AGENDA DO CONDOMÍNIO — um motor, duas visões =====
+   Morador vê "o que me afeta" (interrupções programadas, assembleia, dedetização).
+   Síndico vê "minhas obrigações do ano" (AGO, seguro, contratos, mandato, laudos).
+   'publico': morador | sindico | ambos. Datas ancoradas em hoje=10/06/2026. */
+let agendaEventos = [
+  {id:1, cat:'interrupcao', data:'2026-06-12', janela:'8h–11h', titulo:'Manutenção da bomba — sem água', afeta:'Coluna B (aptos final 3 e 4)', acao:'Guarde água pro período; volta às 11h.', publico:'morador'},
+  {id:2, cat:'interrupcao', data:'2026-06-13', janela:'9h–12h', titulo:'Elevador social em manutenção', afeta:'Torre A', acao:'Use o elevador de serviço nesse horário.', publico:'morador'},
+  {id:3, cat:'interrupcao', data:'2026-06-18', janela:'7h–10h', titulo:'Dedetização da garagem', afeta:'Todos', acao:'Retire o carro antes das 7h.', publico:'ambos', base:'Dedetização semestral (vigilância sanitária)'},
+  {id:4, cat:'assembleia', data:'2026-06-25', janela:'19h', titulo:'Assembleia Geral Ordinária (AGO)', afeta:'Todos', acao:'Vote pela pauta no app — vale como presença.', publico:'ambos', base:'CC art. 1.350 — prestação de contas anual em assembleia'},
+  {id:5, cat:'obrigacao', data:'2026-07-05', titulo:'AVCB — renovação (Bombeiros)', afeta:'Condomínio', publico:'sindico', status:'pendente', base:'Sem AVCB válido o síndico responde civil e criminalmente'},
+  {id:6, cat:'contrato', data:'2026-08-01', titulo:'Conservadora Brilhante — reajuste/renovação', afeta:'Condomínio', publico:'sindico', status:'pendente', base:'Do contrato de Conservadora Brilhante: vigência até 01/08/2026, reajuste IPCA em agosto; janela de renegociação aberta desde 03/05/2026.'},
+  {id:7, cat:'obrigacao', data:'2026-08-10', titulo:'Seguro obrigatório do condomínio — renovação', afeta:'Condomínio', publico:'sindico', status:'pendente', base:'CC art. 1.346 — seguro do edifício é obrigatório'},
+  {id:8, cat:'mandato', data:'2026-09-15', titulo:'Fim do mandato do síndico — eleição', afeta:'Condomínio', publico:'sindico', status:'pendente', base:'Convenção — eleição na AGO; mandato máx. 2 anos (CC art. 1.347)'},
+];
+let agLembrete={};  /* id → true (lembrete opt-in, simulado) */
+/* Contratos: o síndico informa poucos campos e o app DERIVA vencimento/reajuste/janela,
+   que alimentam a Agenda (a data não é chumbada — nasce daqui). `agendaId` liga ao evento. */
+let contratos = [
+  {id:1, nome:'Conservadora Brilhante', inicio:'2024-08-01', prazoMeses:24, dataBase:'8', indice:'IPCA', avisoDias:90, renovAuto:false, agendaId:6},
+];
+const MESES_ABREV=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 let ocorrencias = [
   {id:1, un:'A-305', tipo:'Reclamação', titulo:'Vazamento na vaga 12 da garagem', desc:'Está pingando água do teto sobre a minha vaga desde sábado.', quando:'08/06', status:'em análise', resposta:'Zelador identificou a origem; encanador agendado para 12/06.'},
@@ -1037,8 +1121,13 @@ function menuDemo(){
         <button class="chip ${perfilCondAtual()==='padrao'?'verde':'cinza'}" style="border:none; flex:1" onclick="setPerfilCond('padrao')">Padrão</button>
         <button class="chip ${perfilCondAtual()==='simples'?'verde':'cinza'}" style="border:none; flex:1" onclick="setPerfilCond('simples')">Simples</button>
       </div>
-      <div style="display:flex; gap:6px; flex-wrap:wrap">
+      <div class="sub" style="margin:0 0 4px; font-size:.72rem; letter-spacing:.04em; color:var(--cinza)">INFRAESTRUTURA &amp; OPERAÇÃO</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px">
         ${[['reservas','Reservas'],['edi','Edi (IA)'],['portaria','Portaria'],['elevadores','Elevadores'],['triagem','Triagem'],['estoque','Estoque'],['integracoes','Integrações']].map(([k,l])=>`<button class="chip ${modulos[k]?'verde':'cinza'}" style="border:none" onclick="toggleModulo('${k}')">${l}</button>`).join('')}
+      </div>
+      <div class="sub" style="margin:0 0 4px; font-size:.72rem; letter-spacing:.04em; color:var(--cinza)">ENGAJAMENTO</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        ${[['indicacoes','Indicações'],['achados','Achados'],['agenda','Agenda'],['benchmark','Benchmark'],['interfone','Interfone'],['entrega','Entrega esperada']].map(([k,l])=>`<button class="chip ${modulos[k]?'verde':'cinza'}" style="border:none" onclick="toggleModulo('${k}')">${l}</button>`).join('')}
       </div></div>
     <div class="item" style="display:block">
       <div class="linha1"><span class="nome">${tIco('predio')}Uso misto (lojas comerciais)</span><span class="chip ${modOn('comercial')?'verde':'cinza'}" style="border:none">${modOn('comercial')?'ativo':'desligado'}</span></div>
@@ -1164,15 +1253,15 @@ const MENUS = {
 const PERFIS_NOMES={sindico:'Síndico', conselho:'Conselho', zelador:'Zelador', portaria:'Portaria', morador:'Morador', administradora:'Administradora'};
 let demoAberto=false; /* mantém o grupo "Demonstração" aberto entre re-renders do menu */
 /* ===== MÓDULOS / PLANO (demo): cada condomínio liga só o que usa — nav, home e telas se adaptam ===== */
-let modulos={reservas:true, edi:true, portaria:true, elevadores:true, triagem:true, estoque:true, integracoes:true, comercial:true};
+let modulos={reservas:true, edi:true, portaria:true, elevadores:true, triagem:true, estoque:true, integracoes:true, indicacoes:true, achados:true, agenda:true, benchmark:true, interfone:true, entrega:true, comercial:false};
 const NAV_MOD={reservas:'reservas', mreservar:'reservas', triagem:'triagem', estoque:'estoque', mfalar:'edi'};
 function modOn(k){ return modulos[k]!==false; }
 function navItens(p){ return (MENUS[p]||[]).filter(it=>{const mk=NAV_MOD[it[0]]; return !mk || modOn(mk);}); }
 /* presets de DEMO: que módulos um tipo de condomínio costuma ter (não é plano de preço) */
 const PERFIS_COND={
-  clube:['reservas','edi','portaria','elevadores','triagem','estoque','integracoes'],
-  padrao:['reservas','edi','portaria','elevadores'],
-  simples:['reservas','edi']
+  clube:['reservas','edi','portaria','elevadores','triagem','estoque','integracoes','indicacoes','achados','agenda','benchmark','interfone','entrega'],
+  padrao:['reservas','edi','portaria','elevadores','indicacoes','achados','agenda','benchmark','interfone','entrega'],
+  simples:['reservas','edi','achados','agenda']
 };
 const PERFIL_COND_LABEL={clube:'Condomínio-clube', padrao:'Padrão', simples:'Prédio simples', custom:'Personalizado'};
 /* 'comercial' (uso misto) é toggle independente — não entra no match dos presets Clube/Padrão/Simples */
@@ -1407,6 +1496,7 @@ TELAS.inicio = () => {
   ${praAgirCard()}
   ${enqueteResumoSindico()}
   ${participacaoCardSindico()}
+  ${benchmarkCardSindico()}
   ${pautaColabCardSindico()}
   <h2>Gerir o condomínio</h2>
   <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px">
@@ -1416,8 +1506,9 @@ TELAS.inicio = () => {
     ${gerirEntrada('maleta','Gestão / administradora',"verGestao()")}
     ${gerirEntrada('checklist','Trilha de auditoria',"verAuditoria()",[''+auditoria.length,'cinza'])}
     ${gerirEntrada('pasta','Documentos & laudos',"irPara('cdocs')",(()=>{const venc=laudos.some(l=>validadeStatus(l.validade).cor==='vermelho');const prox=laudos.some(l=>validadeStatus(l.validade).cor==='laranja');return[venc?'vencido':prox?'a vencer':'ok',venc?'vermelho':prox?'laranja':'verde'];})())}
-    ${gerirEntrada('importar','Integrações',"irPara('integracoes')",(()=>{const p=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;return[p?''+p:'ok',p?'laranja':'verde'];})())}
+    ${modOn('integracoes')?gerirEntrada('importar','Integrações',"irPara('integracoes')",(()=>{const p=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;return[p?''+p:'ok',p?'laranja':'verde'];})()):''}
     ${gerirEntrada('calendario','Agenda de reservas',"irPara('reservas')")}
+    ${modOn('agenda')?gerirEntrada('checklist','Agenda & obrigações',"irPara('agenda')",(()=>{const p=agendaEventos.some(e=>(e.publico==='sindico'||e.publico==='ambos')&&agStatus(e.data)[1]==='laranja');return[p?'a vencer':'ok',p?'laranja':'verde'];})()):''}
     ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
   </div>
 <h2>Balancete de maio</h2>
@@ -2092,10 +2183,31 @@ TELAS.visitantes = () => {
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("porta")}Visitantes</h1><p>Lista de hoje · ${fdata(hoje)}</p></div>
   <div class="botoes" style="margin-bottom:10px">
-    <button class="btn principal" style="padding:14px" onclick="validarQR()">${tIco('camera')}Validar QR do visitante</button>
-    <button class="btn claro" style="padding:14px" onclick="novaVisita()">+ Registrar na hora</button>
+    ${modOn('interfone')?`<button class="btn principal" style="padding:14px" onclick="chamarMorador()">${tIco('porta')}Chamar morador (chegou agora)</button>`:''}
+    <button class="btn claro" style="padding:14px" onclick="validarQR()">${tIco('camera')}Validar QR</button>
+  </div>
+  <div class="botoes" style="margin-bottom:10px">
+    <button class="btn claro" style="padding:12px" onclick="novaVisita()">+ Registrar na hora</button>
+    ${modOn('achados')?`<button class="btn claro" style="padding:12px" onclick="irPara('achados')">${tIco('lampada')}Achados e perdidos</button>`:''}
   </div>
   ${modOn('comercial')&&Object.values(unidades).some(u=>u.categoria==='comercial')?`<button class="btn claro btn-grande" style="margin-bottom:10px" onclick="novoPublicoLoja()">${tIco('predio')}Público de loja (cliente / fornecedor)</button>`:''}
+  ${(()=>{if(!modOn('interfone'))return ''; const ch=chamadas.filter(c=>c.status!=='encerrada'&&c.status!=='entrou'); if(!ch.length) return '';
+    const rot={tocando:['chamando…','laranja'],autorizado:['autorizou ✓','verde'],recusado:['recusou','vermelho'],deixado:['deixar na portaria','cinza']};
+    return `<h2>Chamando agora (${ch.length})</h2>${ch.map(c=>{const r=rot[c.status]||['',''];
+      return `<div class="item" style="border-color:${c.status==='autorizado'?'var(--verde)':c.status==='tocando'?'var(--laranja)':'var(--borda)'}">
+      <div class="linha1"><span class="nome">${c.nome}</span><span class="chip ${r[1]}">${r[0]}</span></div>
+      <div class="sub">${c.tipo} · ${c.un} · ${c.hora}</div>
+      ${c.status==='tocando'?`<div class="sub" style="margin-top:5px; color:var(--cinza)">Aguardando o morador responder no app…</div>`:''}
+      ${c.status==='autorizado'?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto" onclick="entradaChamada(${c.id})">→ Registrar entrada</button></div>`:''}
+      ${c.status==='deixado'?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto" onclick="encerrarChamada(${c.id})">Recebido na portaria ✓</button></div>`:''}
+      ${c.status==='recusado'?`<div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto" onclick="encerrarChamada(${c.id})">Dispensar</button></div>`:''}
+    </div>`;}).join('')}`;})()}
+  ${(()=>{const es=entregasEsperadas.filter(e=>e.status==='esperando'); if(!es.length) return '';
+    return `<h2>Entregas esperadas hoje (${es.length})</h2>${es.map(e=>`<div class="item" style="border-color:var(--verde)">
+      <div class="linha1"><span class="nome">${tIco('pacote')}${e.un} espera: ${e.tipo}</span><span class="chip verde">autorizado a receber</span></div>
+      <div class="sub" style="margin-top:3px">O morador avisou — pode receber e guardar. Registre a retirada depois.</div>
+      <div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto" onclick="receberEntregaEsperada(${e.id})">Recebi na portaria ✓</button></div>
+    </div>`).join('')}`;})()}
 <h2>No prédio agora (${dentro.length})</h2>
   ${dentro.length?dentro.map(x=>card(x.v,x.ix)).join(''):'<div class="sub" style="margin:-6px 0 12px">Ninguém no prédio no momento.</div>'}
   ${espera.length?`<h2>Esperados hoje (${espera.length})</h2>${espera.map(x=>card(x.v,x.ix)).join('')}`:''}
@@ -2131,6 +2243,298 @@ function verVisitante(ix){
     ${v.status==='pré-autorizado'?`<div class="botoes" style="margin-top:12px"><button class="btn principal" onclick="entrada(${ix})">Registrar entrada</button></div>`:''}
     ${v.status==='entrou'?`<div class="botoes" style="margin-top:12px"><button class="btn claro" onclick="saida(${ix});fecharModal()">Registrar saída</button></div>`:''}`);
 }
+/* ===== INTERFONE VIRTUAL — lado da portaria ===== */
+function chamarMorador(){
+  abrirModal(`<h3>${tIco('porta')}Chamar morador — chegou agora</h3>
+    <div class="sub" style="margin-bottom:10px">Para quem <b>não estava pré-autorizado</b>. O morador recebe na hora no app e decide — sem depender de interfone físico.</div>
+    <label>Quem chegou</label><input id="ch-n" placeholder="Ex.: Sandra Oliveira · ou 'Motoboy iFood'">
+    <label>Tipo</label><select id="ch-t"><option>Visita</option><option>Entregador</option><option>Prestador</option></select>
+    <div style="display:flex; gap:10px">
+      <div style="flex:0 0 40%"><label>Torre</label><select id="ch-torre" onchange="preencherUnidades('ch-torre','ch-u')"><option selected>Torre A</option><option>Torre B</option></select></div>
+      <div style="flex:1"><label>Unidade</label><select id="ch-u"></select></div>
+    </div>
+    <button class="btn principal btn-grande" onclick="criarChamada()">${tIco('porta')}Tocar no app do morador</button>
+    <div class="aviso-lgpd">A chamada é registrada com hora e resposta na trilha de acesso. Visita não passa sem o "sim" do morador; entrega pode ser deixada na portaria a pedido dele.</div>`);
+  preencherUnidades('ch-torre','ch-u');
+}
+function criarChamada(){
+  const n=$('#ch-n').value.trim(); if(!n){ toast('Diga quem chegou.'); return; }
+  const un=$('#ch-u').value, tipo=$('#ch-t').value;
+  const id=Math.max(0,...chamadas.map(c=>c.id))+1;
+  const hora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  chamadas.unshift({id, un, nome:n, tipo, quando:'agora', status:'tocando', hora});
+  fecharModal(); toast('Chamando '+un+'… o morador recebe agora no app.'); irPara('visitantes');
+}
+function responderChamada(id,acao){
+  const c=chamadas.find(x=>x.id===id); if(!c) return;
+  c.status=acao; /* 'autorizado' | 'recusado' | 'deixado' */
+  const msg={autorizado:'Autorizado! A portaria já foi avisada.',recusado:'Recusado — a portaria foi avisada.',deixado:'Ok! Pedimos pra portaria guardar a entrega.'}[acao];
+  toast(msg); atualizar();
+}
+function entradaChamada(id){
+  const c=chamadas.find(x=>x.id===id); if(!c) return;
+  const hora=c.hora||new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  visitantes.unshift({nome:c.nome, un:c.un, tipo:c.tipo, quando:'Hoje', status:'entrou', doc:'', entrada:fdata(hoje)+' '+hora, saida:'', qr:false});
+  c.status='entrou'; toast('Entrada registrada — confira o documento.'); irPara('visitantes');
+}
+function encerrarChamada(id){ const c=chamadas.find(x=>x.id===id); if(c) c.status='encerrada'; irPara('visitantes'); }
+
+/* ===== ENTREGA ESPERADA (delivery proativo) ===== */
+function entregaEsperadaCard(){
+  if(!modOn('entrega')) return '';
+  const e=entregaPend(MORADOR.un);
+  if(e) return `<div class="item" style="border-color:var(--verde)">
+    <div class="linha1"><span class="nome">${tIco('pacote')}Portaria avisada: você espera uma entrega</span><span class="chip verde">pode receber</span></div>
+    <div class="sub" style="margin-top:4px">${e.tipo} · ${e.quando}. Quando chegar, a portaria recebe por você — sem interfone.</div>
+    <div class="botoes" style="justify-content:flex-end"><button class="btn claro" style="flex:0 0 auto" onclick="cancelarEntregaEsperada(${e.id})">Cancelar aviso</button></div>
+  </div>`;
+  return `<button class="item" style="width:100%; text-align:left; display:block" onclick="avisarEntrega()">
+    <div class="linha1"><span class="nome">${tIco('pacote')}Espera uma entrega hoje?</span><span class="chip cinza">avisar ›</span></div>
+    <div class="sub" style="margin-top:4px">Avise a portaria (iFood, mercado, farmácia) e ela recebe sem precisar te ligar.</div>
+  </button>`;
+}
+function avisarEntrega(){
+  abrirModal(`<h3>${tIco('pacote')}Espero uma entrega</h3>
+    <div class="sub" style="margin-bottom:10px">A portaria fica sabendo e pode <b>receber por você</b> quando chegar — sem precisar te chamar no interfone.</div>
+    <label>O que você espera</label>
+    <select id="ee-t"><option>Comida (iFood/Rappi)</option><option>Mercado</option><option>Farmácia</option><option>Motoboy / documento</option><option>Outro</option></select>
+    <button class="btn principal btn-grande" onclick="criarEntregaEsperada()">Avisar a portaria</button>
+    <div class="aviso-lgpd">Vale só para hoje e some ao fim do dia. A portaria confere e registra a retirada, como numa encomenda.</div>`);
+}
+function criarEntregaEsperada(){
+  const tipo=$('#ee-t').value;
+  const id=Math.max(0,...entregasEsperadas.map(e=>e.id))+1;
+  entregasEsperadas.unshift({id, un:MORADOR.un, tipo, quando:'hoje', status:'esperando'});
+  fecharModal(); toast('Portaria avisada — pode receber sua entrega.'); atualizar();
+}
+function cancelarEntregaEsperada(id){ const e=entregasEsperadas.find(x=>x.id===id); if(e) e.status='cancelada'; toast('Aviso cancelado.'); atualizar(); }
+function receberEntregaEsperada(id){ const e=entregasEsperadas.find(x=>x.id===id); if(e) e.status='recebida'; toast('Entrega recebida — morador avisado.'); irPara('visitantes'); }
+
+/* ===== AGENDA DO CONDOMÍNIO ===== */
+function agStatus(data){ const [y,m,d]=data.split('-').map(Number); const dt=new Date(y,m-1,d); const diff=Math.round((dt-hoje)/86400000);
+  if(diff<0) return ['vencido','vermelho']; if(diff===0) return ['hoje','laranja']; if(diff<=30) return ['em '+diff+' dias','laranja']; return ['agendado','cinza']; }
+function agFmt(data){ const [y,m,d]=data.split('-').map(Number); const dt=new Date(y,m-1,d); const dias=['dom','seg','ter','qua','qui','sex','sáb']; return dias[dt.getDay()]+' '+String(d).padStart(2,'0')+'/'+String(m).padStart(2,'0'); }
+function agIco(cat){ return {interrupcao:'chave',assembleia:'checklist',obrigacao:'alerta',contrato:'caderno',mandato:'pessoas'}[cat]||'calendario'; }
+function agToggleLembrete(id){ agLembrete[id]=!agLembrete[id]; toast(agLembrete[id]?'Pronto — te lembro 1 dia antes.':'Lembrete removido.'); irPara('agenda'); }
+/* obrigação acionável: o síndico dá sequência dentro do app (não é só um lembrete passivo) */
+function verObrigacao(id){
+  const e=agendaEventos.find(x=>x.id===id); if(!e) return;
+  const st=agStatus(e.data);
+  const vendor = e.cat==='obrigacao'||e.cat==='contrato';   /* depende de terceiro/orçamento */
+  const eleicao = e.cat==='mandato';
+  const resolvido = e.status==='resolvido';
+  const ct = contratos.find(c=>c.agendaId===e.id);
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco(agIco(e.cat))}${e.titulo}</h3>
+    <div class="sub" style="margin-bottom:4px">Prazo: <b>${agFmt(e.data)}</b> · <span class="chip ${resolvido?'verde':e.status==='andamento'?'laranja':st[1]}">${resolvido?'resolvido ✓':e.status==='andamento'?'em andamento':st[0]}</span></div>
+    <div class="sub" style="margin-bottom:8px; font-size:.82rem">${clip()}${e.base||''}</div>
+    <div class="item" style="padding:9px 12px; margin-bottom:8px"><div class="sub" style="margin:0; font-size:.79rem"><b>De onde vem esta data:</b> ${ct?`contrato de ${ct.nome} — você informou início/prazo/reajuste e o app derivou o vencimento`:(eleicao?'convenção — início do mandato + duração (CC art. 1.347)':'validade do próprio documento (AVCB / apólice / alvará) — anexe o PDF pra o Edi ler')}</div></div>
+    ${resolvido
+      ? `<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="sub" style="margin:0">${tIco('check')}Concluído e comprovante no acervo de Documentos. Próxima renovação reagendada e na trilha de auditoria.</div></div>`
+      : `<div class="botoes" style="flex-direction:column">
+        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="${ct?`novoContrato(${ct.id})`:'novoContrato()'}">${tIco('contrato')}${ct?'Ver / atualizar o contrato (datas)':'Cadastrar o prazo / enviar o documento'}</button>
+        ${vendor?`<button class="btn principal btn-grande" onclick="obrProvidenciar(${id})">${tIco('maleta')}Pedir 3 orçamentos aos fornecedores</button>`:''}
+        ${eleicao?`<button class="btn principal btn-grande" onclick="fecharModal();irPara('assembleia')">${tIco('checklist')}Incluir a eleição na pauta da assembleia</button>`:''}
+        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrRascunho(${id})">${clip()}Rascunho do Edi (pedido/comunicado pronto)</button>
+        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrDelegar(${id})">${tIco('pessoas')}Delegar ao auxiliar de gestão</button>
+        ${e.status!=='andamento'?`<button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrStatus(${id},'andamento')">${tIco('lapis')}Marcar em andamento</button>`:''}
+        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrResolver(${id})">${tIco('check')}Marcar resolvido — anexar comprovante</button>
+      </div>`}
+    <div class="aviso-lgpd">Cada ação entra na trilha de auditoria. Ao resolver, o comprovante (novo AVCB/apólice/alvará) vai pro acervo de Documentos e a próxima renovação é reagendada — o síndico do ano que vem já herda o calendário.</div>`);
+}
+function obrProvidenciar(id){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status='andamento';
+  if(typeof logAudit==='function') logAudit(`iniciou a renovação de "${e.titulo}" (pediu orçamentos)`,'Síndico');
+  fecharModal(); toast('Pedido de orçamento gerado — no produto, vai aos fornecedores cadastrados; entra em "em andamento".'); atualizar(); }
+function obrRascunho(id){ const e=agendaEventos.find(x=>x.id===id); toast('Edi rascunhou o pedido/comunicado de "'+(e?e.titulo.split('—')[0].trim():'')+'" — revise e envie.'); }
+function obrDelegar(id){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; if(typeof logAudit==='function') logAudit(`delegou "${e.titulo}" ao auxiliar de gestão`,'Síndico'); toast('Delegado ao auxiliar (sob sua responsabilidade, CC art. 1.348) — auditado.'); }
+function obrStatus(id,s){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status=s; if(typeof logAudit==='function') logAudit(`marcou "${e.titulo}" como ${s}`,'Síndico'); fecharModal(); toast('Marcado como '+s+'.'); atualizar(); }
+function obrResolver(id){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status='resolvido';
+  if(typeof logAudit==='function') logAudit(`concluiu "${e.titulo}" e anexou o comprovante`,'Síndico');
+  const proxAno=(+e.data.split('-')[0])+1;
+  fecharModal(); toast('Resolvido! Comprovante no acervo; próxima renovação reagendada para '+proxAno+'.'); atualizar(); }
+
+/* ===== CADASTRO DE CONTRATO — de onde a Agenda pega as datas ===== */
+function contratoDeriva(inicio, prazoMeses, dataBaseMes, avisoDias){
+  const [y,m,d]=inicio.split('-').map(Number);
+  const venc=new Date(y, (m-1)+(+prazoMeses), d);
+  const janela=new Date(venc); janela.setDate(janela.getDate()-(+avisoDias||0));
+  const rm=(+dataBaseMes)-1; let reaj=new Date(hoje.getFullYear(), rm, 1); if(reaj<hoje) reaj=new Date(hoje.getFullYear()+1, rm, 1);
+  const fD=dt=>String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();
+  const iso=dt=>dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+  return {vencF:fD(venc), janelaF:fD(janela), reajF:fD(reaj), vencIso:iso(venc)};
+}
+function novoContrato(id){
+  const c=(id!=null&&contratos.find(x=>x.id===id))||{};
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('contrato')}${id!=null?'Contrato · datas':'Cadastrar contrato'}</h3>
+    <div class="sub" style="margin-bottom:8px">Informe o essencial — o app <b>deriva</b> vencimento, próximo reajuste e a janela de renegociação; você não digita a mesma data duas vezes. Tem o PDF? O Edi lê pra você.</div>
+    <button class="btn claro btn-grande" style="margin-bottom:10px; justify-content:flex-start" onclick="ediExtraiContrato()">${tIco('robo')}📄 Enviar PDF do contrato — o Edi extrai as datas</button>
+    <label>Fornecedor / serviço</label><input id="ct-nome" value="${c.nome||''}" placeholder="Ex.: Conservadora Brilhante">
+    <div style="display:flex; gap:10px">
+      <div style="flex:1"><label>Início da vigência</label><input id="ct-ini" type="date" value="${c.inicio||''}"></div>
+      <div style="flex:0 0 36%"><label>Prazo (meses)</label><input id="ct-prazo" type="number" value="${c.prazoMeses||''}" placeholder="24"></div>
+    </div>
+    <div style="display:flex; gap:10px">
+      <div style="flex:0 0 30%"><label>Reajuste (mês)</label><input id="ct-base" type="number" min="1" max="12" value="${c.dataBase||''}" placeholder="8"></div>
+      <div style="flex:1"><label>Índice</label><select id="ct-ind"><option ${c.indice==='IPCA'?'selected':''}>IPCA</option><option ${c.indice==='IGPM'?'selected':''}>IGPM</option><option ${c.indice==='INCC'?'selected':''}>INCC</option></select></div>
+      <div style="flex:0 0 30%"><label>Aviso (dias)</label><input id="ct-aviso" type="number" value="${c.avisoDias||90}" placeholder="90"></div>
+    </div>
+    <label class="item" style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 12px; margin-top:2px"><input type="checkbox" id="ct-auto" ${c.renovAuto?'checked':''} style="width:18px; height:18px; flex:0 0 auto"> <span class="sub" style="margin:0">Renovação automática (senão, precisa avisar antes do fim)</span></label>
+    <button class="btn claro btn-grande" style="margin-top:6px" onclick="previewContrato()">${tIco('grafico')}Ver as datas que o app deriva</button>
+    <div id="ct-preview" style="margin-top:8px"></div>
+    <button class="btn principal btn-grande" onclick="salvarContrato(${id!=null?id:'null'})">Salvar — a Agenda passa a usar estas datas</button>
+    <div class="aviso-lgpd">A data não é chumbada nem digitada duas vezes: você informa início/prazo/reajuste e o app calcula o resto e alimenta a Agenda e o "Pra agir". O PDF anexado fica no acervo como <b>fonte</b>, e o Edi só sugere — você confirma (prazo legal é responsabilidade sua).</div>`);
+}
+function previewContrato(){
+  const inicio=$('#ct-ini').value, prazo=$('#ct-prazo').value, base=$('#ct-base').value, ind=$('#ct-ind').value, aviso=$('#ct-aviso').value||90;
+  if(!inicio||!prazo||!base){ toast('Informe início, prazo e o mês do reajuste pra calcular.'); return; }
+  const d=contratoDeriva(inicio,prazo,base,aviso);
+  const pv=$('#ct-preview'); if(pv) pv.innerHTML=`<div class="item" style="border-color:var(--verde); background:var(--verde-claro)">
+    <div class="sub" style="margin:0 0 4px; font-weight:700">Datas derivadas (o app calcula):</div>
+    <div class="sub" style="margin:0">${tIco('check')}Vencimento: <b>${d.vencF}</b></div>
+    <div class="sub" style="margin:0">${tIco('check')}Próximo reajuste (${ind}): <b>${d.reajF}</b></div>
+    <div class="sub" style="margin:0">${tIco('check')}Janela de renegociação abre: <b>${d.janelaF}</b> (${aviso} dias antes)</div>
+    <div class="sub" style="margin:5px 0 0; font-size:.76rem; color:var(--cinza)">É esta data que alimenta a Agenda e vira pendência no "Pra agir".</div></div>`;
+}
+function ediExtraiContrato(){
+  $('#ct-nome').value='Conservadora Brilhante'; $('#ct-ini').value='2024-08-01'; $('#ct-prazo').value='24'; $('#ct-base').value='8'; $('#ct-ind').value='IPCA'; $('#ct-aviso').value='90';
+  toast('O Edi leu o PDF e preencheu as datas — confira e salve (ele sugere, você valida).'); previewContrato();
+}
+function salvarContrato(id){
+  const nome=$('#ct-nome').value.trim(), inicio=$('#ct-ini').value, prazo=$('#ct-prazo').value, base=$('#ct-base').value, ind=$('#ct-ind').value, aviso=$('#ct-aviso').value||90, auto=$('#ct-auto').checked;
+  if(!nome||!inicio||!prazo||!base){ toast('Preencha fornecedor, início, prazo e o mês do reajuste.'); return; }
+  const der=contratoDeriva(inicio,prazo,base,aviso);
+  let c;
+  if(id!=null){ c=contratos.find(x=>x.id===id); Object.assign(c,{nome,inicio,prazoMeses:+prazo,dataBase:base,indice:ind,avisoDias:+aviso,renovAuto:auto}); }
+  else { const nid=Math.max(0,...contratos.map(x=>x.id))+1; const aid=Math.max(0,...agendaEventos.map(x=>x.id))+1;
+    c={id:nid,nome,inicio,prazoMeses:+prazo,dataBase:base,indice:ind,avisoDias:+aviso,renovAuto:auto,agendaId:aid}; contratos.unshift(c);
+    agendaEventos.push({id:aid,cat:'contrato',data:der.vencIso,titulo:`${nome} — reajuste/renovação`,afeta:'Condomínio',publico:'sindico',status:'pendente'});
+  }
+  const ev=agendaEventos.find(x=>x.id===c.agendaId);
+  if(ev){ ev.data=der.vencIso; ev.titulo=`${nome} — reajuste/renovação`; ev.status='pendente';
+    ev.base=`Do contrato de ${nome}: vigência até ${der.vencF}, reajuste ${ind} em ${MESES_ABREV[(+base)-1]}${auto?' · renovação automática':`; avisar ${aviso} dias antes`}. Janela de renegociação abre ${der.janelaF}.`; }
+  if(typeof logAudit==='function') logAudit(`cadastrou/atualizou o contrato de ${nome} (vigência até ${der.vencF})`,'Síndico');
+  fecharModal(); toast('Contrato salvo — a Agenda já usa a data derivada ('+der.vencF+').'); irPara('agenda');
+}
+TELAS.agenda = () => {
+  const isS = perfil==='sindico';
+  const evs = agendaEventos.filter(e=> isS ? (e.publico==='sindico'||e.publico==='ambos') : (e.publico==='morador'||e.publico==='ambos'))
+    .slice().sort((a,b)=>a.data.localeCompare(b.data));
+  const acion=e=> isS && (e.cat==='obrigacao'||e.cat==='contrato'||e.cat==='mandato');
+  const card=e=>{const st=agStatus(e.data);
+    const chip = e.status==='resolvido'?['resolvido ✓','verde']:e.status==='andamento'?['em andamento','laranja']:st;
+    const inner=`<div class="linha1"><span class="nome">${tIco(agIco(e.cat))}${e.titulo}</span><span class="chip ${chip[1]}">${chip[0]}${acion(e)?' ›':''}</span></div>
+    <div class="sub" style="margin-top:4px">${agFmt(e.data)}${e.janela?' · '+e.janela:''}${e.afeta&&e.afeta!=='Condomínio'?' · '+e.afeta:''}</div>
+    ${e.acao&&!isS?`<div class="sub" style="margin-top:3px">${e.acao}</div>`:''}
+    ${e.base?`<div class="sub" style="margin-top:3px; font-size:.76rem; color:var(--cinza)">${clip()}${e.base}</div>`:''}
+    ${!isS?`<div class="botoes" style="justify-content:flex-end; margin-top:6px"><button class="btn claro" style="flex:0 0 auto" onclick="agToggleLembrete(${e.id})">${agLembrete[e.id]?'✓ Vou te lembrar':'🔔 Lembrar'}</button></div>`:''}`;
+    return acion(e)?`<button class="item" style="width:100%; text-align:left; display:block" onclick="verObrigacao(${e.id})">${inner}</button>`:`<div class="item">${inner}</div>`;};
+  if(isS){
+    return `<div class="tela on">
+      <div class="topo" style="display:flex; align-items:center; gap:12px"><button class="btn claro" style="flex:0 0 auto; padding:8px 12px" onclick="irPara('inicio')">‹ Voltar</button><div><h1 style="margin:0">${tIco('checklist')}Agenda & obrigações</h1><p style="margin:2px 0 0">O ano do síndico — nenhum prazo legal ou contrato perdido</p></div></div>
+      <button class="btn claro btn-grande" style="margin:2px 0 10px; justify-content:flex-start" onclick="novoContrato()">${tIco('contrato')}+ Cadastrar contrato / prazo — o app deriva as datas</button>
+      ${evs.map(card).join('')}
+      <div class="aviso-lgpd">Prazos de <b>equipamento</b> (elevador, extintores, laudos/ARTs) ficam em <b>Manutenção</b>; aqui estão as obrigações de <b>governança, seguro, contratos e mandato</b>. O Edi te avisa antes de cada uma vencer — é o que tira o "o que eu estou esquecendo?" da cabeça do síndico.</div>
+    </div>`;
+  }
+  const minhaTorre='Torre '+MORADOR.un.charAt(0);
+  const afetaMe=e=> e.afeta==='Todos' || e.afeta.startsWith(minhaTorre);
+  const meus=evs.filter(afetaMe), outros=evs.filter(e=>!afetaMe(e));
+  return `<div class="tela on">
+    <div class="topo" style="display:flex; align-items:center; gap:12px"><button class="btn claro" style="flex:0 0 auto; padding:8px 12px" onclick="irPara('mhome')">‹ Voltar</button><div><h1 style="margin:0">${tIco('calendario')}Agenda do prédio</h1><p style="margin:2px 0 0">O que vai acontecer — e o que afeta você</p></div></div>
+    <div class="secao">AFETA VOCÊ · ${MORADOR.un}</div>
+    ${meus.map(card).join('')||vazio('check','Nada afeta sua unidade agora','Interrupções de água, elevador ou garagem que peguem a sua torre aparecem aqui.')}
+    ${outros.length?`<div class="secao">OUTROS AVISOS DO PRÉDIO</div>${outros.map(card).join('')}`:''}
+    <div class="aviso-lgpd">Interrupções programadas (água, elevador, garagem), assembleia e dedetização num lugar só. Ative o lembrete e o Edi te avisa 1 dia antes — sem precisar caçar no grupo do WhatsApp.</div>
+  </div>`;
+};
+function agendaMoradorCard(){
+  if(!modOn('agenda')) return '';
+  const minhaTorre='Torre '+MORADOR.un.charAt(0);
+  const prox=agendaEventos.filter(e=>(e.publico==='morador'||e.publico==='ambos')&&(e.afeta==='Todos'||e.afeta.startsWith(minhaTorre)))
+    .slice().sort((a,b)=>a.data.localeCompare(b.data))[0];
+  if(!prox) return '';
+  const st=agStatus(prox.data);
+  return `<button class="item" style="width:100%; text-align:left; display:block; border-color:var(--laranja)" onclick="irPara('agenda')">
+    <div class="linha1"><span class="nome">${tIco('calendario')}Agenda do prédio — afeta você</span><span class="chip ${st[1]}">${st[0]} ›</span></div>
+    <div class="sub" style="margin-top:5px">${prox.titulo}${prox.janela?' · '+prox.janela:''}. ${prox.acao||''}</div>
+  </button>`;
+}
+
+/* ===== ACHADOS E PERDIDOS ===== */
+TELAS.achados = () => {
+  const noFiltro=perdidos.filter(p=>achFiltro==='Todos'||(achFiltro==='Achados'?p.tipo==='achado':p.tipo==='perdido'));
+  const abertos=noFiltro.filter(p=>p.status!=='resolvido');
+  const resolvidos=noFiltro.filter(p=>p.status==='resolvido');
+  const voltar = perfil==='portaria' ? 'visitantes' : 'mhome';
+  const cnt=t=>perdidos.filter(p=>p.status!=='resolvido'&&(t==='Todos'||(t==='Achados'?p.tipo==='achado':p.tipo==='perdido'))).length;
+  const cardAberto=p=>`<div class="item">
+    <div style="display:flex; gap:10px">
+      ${p.foto?`<div style="flex:0 0 72px">${fotoAchado()}</div>`:''}
+      <div style="flex:1; min-width:0">
+        <div class="linha1"><span class="nome">${p.tipo==='achado'?'🟢 Achado':'🔴 Perdido'} · ${p.item}</span></div>
+        <div class="sub" style="margin-top:3px">${p.local} · ${p.quando} · registrado por ${p.quem}</div>
+      </div>
+    </div>
+    <div class="botoes" style="margin-top:8px">
+      <button class="btn claro" onclick="toast('No produto final: abre o contato de ${p.quem} pra combinar a devolução/retirada — sem expor telefone no mural.')">${p.tipo==='achado'?'É meu — quero retirar':'Eu achei isso'}</button>
+      <button class="btn claro" onclick="marcarResolvido(${p.id})">Marcar reencontrado</button>
+    </div>
+  </div>`;
+  return `<div class="tela on">
+  <div class="topo" style="display:flex; align-items:center; gap:12px">
+    <button class="btn claro" style="flex:0 0 auto; padding:8px 12px" onclick="irPara('${voltar}')">‹ Voltar</button>
+    <div><h1 style="margin:0">${tIco('lampada')}Achados e perdidos</h1><p style="margin:2px 0 0">Perdeu ou achou algo no prédio? Aqui se reencontram.</p></div>
+  </div>
+  <div style="display:flex; gap:6px; padding:10px 0 4px">
+    ${['Todos','Achados','Perdidos'].map(f=>{const n=cnt(f);
+      return `<button class="chip ${achFiltro===f?'verde':'cinza'}" style="border:none; flex:1; cursor:pointer" onclick="achFiltro='${f}';irPara('achados')">${f}${n?` · ${n}`:''}</button>`;}).join('')}
+  </div>
+  ${abertos.map(cardAberto).join('')||vazio('lampada','Nada em aberto por aqui','Ninguém perdeu nem achou nada nesta aba agora. Registre um item se precisar.')}
+  ${resolvidos.length?`<div class="secao">JÁ REENCONTRADOS (${resolvidos.length})</div>
+    ${resolvidos.map(p=>`<div class="item feito" style="opacity:.65; padding:11px 13px"><div class="linha1"><span class="nome" style="font-size:.9rem">${p.tipo==='achado'?'🟢':'🔴'} ${p.item}</span><span class="chip verde" style="border:none">reencontrado ✓</span></div><div class="sub" style="margin-top:2px">${p.local} · ${p.quem}</div></div>`).join('')}`:''}
+  <button class="btn principal btn-grande" style="margin-top:12px" onclick="novoAchado()">+ Registrar item</button>
+  <div class="aviso-lgpd">Só descrição do item e onde — <b>sem foto de pessoas nem telefone exposto</b>. O contato pra combinar a devolução é intermediado pelo app (LGPD). Item de valor achado deve ser entregue na portaria.</div>
+</div>`;
+};
+/* foto do item (simulada) — ajuda o dono a reconhecer; SÓ o objeto */
+function fotoAchado(){
+  return `<svg viewBox="0 0 120 90" role="img" aria-label="Foto do item (simulação)" style="width:100%; border-radius:9px; display:block; background:#e9e2d3">
+    <rect width="120" height="90" fill="#efe9dc"/><rect y="60" width="120" height="30" fill="#d9cfb8"/>
+    <circle cx="44" cy="46" r="12" fill="none" stroke="#8a7a53" stroke-width="4"/>
+    <rect x="54" y="44" width="26" height="5" rx="2" fill="#8a7a53"/>
+    <rect x="74" y="40" width="5" height="6" fill="#8a7a53"/><rect x="66" y="40" width="4" height="6" fill="#8a7a53"/>
+    <circle cx="80" cy="30" r="5" fill="#c8a34a"/>
+    <text x="60" y="82" text-anchor="middle" font-size="8" fill="#8a7f6a" font-family="sans-serif">foto do item</text>
+  </svg>`;
+}
+function toggleAchFoto(){
+  achFoto=!achFoto;
+  const b=$('#ac-foto-btn'), pv=$('#ac-foto-prev');
+  if(b) b.textContent = achFoto?'✓ Foto anexada — remover':'📷 Anexar foto do item (opcional)';
+  if(pv){ pv.style.display=achFoto?'block':'none'; pv.innerHTML=achFoto?fotoAchado():''; }
+}
+function novoAchado(){
+  achFoto=false;
+  abrirModal(`<h3>${tIco('lampada')}Registrar item</h3>
+    <label>É um…</label><select id="ac-t"><option value="achado">Achei algo (quero devolver)</option><option value="perdido">Perdi algo (procuro)</option></select>
+    <label>O quê</label><input id="ac-i" placeholder="Ex.: Molho de chaves, guarda-chuva azul…">
+    <label>Onde</label><input id="ac-l" placeholder="Ex.: Hall da Torre A, garagem, playground">
+    <div style="margin:4px 0 10px">
+      <button type="button" id="ac-foto-btn" class="btn claro" style="width:100%; justify-content:center" onclick="toggleAchFoto()">📷 Anexar foto do item (opcional)</button>
+      <div id="ac-foto-prev" style="margin-top:8px; max-width:120px; display:none"></div>
+    </div>
+    <button class="btn principal btn-grande" onclick="salvarAchado()">Publicar</button>
+    <div class="aviso-lgpd"><b>Foto só do objeto</b> — ajuda o dono a reconhecer. Nada de pessoas. E <b>documento, cartão ou crachá não leva foto</b> (têm nome/rosto): entregue na portaria e registre só "documento achado".</div>`);
+}
+function salvarAchado(){
+  const tipo=$('#ac-t').value, item=($('#ac-i').value||'').trim(), local=($('#ac-l').value||'').trim();
+  if(!item){ toast('Descreva o item.'); return; }
+  const id=Math.max(0,...perdidos.map(p=>p.id))+1;
+  const quem = perfil==='portaria' ? 'Portaria' : MORADOR.un;
+  perdidos.unshift({id, tipo, item, local:local||'não informado', quando:'agora', status:'aberto', quem, foto:achFoto});
+  achFiltro=tipo==='achado'?'Achados':'Perdidos'; achFoto=false;
+  fecharModal(); toast('Publicado em achados e perdidos.'); irPara('achados');
+}
+function marcarResolvido(id){ const p=perdidos.find(x=>x.id===id); if(p) p.status='resolvido'; toast('Marcado como reencontrado. 🎉'); irPara('achados'); }
 function entrada(ix){
   const v=visitantes[ix];
   abrirModal(`<h3>Registrar entrada — ${v.nome}</h3>
@@ -2267,7 +2671,7 @@ TELAS.mhome = () => {
      como fallback. Rollback: versoes/v2.38_*.html */
   return `<div class="tela on">
   <div class="topo" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px">
-    <div><h1>Oi, ${MORADOR.nome.split(' ')[0]}!</h1><p>${MORADOR.un} · ${MORADOR.papel} · ${COND.nome}</p></div>
+    <div><h1>Oi, ${MORADOR.nome.split(' ')[0]}!</h1><button onclick="verImoveis()" style="background:none; border:none; padding:0; margin:0; color:var(--cinza); font-family:inherit; font-size:inherit; cursor:pointer; text-align:left">${MORADOR.un} · ${MORADOR.papel} · ${COND.nome}${meusImoveis.length>1?' <span style="color:var(--verde-escuro); font-weight:700">▾ trocar imóvel</span>':''}</button></div>
     ${(()=>{const u=notificacoesMorador().filter(n=>!n.lida).length;
       return `<button aria-label="Notificações${u?` — ${u} nova${u>1?'s':''}`:''}" onclick="verNotificacoes()" style="position:relative; flex:0 0 auto; background:none; border:none; padding:6px; margin-top:2px; color:var(--texto); cursor:pointer">
         <span style="display:inline-block; width:24px; height:24px">${ico('sino')}</span>
@@ -2281,8 +2685,22 @@ TELAS.mhome = () => {
   </div>
   <div id="mhome-resposta"></div>
 
+  ${(()=>{if(!modOn('interfone'))return ''; const c=respPend(MORADOR.un); if(!c) return '';
+    return `<div class="item" style="border:2px solid var(--laranja); background:var(--laranja-claro,#fff6ec); animation:pop .22s ease-out">
+    <div class="linha1"><span class="nome">${tIco('porta')}Alguém na portaria agora</span><span class="chip laranja">chamando</span></div>
+    <div class="sub" style="margin:5px 0 8px"><b>${c.nome}</b> · ${c.tipo} · procurando você (${c.un}), às ${c.hora}.</div>
+    <div class="botoes">
+      <button class="btn principal" onclick="responderChamada(${c.id},'autorizado')">✓ Autorizar</button>
+      ${c.tipo==='Entregador'?`<button class="btn claro" onclick="responderChamada(${c.id},'deixado')">Deixar na portaria</button>`:''}
+      <button class="btn claro" onclick="responderChamada(${c.id},'recusado')">Recusar</button>
+    </div>
+    <div class="sub" style="margin-top:6px; font-size:.76rem; color:var(--cinza)">Interfone pelo app — sua resposta vai na hora pra portaria, com registro (LGPD).</div>
+  </div>`;})()}
+
   ${resumoMoradorCard()}
   <div class="secao">AGORA</div>
+  ${agendaMoradorCard()}
+  ${entregaEsperadaCard()}
   ${(()=>{const est=estadoVotacao(); const j=assembleia.votoJanela; const votou=!!assembleia.votoRemoto[MORADOR.un]; const proc=assembleia.procuracoes[MORADOR.un];
     if(est==='agendada') return `<div class="item"><div class="linha1"><span class="nome">${tIco('checklist')}Assembleia 25/06</span><span class="chip cinza">votação abre ${j.abre}</span></div>
       <div class="sub" style="margin-top:5px">A votação remota abre em ${j.abre}. Você poderá votar à distância ou dar procuração — vale como presença.</div></div>`;
@@ -2315,6 +2733,9 @@ TELAS.mhome = () => {
     <button onclick="autorizarVisita()"><span class="ic">${ico('porta')}</span><b>Autorizar visitante</b><small>QR direto na portaria</small></button>
     <button onclick="irPara('mfalar')"><span class="ic">${ico('balao')}</span><b>Falar com o síndico</b><small>sugestão, reclamação</small></button>
     <button onclick="verTransparencia()"><span class="ic">${ico('cifrao')}</span><b>Pra onde vai meu dinheiro</b><small>contas do prédio</small></button>
+    ${modOn('indicacoes')?`<button onclick="irPara('indicacoes')"><span class="ic">${ico('balao')}</span><b>Indicações de confiança</b><small>quem os vizinhos usam</small></button>`:''}
+    ${modOn('achados')?`<button onclick="irPara('achados')"><span class="ic">${ico('lampada')}</span><b>Achados e perdidos</b><small>perdeu ou achou algo?</small></button>`:''}
+    ${modOn('agenda')?`<button onclick="irPara('agenda')"><span class="ic">${ico('calendario')}</span><b>Agenda do prédio</b><small>o que me afeta</small></button>`:''}
   </div>
   <button class="item" style="width:100%; text-align:left; display:block; margin-top:10px" onclick="centralPrivacidade()">
     <div class="linha1"><span class="nome">${tIco('cadeado')}Privacidade e meus dados</span><span style="color:var(--cinza)">›</span></div>
@@ -2372,6 +2793,132 @@ function centralPrivacidade(){
     <div class="aviso-lgpd">Encarregado de dados (DPO) do condomínio: ${dpo}. Alguns registros têm guarda obrigatória por lei (atas de assembleia, prestação de contas) e não podem ser excluídos enquanto exigidos.</div>
     <button class="btn principal btn-grande" onclick="fecharModal()">Fechar</button>`);
 }
+/* ===== INDICAÇÕES DE CONFIANÇA ===== */
+const estrelas=n=>`<span style="color:var(--dourado,#eab14a); letter-spacing:1px">${'★'.repeat(n)}<span style="color:var(--borda)">${'★'.repeat(5-n)}</span></span>`;
+function indPreCad(i){
+  /* sinergia com a portaria: prestador muito indicado (3+ unidades) pode virar prestador recorrente */
+  return i.apoios.length>=3;
+}
+TELAS.indicacoes = () => {
+  const lista = indicacoes.filter(i=>indFiltro==='Todas'||i.cat===indFiltro).sort((a,b)=>b.apoios.length-a.apoios.length);
+  const cats = indCats.filter(c=>c==='Todas'||indicacoes.some(i=>i.cat===c));
+  return `<div class="tela on">
+  <div class="topo" style="display:flex; align-items:center; gap:12px">
+    <button class="btn claro" style="flex:0 0 auto; padding:8px 12px" onclick="irPara('mhome')">‹ Voltar</button>
+    <div><h1 style="margin:0">${tIco('balao')}Indicações de confiança</h1><p style="margin:2px 0 0">Quem os vizinhos já usam e recomendam</p></div>
+  </div>
+
+  <div class="item" style="border-color:var(--verde); background:var(--verde-claro)">
+    <div class="sub" style="margin:0">Precisa de uma diarista, eletricista, pintor? Veja quem <b>seus vizinhos já usam</b> — indicação com nome e rosto de quem confia. Você <b>contrata direto</b>: o condomínio e o EdiVita não são parte, não cobram nada e não intermedeiam.</div>
+  </div>
+
+  <div style="display:flex; gap:6px; overflow-x:auto; padding:10px 0 4px; -webkit-overflow-scrolling:touch">
+    ${cats.map(c=>`<button class="chip ${indFiltro===c?'verde':'cinza'}" style="border:none; flex:0 0 auto; cursor:pointer" onclick="indFiltro='${c}';irPara('indicacoes')">${c}</button>`).join('')}
+  </div>
+
+  ${lista.map(i=>{const euApoiei=i.apoios.includes(MORADOR.un);
+    return `<div class="item">
+    <div class="linha1"><span class="nome">${i.nome}</span><span class="chip cinza" style="border:none">${i.cat}</span></div>
+    <div class="sub" style="margin:4px 0 2px">${estrelas(i.nota)} · <b>${i.apoios.length}</b> ${i.apoios.length===1?'morador recomenda':'moradores recomendam'}</div>
+    <div class="sub" style="margin:6px 0">“${i.texto}”</div>
+    <div class="sub" style="margin:0; font-size:.78rem">Indicado por ${i.anon?'<b>um vizinho</b> (preferiu não se identificar)':`<b>${i.quem}</b>`}</div>
+    ${indPreCad(i)?`<div class="sub" style="margin-top:6px; font-size:.78rem; color:var(--verde-escuro)">${clip()}Muito indicado — a portaria pode pré-cadastrar como prestador recorrente (acesso mais rápido).</div>`:''}
+    <div class="botoes" style="margin-top:8px">
+      <button class="btn ${euApoiei?'claro':'principal'}" onclick="tambemRecomendo(${i.id})">${euApoiei?'✓ Você também recomenda':'👍 Também recomendo'}</button>
+      <button class="btn claro" onclick="toast('No produto final: abre o contato que ${i.anon?'o vizinho':i.quem} compartilhou — você fala e contrata direto.')">Ver contato</button>
+    </div>
+  </div>`;}).join('')||vazio('balao','Nenhuma indicação nesta categoria','Seja o primeiro a indicar alguém de confiança pra essa necessidade.')}
+
+  <button class="btn principal btn-grande" style="margin-top:12px" onclick="novaIndicacao()">${tIco('lampada')}Indicar um prestador</button>
+  <div class="aviso-lgpd">O condomínio não emprega, não fiscaliza e não responde por quem você contrata — a indicação é de morador para morador. Quem indica <b>escolhe</b> aparecer com a unidade ou de forma anônima (LGPD). O síndico não endossa nomes; isto não é publicidade paga.</div>
+</div>`;
+};
+function tambemRecomendo(id){
+  const i=indicacoes.find(x=>x.id===id); if(!i) return;
+  const idx=i.apoios.indexOf(MORADOR.un);
+  if(idx>=0){ i.apoios.splice(idx,1); toast('Recomendação retirada.'); }
+  else { i.apoios.push(MORADOR.un); toast(indPreCad(i)?'Valeu! Já são '+i.apoios.length+' — a portaria pode pré-cadastrar como recorrente.':'Valeu! Sua recomendação conta pros vizinhos.'); }
+  irPara('indicacoes');
+}
+function novaIndicacao(){
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('lampada')}Indicar um prestador</h3>
+    <div class="sub" style="margin-bottom:10px">Recomende alguém que <b>você já usa e confia</b>. Vira uma indicação pros vizinhos — você não fica responsável pelo serviço deles, só está passando um contato bom.</div>
+    <label class="sub" style="font-weight:700">Categoria</label>
+    <select id="ind-cat" style="width:100%; padding:11px; border:1px solid var(--borda); border-radius:10px; margin:4px 0 10px">${indCats.filter(c=>c!=='Todas').map(c=>`<option>${c}</option>`).join('')}</select>
+    <label class="sub" style="font-weight:700">Nome / como chamam</label>
+    <input id="ind-nome" placeholder="Ex.: Dona Maria (diarista)" style="width:100%; padding:11px; border:1px solid var(--borda); border-radius:10px; margin:4px 0 10px">
+    <label class="sub" style="font-weight:700">Por que recomenda</label>
+    <textarea id="ind-txt" rows="2" placeholder="Trabalha comigo há 2 anos, de confiança…" style="width:100%; padding:11px; border:1px solid var(--borda); border-radius:10px; margin:4px 0 10px"></textarea>
+    <label class="item" style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:11px 13px">
+      <input type="checkbox" id="ind-anon" style="width:18px; height:18px; flex:0 0 auto">
+      <span class="sub" style="margin:0">Indicar <b>anonimamente</b> (sem mostrar minha unidade). Por padrão sua indicação aparece como <b>${MORADOR.un}</b> — é o que dá confiança pro vizinho.</span>
+    </label>
+    <div class="aviso-lgpd">Você compartilha o contato do prestador; o condomínio não guarda vínculo de emprego nem intermedeia pagamento. Pode retirar sua indicação quando quiser.</div>
+    <button class="btn principal btn-grande" onclick="salvarIndicacao()">Publicar indicação</button>
+    <button class="btn claro" onclick="fecharModal()">Cancelar</button>`);
+}
+function salvarIndicacao(){
+  const cat=$('#ind-cat').value, nome=($('#ind-nome').value||'').trim(), texto=($('#ind-txt').value||'').trim(), anon=$('#ind-anon').checked;
+  if(!nome){ toast('Dá um nome pra indicação.'); return; }
+  const id=Math.max(0,...indicacoes.map(i=>i.id))+1;
+  indicacoes.unshift({id, cat, nome, quem:MORADOR.un, anon, nota:5, texto:texto||'Recomendo, de confiança.', apoios:[MORADOR.un], recorrente:false});
+  indFiltro=cat;
+  fecharModal(); toast('Indicação publicada — obrigado por ajudar a vizinhança!'); irPara('indicacoes');
+}
+
+/* ===== MULTI-IMÓVEL — um login, vários condomínios ===== */
+function verImoveis(){
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('predio')}Meus imóveis</h3>
+    <div class="sub" style="margin-bottom:10px">Um login, mais de um condomínio. Ao trocar, o app <b>muda pra marca daquele condomínio</b> — as cores dizem em qual ambiente você está.</div>
+    ${meusImoveis.map((im,ix)=>{const cor=(TEMAS[im.tema]&&TEMAS[im.tema].cores[1])||'var(--verde)';
+      return `<button class="item" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px${im.atual?'; border-color:var(--verde); background:var(--verde-claro)':''}" onclick="trocarImovel(${ix})">
+      <span style="flex:0 0 auto; width:34px; height:34px; border-radius:10px; background:${cor}; display:flex; align-items:center; justify-content:center; color:#fff">${ico('casa')}</span>
+      <span style="flex:1; min-width:0"><span class="linha1"><span class="nome">${im.cond}</span>${im.atual?'<span class="chip verde">em uso</span>':'<span class="chip cinza">trocar ›</span>'}</span>
+      <span class="sub" style="display:block; margin-top:2px">Unidade ${im.un} · ${im.papel} · ${im.cidade}</span></span>
+    </button>`;}).join('')}
+    <button class="btn claro btn-grande" style="margin-top:6px" onclick="adicionarImovel()">${tIco('predio')}+ Adicionar imóvel</button>
+    <div class="aviso-lgpd">Cada vínculo é conferido pelo síndico do respectivo condomínio (cadeia de confiança). Seus dados de um condomínio não vazam pro outro, e cada um mantém a sua identidade visual (white-label).</div>`);
+}
+function trocarImovel(ix){
+  const im=meusImoveis[ix]; if(!im) return;
+  if(im.atual){ fecharModal(); return; }
+  meusImoveis.forEach(x=>x.atual=false); im.atual=true;
+  /* muda o contexto E a marca (white-label do condomínio selecionado) — é a cor que sinaliza o ambiente */
+  MORADOR.un=im.un; MORADOR.papel=im.papelCurto||MORADOR.papel;
+  COND.nome=im.cond; COND.cidade=(im.cidade||'').split(' · ')[0];
+  corBg=null; corCustom=null; corGold=null; if(TEMAS[im.tema]) temaAtual=im.tema; aplicarTema();
+  fecharModal(); toast('Agora no '+im.cond+' — a marca do app mudou junto.'); irPara('mhome');
+}
+function adicionarImovel(){
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('predio')}Adicionar imóvel</h3>
+    <div class="sub" style="margin-bottom:10px">Informe onde você tem uma unidade. O pedido vai ao síndico daquele condomínio pra aprovar o vínculo (é o que protege voto e acesso de fraude).</div>
+    <label>Condomínio</label><input id="ai-c" placeholder="Nome ou código do condomínio">
+    <label>Unidade</label><input id="ai-u" placeholder="Ex.: Bloco B, apto 402">
+    <label>Seu vínculo</label><select id="ai-p"><option>Proprietário(a)</option><option>Morador(a) / inquilino(a)</option></select>
+    <button class="btn principal btn-grande" onclick="salvarImovel()">Enviar pedido ao síndico</button>
+    <div class="aviso-lgpd">Enquanto o síndico não confirmar, o imóvel aparece como "aguardando aprovação" — sem acesso a voto, financeiro ou dados da unidade.</div>`);
+}
+function salvarImovel(){
+  const c=($('#ai-c').value||'').trim(), u=($('#ai-u').value||'').trim();
+  if(!c||!u){ toast('Informe o condomínio e a unidade.'); return; }
+  meusImoveis.push({cond:c, un:u, papel:$('#ai-p').value+' · aguardando aprovação', cidade:'—', atual:false});
+  fecharModal(); toast('Pedido enviado — o síndico do '+c+' vai aprovar seu vínculo.'); verImoveis();
+}
+
+/* ===== HISTÓRICO DE ASSEMBLEIAS ENCERRADAS ===== */
+function verAssembleiasAnteriores(){
+  const chip=r=>r.includes('ressalva')?['aprovada c/ ressalva','laranja']:r==='rejeitada'?['rejeitada','vermelho']:['aprovada','verde'];
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('checklist')}Assembleias anteriores</h3>
+    <div class="sub" style="margin-bottom:10px">Encerradas, com a ata assinada anexada — o histórico sobrevive à troca de síndico e é prova em prestação de contas.</div>
+    ${assembleiasAnteriores.map(a=>{const c=chip(a.resultado);
+      return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verDoc('Ata da assembleia de ${a.data}','${a.tema.replace(/['\"]/g,'')} · ${a.resultado}')">
+      <div class="linha1"><span class="nome" style="font-size:.92rem">Assembleia ${a.data}</span><span class="chip ${c[1]}">${c[0]}</span></div>
+      <div class="sub" style="margin-top:3px">${a.tema}</div>
+      <div class="sub" style="margin-top:3px; font-size:.78rem; color:var(--verde-escuro)">${clip()}Ver ata assinada ›</div>
+    </button>`;}).join('')}
+    <div class="aviso-lgpd">Ata é documento de guarda obrigatória — não se apaga. O conselho e a próxima gestão consultam sem depender de ninguém.</div>`);
+}
+
 /* a barra de comando usa o MESMO motor do ${nomeAssist} — intenção vira ação ali mesmo.
    Uma por tela (mesmo id), com placeholder no dialeto de cada perfil. */
 /* avatar compacto do Edi (na barra de comando e nas respostas) — anima por html[data-edi=...] */
@@ -2808,7 +3355,7 @@ TELAS.cdocs = () => `<div class="tela on">
   <div class="topo"><h1>${tIco("pasta")}Documentos do condomínio</h1><p>Acervo que sobrevive à troca de síndico</p></div>
   ${docsAssinados.length?`<div class="secao" style="margin-top:0">ASSINADOS RECENTEMENTE</div>${docsAssinados.map(d=>`<button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verDoc('${d.titulo.replace(/['"]/g,'')}','${d.info.replace(/['"]/g,'')}')"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('contrato')}${d.titulo}</span><span class="chip verde">assinada ›</span></div><div class="sub">${d.info}</div></button>`).join('')}<div class="secao">ACERVO</div>`:''}
   ${[['Convenção condominial','registrada em cartório · 1998'],['Regimento interno','última revisão 03/2024'],['Atas de assembleia','12 documentos · 2019–2026'],['Apólice do seguro obrigatório','vigência até 20/08/2026'],['AVCB','válido até 15/05/2027'],['Prestações de contas','mensais desde 01/2024'],['Contratos de prestadores','elevador, limpeza, dedetização']].map(d=>`
-  <button class="item" style="width:100%; text-align:left; display:block" onclick="verDoc('${d[0]}','${d[1]}')"><div class="linha1"><span class="nome" style="font-size:.9rem">${d[0]}</span><span style="color:var(--cinza)">›</span></div><div class="sub">${d[1]}</div></button>`).join('')}
+  <button class="item" style="width:100%; text-align:left; display:block" onclick="${d[0]==='Atas de assembleia'?'verAssembleiasAnteriores()':`verDoc('${d[0]}','${d[1]}')`}"><div class="linha1"><span class="nome" style="font-size:.9rem">${d[0]}</span><span style="color:var(--cinza)">›</span></div><div class="sub">${d[1]}</div></button>`).join('')}
   <button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verLaudosArts()"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('balanca')}Laudos &amp; ARTs técnicos</span><span class="chip ${laudos.some(l=>validadeStatus(l.validade).cor==='vermelho')?'vermelho':laudos.some(l=>validadeStatus(l.validade).cor==='laranja')?'laranja':'verde'}">${laudos.length} docs ›</span></div><div class="sub">ART, laudo e certificado — responsável técnico (CREA/CFT) e validade</div></button>
   <div class="aviso-lgpd" style="margin-top:6px">Acervo somente leitura para o conselho. Os documentos de guarda obrigatória (atas, prestação de contas) não podem ser apagados.</div>
 </div>`;
@@ -3488,8 +4035,8 @@ let rotina = [
   {t:'Leitura do nível da caixa d’água', freq:'Diária', feito:true, resp:'Carlos (zelador)', leitura:'14.200 L', ponto:'Casa de bombas · QR-CX01', via:'qr', quando:'10/06 07:34', foto:true},
   {t:'Conferência de portões e iluminação', freq:'Diária', feito:false, resp:'João (porteiro dia)', ponto:'Portaria · QR-POR'},
   {t:'Limpeza hall, elevadores e escadas', freq:'Diária', feito:false, resp:'Maria (auxiliar)', ponto:'Hall térreo · QR-HAL'},
-  {t:'Teste do gerador em vazio', freq:'Semanal (sex)', feito:false, resp:'Carlos (zelador)', ponto:'Casa de máquinas · QR-GER'},
-  {t:'Verificação das luzes de emergência', freq:'Semanal', feito:false, resp:'Pedro (porteiro noite)', ponto:'Escada pressurizada · QR-EMG'},
+  {t:'Teste do gerador em vazio', freq:'Semanal (sex)', feito:false, resp:'Carlos (zelador)', ponto:'Quadro elétrico · QR-QE'},
+  {t:'Verificação das luzes de emergência', freq:'Semanal', feito:false, resp:'Pedro (porteiro noite)', ponto:'Quadro elétrico · QR-QE'},
   {t:'Extintores: lacre, pressão e validade', freq:'Mensal', feito:false, resp:'Carlos (zelador)', ponto:'Corredor subsolo · QR-EXT'},
   {t:'Ronda de infiltração — cobertura e subsolo', freq:'Mensal', feito:false, resp:'Carlos (zelador)', ponto:'Cobertura · QR-INF'},
 ];
@@ -3515,18 +4062,20 @@ TELAS.rotina = () => {
     <div class="sub" style="margin-top:5px">Tudo que você registrou hoje, com hora e foto — mande ao síndico num toque.</div></button>
   ${provaReconhecida?`<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="linha1"><span class="nome">${tIco('check')}O síndico deu visto na sua prova</span><span class="chip verde">${provaReconhecida}</span></div><div class="sub" style="margin-top:3px">Seu trabalho foi reconhecido — obrigado.</div></div>`:''}
   <div class="secao" id="rotina-lista">ROTINA</div>
+  <button class="btn principal btn-grande" style="margin:2px 0 10px" onclick="escanearPonto()">${tIco('camera')}Escanear ponto — QR no equipamento</button>
+  <div class="sub" style="margin:-4px 0 10px; font-size:.8rem">Chegou no equipamento? Leia o adesivo dali — o app já sabe qual tarefa é. Ou registre pela lista abaixo.</div>
   ${rotina.map((r,ix)=>({r,ix})).sort((a,b)=>(a.r.feito?1:0)-(b.r.feito?1:0)).map(({r,ix})=>`<div class="item ${r.feito?'feito':''}">
     <div class="linha1"><span class="nome">${r.feito?tIco('check'):''}${r.t}</span><span class="chip ${r.feito?'verde':'cinza'}">${r.freq}</span></div>
-    <div class="sub" style="margin-top:4px">responsável: <b>${r.resp}</b>${r.leitura?` · leitura: <b>${r.leitura}</b>`:''}</div>
+    <div class="sub" style="margin-top:4px">responsável: <b>${r.resp}</b>${r.leitura?` · leitura: <b>${r.leitura}</b>`:''}${!r.feito&&r.ponto?` · <span style="color:var(--cinza)">ponto: ${r.ponto}</span>`:''}</div>
     ${r.feito
       ? `<div style="margin-top:6px; display:flex; align-items:center; gap:7px; flex-wrap:wrap">${r.via==='qr'
           ? `<span class="chip verde" style="font-size:.72rem; border:none">${tIco('check')}QR no local</span><span class="sub" style="margin:0; font-size:.78rem">${r.ponto||''} · ${r.quando||''}${r.foto?' · 📷 foto':''}</span>`
           : `<span class="chip laranja" style="font-size:.72rem; border:none">manual · sem QR</span><span class="sub" style="margin:0; font-size:.78rem">${r.quando||''}</span>`}</div>`
       : `<div class="botoes" style="margin-top:8px">${r.ponto
-          ? `<button class="btn principal" style="flex:1; padding:9px; font-size:13px" onclick="escanearRotina(${ix})">${tIco('camera')}Escanear no local</button><button class="btn claro" style="flex:0 0 auto; padding:9px 14px; font-size:13px" onclick="marcarRotina(${ix},'manual')">manual</button>`
+          ? `<button class="btn claro" style="flex:1; padding:9px; font-size:13px" onclick="abrirPonto('${r.ponto}')">${tIco('camera')}Escanear ${r.ponto.split('· ').pop()}</button><button class="btn claro" style="flex:0 0 auto; padding:9px 14px; font-size:13px" onclick="marcarRotina(${ix},'manual')">manual</button>`
           : `<button class="btn claro" style="width:100%; padding:9px; font-size:13px" onclick="marcarRotina(${ix},'manual')">${tIco('check')}Registrar — ronda itinerante (sem QR)</button>`}</div>`}
   </div>`).join('')}
-  <div class="aviso-lgpd">O <b>QR/adesivo no ponto</b> comprova que a verificação foi feita ali, na hora (não dá pra assinar de longe). A ronda itinerante fica como registro manual, <b>sinalizado ao síndico</b>. Leituras pedem o número — o valor de hoje comparado ao de ontem denuncia vazamento. Tudo vai à trilha de auditoria: quem, quando e com qual prova.</div>
+  <div class="aviso-lgpd"><b>Um QR por ponto</b> (não um único do prédio): ler o adesivo no equipamento prova que a verificação foi feita ali, na hora — e o app referencia a tarefa sozinho. Pontos com mais de uma tarefa (ex.: quadro elétrico) abrem todas de uma vez. A ronda itinerante fica como registro manual, <b>sinalizado ao síndico</b>. Leituras pedem o número. Tudo vai à trilha de auditoria: quem, quando e com qual prova.</div>
   ${modOn('reservas')&&eventos.length?`<div class="secao">EVENTOS A PREPARAR</div>
   ${eventos.map(r=>`<div class="item"><div class="linha1"><span class="nome">${tIco('calendario')}${r.a}</span><span class="chip verde">${String(r.d).padStart(2,'0')}/${String(r.mes).padStart(2,'0')}</span></div><div class="sub">Unidade ${r.u} · deixar limpo e liberar o acesso na data</div></div>`).join('')}`:''}
   <div class="secao">EQUIPE &amp; TURNO</div>
@@ -3562,21 +4111,33 @@ function registrarLeituraRotina(ix, via){
   rotina[ix].leitura=v;
   concluirRotina(ix, via||'manual', rotinaFotoTmp); rotinaFotoTmp=false;
 }
-function escanearRotina(ix){
-  const r=rotina[ix]; if(!r) return;
-  const ehLeitura=r.t.toLowerCase().includes('leitura');
-  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('camera')}Escanear no local</h3>
-    <div class="sub" style="margin-bottom:10px">Aproxime a câmera do adesivo em <b>${r.ponto||'no ponto'}</b>. Ler o QR ali prova que a verificação foi feita no local, na hora.</div>
-    <div style="background:#0a2e25; border-radius:14px; padding:16px; text-align:center">
-      <div style="color:#eab14a; font-size:.7rem; letter-spacing:.08em; font-weight:700; text-transform:uppercase">${r.ponto||'Ponto de verificação'}</div>
-      <div style="margin:12px auto 6px; width:118px; background:#fff; border-radius:8px; padding:9px; color:#0a2e25">${qrSvg(r.t, 100)}</div>
-      <div style="font-size:.78rem; color:#8fb7a6">simulação — no app real usa a câmera</div>
+/* Scanner único: lê o QR do equipamento e o app referencia a(s) tarefa(s) daquele ponto */
+function escanearPonto(){
+  const pend = rotina.filter(r=>r.ponto && !r.feito);
+  const pontos = [...new Set(pend.map(r=>r.ponto))];
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('camera')}Escanear ponto</h3>
+    <div class="sub" style="margin-bottom:10px">Aproxime a câmera do <b>adesivo QR do equipamento</b>. O app identifica o ponto e já mostra o que verificar ali — você não procura a tarefa na lista.</div>
+    <div style="background:#0a2e25; border-radius:14px; padding:16px; text-align:center; margin-bottom:12px">
+      <div style="margin:0 auto; width:112px; background:#fff; border-radius:8px; padding:9px; color:#0a2e25">${qrSvg('ponto', 96)}</div>
+      <div style="font-size:.78rem; color:#8fb7a6; margin-top:8px">simulação — no app real a câmera lê o QR</div>
     </div>
-    <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin:12px 0 6px"><input type="checkbox" id="rt-foto" style="width:auto; margin:0"> Anexar foto do estado (lacre, manômetro, nível…)</label>
-    ${ehLeitura
-      ? `<button class="btn principal btn-grande" onclick="rotinaFotoTmp=document.getElementById('rt-foto').checked; marcarRotina(${ix},'qr')">${tIco('check')}Confirmar QR e informar leitura</button>`
-      : `<button class="btn principal btn-grande" onclick="concluirRotina(${ix},'qr',document.getElementById('rt-foto').checked)">${tIco('check')}Confirmar leitura do QR</button>`}
-    <div class="aviso-lgpd">Fica registrado o ponto, a hora e quem escaneou — vira prova de serviço na trilha de auditoria.</div>`);
+    ${pontos.length?`<div class="sub" style="font-weight:700; margin-bottom:6px">Simular: qual adesivo você leu?</div>
+    ${pontos.map(p=>{const n=pend.filter(r=>r.ponto===p).length; return `<button class="btn claro" style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px" onclick="abrirPonto('${p}')"><span>${p}</span><span class="chip cinza">${n} tarefa${n>1?'s':''}</span></button>`;}).join('')}`
+      : '<div class="item" style="text-align:center"><div class="sub" style="margin:0">Tudo verificado por aqui hoje. 🎉</div></div>'}
+    <div class="aviso-lgpd"><b>Um QR por ponto</b>, não um único do prédio: ler o adesivo ali prova a presença física naquele equipamento, na hora.</div>`);
+}
+/* abre um ponto (após ler o QR) e lista a(s) tarefa(s) dali pra confirmar */
+function abrirPonto(p){
+  const tarefas = rotina.map((r,ix)=>({r,ix})).filter(x=>x.r.ponto===p && !x.r.feito);
+  if(!tarefas.length){ toast('Nada pendente nesse ponto.'); return; }
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('check')}${p}</h3>
+    <div class="sub" style="margin-bottom:10px">QR lido ✓ — você está no ponto. Confirme o que verificou aqui${tarefas.length>1?' (este ponto tem mais de uma tarefa)':''}:</div>
+    ${tarefas.map(({r,ix})=>{const leit=r.t.toLowerCase().includes('leitura');
+      return `<div class="item" style="padding:11px 13px">
+        <div class="linha1"><span class="nome" style="font-size:.92rem">${r.t}</span><span class="chip cinza">${r.freq}</span></div>
+        <div class="botoes" style="margin-top:8px"><button class="btn principal" style="flex:1; padding:8px; font-size:13px" onclick="${leit?`marcarRotina(${ix},'qr')`:`concluirRotina(${ix},'qr',true)`}">${tIco('check')}${leit?'Confirmar e informar leitura':'Marcar feito (com foto)'}</button></div>
+      </div>`;}).join('')}
+    <div class="aviso-lgpd">Registra o ponto, a hora e quem escaneou (+ foto do estado) na trilha de auditoria.</div>`);
 }
 function passagemTurno(){
   /* invertido: quem registra É o turno que sai (contexto fixo). Só pergunta
@@ -3617,18 +4178,27 @@ const PRESTADORES=[
 ];
 /* ===== CENTRAL DE INTEGRAÇÕES (configuração — síndico / administradora) ===== */
 let integracoes = [
-  {fam:'Comunicação', nome:'WhatsApp Business', sub:'Avisos, cobrança e respostas do Edi pelo número oficial do condomínio.', status:'conectada', sync:'há 4 min', autor:'Administradora', quando:'12/05', dono:'carteira'},
-  {fam:'Financeiro', nome:'PIX / banco', sub:'Gera o PIX da taxa e dá baixa automática quando o morador paga.', status:'conectada', sync:'há 1 h', autor:'Administradora', quando:'12/05', dono:'carteira'},
-  {fam:'Financeiro', nome:'Boleto registrado', sub:'Emissão e conciliação de boletos bancários.', status:'pendente', det:'Falta o convênio do banco — aguardando a administradora liberar.', autor:'—', quando:'—', dono:'carteira'},
-  {fam:'Financeiro', nome:'ERP contábil', sub:'Exporta os lançamentos pro sistema contábil da administradora.', status:'conectada', sync:'ontem', autor:'Administradora', quando:'12/05', dono:'carteira'},
-  {fam:'Portaria & Acesso', nome:'Control iD iDFace', sub:'Facial + cartão; o sistema provisiona e revoga as credenciais sozinho.', status:'conectada', sync:'há 2 min', autor:'Síndico', quando:'20/05', dono:'condominio'},
-  {fam:'Portaria & Acesso', nome:'Cancela veicular (TAG/placa)', sub:'Leitura de TAG e placa na entrada da garagem.', status:'conectada', sync:'há 9 min', autor:'Síndico', quando:'20/05', dono:'condominio'},
-  {fam:'Predial / IoT', nome:'Telemetria de elevador', sub:'O sensor da conservadora dispara o aviso de parada automaticamente.', status:'erro', det:'Sensor da Torre B sem responder desde ontem — o aviso manual segue funcionando.', autor:'Síndico', quando:'18/05', dono:'condominio'},
-  {fam:'Predial / IoT', nome:'CFTV / câmeras', sub:'Liga o gravador de imagens aos eventos de portaria.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio'},
-  {fam:'Administradora / ERP', nome:'Sistema da administradora', sub:'Sincroniza carteira, taxas e prestação de contas com o ERP.', status:'conectada', sync:'há 1 h', autor:'Administradora', quando:'12/05', dono:'carteira'},
-  {fam:'Documentos', nome:'Assinatura digital', sub:'Atas e comunicados assinados com validade jurídica.', status:'pendente', det:'Plano contratado — falta o primeiro signatário confirmar o cadastro.', autor:'Síndico', quando:'21/05', dono:'condominio'},
+  {fam:'Comunicação', nome:'WhatsApp Business', sub:'Avisos, cobrança e respostas do Edi pelo número oficial do condomínio.', status:'conectada', sync:'há 4 min', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'Cloud API (Meta) + webhook', badge:'nativo', edge:false},
+  {fam:'Financeiro', nome:'PIX / banco', sub:'Gera o PIX da taxa e dá baixa automática quando o morador paga.', status:'conectada', sync:'há 1 h', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'API PIX (BACEN) + webhook', badge:'nativo', edge:false},
+  {fam:'Financeiro', nome:'Boleto registrado', sub:'Emissão e conciliação de boletos bancários.', status:'pendente', det:'Falta o convênio do banco — aguardando a administradora liberar.', autor:'—', quando:'—', dono:'carteira', proto:'CNAB / convênio bancário', badge:'homologado', edge:false},
+  {fam:'Financeiro', nome:'ERP contábil', sub:'Exporta os lançamentos pro sistema contábil da administradora.', status:'conectada', sync:'ontem', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'API / arquivo (CSV·OFX)', badge:'homologado', edge:false},
+  {fam:'Portaria & Acesso', nome:'Control iD iDFace', sub:'Facial + cartão; o sistema provisiona e revoga as credenciais sozinho.', status:'conectada', sync:'há 2 min', autor:'Síndico', quando:'20/05', dono:'condominio', proto:'REST API TCP/IP', badge:'nativo', edge:true},
+  {fam:'Portaria & Acesso', nome:'Controle de acesso (outras marcas)', sub:'Intelbras, ZKTeco, Hikvision, Dahua — via SDK do fabricante ou modo genérico Wiegand.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio', proto:'SDK / Wiegand·relé', badge:'solicitar', edge:true},
+  {fam:'Portaria & Acesso', nome:'Cancela veicular (TAG/placa)', sub:'Leitura de TAG e placa na entrada da garagem.', status:'conectada', sync:'há 9 min', autor:'Síndico', quando:'20/05', dono:'condominio', proto:'LPR/UHF · relé', badge:'homologado', edge:true},
+  {fam:'Predial / IoT', nome:'Telemetria de elevador', sub:'O sensor da conservadora dispara o aviso de parada automaticamente.', status:'erro', det:'Sensor da Torre B sem responder desde ontem — o aviso manual segue funcionando.', autor:'Síndico', quando:'18/05', dono:'condominio', proto:'webhook da conservadora', badge:'homologado', edge:false},
+  {fam:'Predial / IoT', nome:'CFTV / câmeras', sub:'Descobre as câmeras por ONVIF e liga aos eventos de portaria.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio', proto:'ONVIF / RTSP', badge:'nativo', edge:true},
+  {fam:'Administradora / ERP', nome:'Sistema da administradora', sub:'Sincroniza carteira, taxas e prestação de contas com o ERP.', status:'conectada', sync:'há 1 h', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'REST API (ex.: Superlógica v2)', badge:'nativo', edge:false},
+  {fam:'Documentos', nome:'Assinatura digital', sub:'Atas e comunicados assinados com validade jurídica (Lei 14.063/2020).', status:'pendente', det:'Plano contratado — falta o primeiro signatário confirmar o cadastro.', autor:'Síndico', quando:'21/05', dono:'condominio', proto:'REST API + webhook', badge:'nativo', edge:false},
 ];
 const STATUS_INT={conectada:['conectada','verde'], pendente:['pendente','laranja'], erro:['erro','vermelho'], naoconfig:['não configurada','cinza']};
+const BADGE_INT={nativo:['conector nativo','verde'], homologado:['homologado','cinza'], solicitar:['SDK sob solicitação','laranja']};
+/* Ponte local (edge): elo seguro entre os aparelhos de IP interno (acesso, câmera) e a nuvem.
+   Conexão só de saída; credenciais no cofre; biometria guardada no local. */
+let pontes = [
+  {id:1, nome:'Ponte da portaria', local:'Portaria — Torre A', status:'online', desde:'20/05', heartbeat:'há 40 s', aparelhos:['Control iD iDFace','Cancela veicular (TAG/placa)']},
+];
+const CATALOGO_EDGE=['Control iD iDFace','Câmera ONVIF (entrada)','Câmera ONVIF (garagem social)','Cancela veicular (TAG/placa)'];
+const EDGE_INTEGRACAO={'Control iD iDFace':'Control iD iDFace','Cancela veicular (TAG/placa)':'Cancela veicular (TAG/placa)','Câmera ONVIF (entrada)':'CFTV / câmeras','Câmera ONVIF (garagem social)':'CFTV / câmeras'};
 function acaoIntegracao(nome, acao){
   const verbo={testar:'testada — tudo certo',reconectar:'reconectada',concluir:'conexão concluída',conectar:'conectada',configurar:'configuração aberta'}[acao]||acao;
   const ator=(perfil==='administradora'||admContexto)?'Administradora':'Síndico';
@@ -3816,25 +4386,36 @@ function cancelarConvite(ix){ const p=pessoas[ix]; if(!p) return; const nm=p.nom
    É demonstração — nenhuma credencial real é digitada; tokens/chaves ficam no "cofre". */
 const CONFIG_INT={
  'WhatsApp Business':{passos:['Verificar a conta Meta Business do condomínio','Cadastrar o número oficial e validar por SMS','Aprovar os templates utility (cobrança, aviso)','Ligar o webhook que conecta o Edi'],
-   campos:[['Número oficial','+55 11 4002-8922','ro'],['Conta Meta Business','verificada','ro'],['Provedor (BSP)','Meta Cloud API','select'],['Janela de serviço 24h (Edi)','ligada','toggle']]},
+   campos:[['Número oficial','+55 11 4002-8922','ro'],['Conta Meta Business','verificada','ro'],['Provedor (BSP)','Meta Cloud API · 360dialog · Zenvia · Take Blip','select'],['Janela de serviço 24h (Edi)','ligada','toggle']],
+   nota:'Requer conta Meta Business verificada e templates utility aprovados. O número é oficial do condomínio, não pessoal. Bot bidirecional só via WhatsApp Business API (BSP).'},
  'PIX / banco':{passos:['Escolher o banco/PSP do condomínio','Informar a chave PIX (CNPJ do condomínio)','Autorizar a leitura de extrato pra baixa automática'],
-   campos:[['Banco / PSP','Banco do Brasil','select'],['Chave PIX','12.345.678/0001-90 (CNPJ)','ro'],['Tipo de PIX','estático (copia-e-cola)','select'],['Baixa automática por extrato','ligada','toggle']]},
+   campos:[['Banco / PSP','Banco do Brasil · Sicoob · Itaú · Efí · Asaas · Iugu','select'],['Chave PIX','12.345.678/0001-90 (CNPJ)','ro'],['Tipo de PIX','cobrança com vencimento (API) ou estático','select'],['Baixa automática por extrato','ligada','toggle']],
+   nota:'A forma manual (PIX copia-e-cola com baixa por extrato) funciona no dia 1; a API do PSP automatiza cobrança com vencimento e conciliação.'},
  'Boleto registrado':{passos:['Solicitar o convênio de cobrança ao banco','Informar o nº do convênio e a carteira','Homologar o layout de registro (CNAB)'],
-   campos:[['Banco emissor','—','select'],['Convênio / carteira','aguardando liberação','ro'],['Cedente','Condomínio Residencial Jacarandá','ro'],['Multa 2% · juros 1% a.m.','travado por lei (CC 1.336)','ro']]},
+   campos:[['Banco emissor','BB · Itaú · Bradesco · Sicoob · Santander','select'],['Convênio / carteira','aguardando liberação','ro'],['Cedente','Condomínio Residencial Jacarandá','ro'],['Multa 2% · juros 1% a.m.','travado por lei (CC 1.336)','ro']],
+   nota:'Depende do convênio de cobrança do banco (CNAB 240/400). Também dá pra emitir via PSP/gateway (Asaas, Efí, Iugu) sem convênio próprio.'},
  'ERP contábil':{passos:['Escolher o sistema contábil da administradora','Mapear o plano de contas','Definir a frequência de exportação'],
-   campos:[['Sistema contábil','Domínio Sistemas','select'],['Plano de contas','mapeado','ro'],['Formato','CSV / OFX','select'],['Frequência','diária','select']]},
+   campos:[['Sistema contábil','Domínio · Contmatic · Sage','select'],['Plano de contas','mapeado','ro'],['Formato','API · CSV · OFX','select'],['Frequência','diária','select']]},
  'Control iD iDFace':{passos:['Instalar o conector edge na portaria','Descobrir os controladores na rede','Testar o provisionamento de uma credencial'],
-   campos:[['Endereço do controlador','192.168.0.10','ro'],['Modelo','Control iD iDFace','select'],['Provisionar/revogar automático','ligado','toggle'],['Modos de acesso','facial · cartão · QR · PIN','ro']]},
+   campos:[['Endereço do controlador','192.168.0.10','ro'],['Modelo','Control iD iDFace/iDBlock','select'],['Provisionar/revogar automático','ligado','toggle'],['Modos de acesso','facial · cartão · QR · PIN','ro']],
+   nota:'Conector nativo via API REST TCP/IP da Control iD (documentada, standalone/online). Requer a ponte edge na portaria — o equipamento tem IP na rede interna. Template facial é dado sensível (LGPD): guarda local.'},
+ 'Controle de acesso (outras marcas)':{passos:['Solicitar o SDK/API ao fabricante','Instalar o conector edge na portaria','Homologar o modelo e o firmware'],
+   campos:[['Fabricante','Intelbras · ZKTeco · Hikvision · Dahua','select'],['Integração','SDK sob solicitação / homologação','ro'],['Modo genérico (fallback)','Wiegand / relé','select']],
+   nota:'Esses fabricantes liberam SDK/API sob solicitação (às vezes NDA). Enquanto não homologado, opera no modo genérico Wiegand/relé via controlador intermediário.'},
  'Cancela veicular (TAG/placa)':{passos:['Conectar a leitora de TAG/LPR da garagem','Vincular as faixas/garagem','Sincronizar a lista de placas com as unidades'],
    campos:[['Leitora','TAG (UHF) + LPR','select'],['Garagem / faixas','G1 · G2','ro'],['Lista de placas','sincronizada com as unidades','toggle']]},
  'Telemetria de elevador':{passos:['Selecionar a conservadora/fabricante','Configurar o webhook/sensor por torre','Testar o disparo de parada'],
-   campos:[['Conservadora / fabricante','Atlas Schindler (Ahead)','select'],['Torres cobertas','Torre A · Torre B','ro'],['Disparo automático de aviso','ligado','toggle']]},
- 'CFTV / câmeras':{passos:['Conectar o gravador (NVR)','Escolher os canais por evento de portaria','Definir a retenção das imagens'],
-   campos:[['Gravador (NVR)','—','select'],['Canais por evento','entrada · garagem','ro'],['Retenção','30 dias','select']]},
+   campos:[['Conservadora / fabricante','Atlas Schindler (Ahead)','select'],['Torres cobertas','Torre A · Torre B','ro'],['Disparo automático de aviso','ligado','toggle']],
+   nota:'A telemetria automatiza o aviso; se o sensor cair, o registro manual de parada segue funcionando (nunca fica inviável).'},
+ 'CFTV / câmeras':{passos:['Descobrir as câmeras por ONVIF na rede','Escolher os canais por evento de portaria','Definir a retenção das imagens'],
+   campos:[['Protocolo','ONVIF (Profile S/T) + RTSP','select'],['Fabricante','ONVIF genérico · Intelbras · Hikvision · Dahua','select'],['Canais por evento','entrada · garagem','ro'],['Retenção','30 dias','select']],
+   nota:'ONVIF cobre a maioria das câmeras IP para descoberta e evento; o vídeo vem por RTSP. Recursos avançados (analítico/LPR) podem pedir o SDK do fabricante (Hikvision ISAPI, Dahua). Requer ponte edge.'},
  'Sistema da administradora':{passos:['Autenticar no ERP da administradora','Selecionar o que sincroniza','Definir a frequência'],
-   campos:[['ERP da administradora','Superlógica','select'],['Sincroniza','carteira · taxas · prestação de contas','ro'],['Frequência','a cada 1 h','select']]},
- 'Assinatura digital':{passos:['Escolher o provedor de assinatura','Cadastrar o(s) signatário(s)','Confirmar o primeiro cadastro'],
-   campos:[['Provedor','Clicksign','select'],['Tipo','assinatura eletrônica + carimbo de tempo','select'],['Signatários','1 pendente de confirmação','ro']]},
+   campos:[['ERP da administradora','Superlógica · TownSq · uCondo · Ahreas · Group','select'],['Sincroniza','carteira · taxas · prestação de contas','ro'],['Frequência','a cada 1 h','select']],
+   nota:'Ex.: Superlógica expõe API REST v2 (app_token + access_token). Boleto e contabilidade nascem no ERP; a plataforma espelha e opera por cima — coexistência honesta, sem lock-in.'},
+ 'Assinatura digital':{passos:['Escolher o provedor de assinatura','Definir o nível (simples/avançada/qualificada)','Cadastrar o(s) signatário(s)'],
+   campos:[['Provedor','Clicksign · D4Sign · ZapSign · Autentique','select'],['Nível','simples · avançada · qualificada (ICP-Brasil)','select'],['Carimbo de tempo','ligado','toggle'],['Signatários','1 pendente de confirmação','ro']],
+   nota:'Lei 14.063/2020 define 3 níveis de assinatura; a Lei 14.309/2022 admite assembleia e deliberação por meio eletrônico. Para ata que possa ser questionada em juízo, use a qualificada (ICP-Brasil); para a maioria, a avançada com trilha de auditoria basta.'},
 };
 function campoConfig(c){const [label,ex,tipo]=c;
   if(tipo==='toggle') return `<div class="linha1" style="margin:6px 0"><span class="sub" style="margin:0; font-weight:600">${label}</span><span class="chip ${/lig|sim|sincronizada/.test(ex)?'verde':'cinza'}" style="border:none">${ex}</span></div>`;
@@ -3848,10 +4429,12 @@ function configurarIntegracao(nome){
   abrirModal(`<h3>${tIco('importar')}Configurar — ${i.nome}</h3>
     <div class="linha1" style="margin-bottom:6px"><span class="sub" style="margin:0">${i.sub}</span><span class="chip ${st[1]}">${st[0]}</span></div>
     ${!conectada&&i.det?`<div class="aviso-lgpd" style="border-left:3px solid var(--${i.status==='erro'?'vermelho':'laranja'})">${i.det}</div>`:''}
+    ${i.edge?edgeBanner():''}
     ${!conectada?`<div class="sub" style="margin:12px 0 4px"><b>Como conectar</b></div>
       <div class="item" style="padding:11px 13px"><div class="sub" style="margin:0; display:flex; flex-direction:column; gap:5px">${spec.passos.map((p,ix)=>`<span style="display:flex; gap:8px; line-height:1.4"><b style="color:var(--verde-escuro); flex:0 0 auto">${ix+1}.</b><span>${p}</span></span>`).join('')}</div></div>`:''}
     <div class="sub" style="margin:12px 0 4px"><b>Configuração</b></div>
     ${spec.campos.map(campoConfig).join('')}
+    ${spec.nota?`<div class="sub" style="margin-top:10px; font-size:.8rem; color:var(--cinza); line-height:1.45">ℹ️ ${spec.nota}</div>`:''}
     <div class="aviso-lgpd" style="margin-top:10px">Credenciais (tokens, chaves, convênios) ficam no <b>cofre</b> da plataforma — nunca em texto. ${i.dono==='carteira'?'Integração <b>padrão da carteira</b>: mudar aqui afeta os condomínios que herdam o padrão.':'Integração <b>deste condomínio</b>.'}</div>
     <button class="btn principal btn-grande" onclick="salvarConfigInt('${nome.replace(/'/g,'')}','${af[1]}')">${af[0]}</button>`);
 }
@@ -3861,6 +4444,80 @@ function salvarConfigInt(nome,acao){
   if(acao!=='configurar'){ i.status='conectada'; i.sync='agora'; i.autor=ator; i.det=''; logAudit(`conectou a integração ${nome}`,ator); }
   fecharModal(); atualizar();
   toast(acao==='configurar'?`${nome}: configuração salva (demo).`:`${nome}: conectada (demo).`);
+}
+function atorInt(){ return (perfil==='administradora'||admContexto)?'Administradora':'Síndico'; }
+function pontesBloco(){
+  return `<h2>${tIco('importar')}Ponte local (hub)</h2>
+    <div class="sub" style="margin:-4px 0 8px">Os aparelhos de acesso e câmera ficam na rede do prédio (IP interno). A ponte é o elo seguro entre eles e a nuvem — <b>conexão só de saída</b>, credenciais no cofre, biometria guardada no local.</div>
+    ${pontes.map(pontaCard).join('')||`<div class="sub" style="color:var(--cinza); padding:4px 0 8px">Nenhuma ponte pareada ainda.</div>`}
+    <button class="btn claro btn-grande" style="margin:2px 0 12px" onclick="parearPonte()">+ Parear nova ponte</button>`;
+}
+function pontaCard(p){
+  const on=p.status==='online';
+  return `<div class="item" style="border-color:${on?'var(--verde)':'var(--vermelho)'}">
+    <div class="linha1"><span class="nome">${tIco('importar')}${p.nome}</span><span class="chip ${on?'verde':'vermelho'}">${on?'online':'offline'}</span></div>
+    <div class="sub" style="margin-top:4px">${p.local} · ${on?'último sinal '+p.heartbeat:'sem sinal desde '+(p.caiu||'ontem')}</div>
+    ${!on?`<div class="sub" style="margin-top:4px; color:var(--vermelho)">Aparelhos desta ponte indisponíveis — o registro manual na portaria segue funcionando.</div>`:''}
+    <div class="sub" style="margin-top:6px">Aparelhos adotados: ${p.aparelhos.length?p.aparelhos.join(' · '):'nenhum ainda'}</div>
+    <div class="botoes" style="justify-content:flex-end; margin-top:8px; flex-wrap:wrap">
+      <button class="btn claro" style="flex:0 0 auto; padding:7px 12px; font-size:12.5px" onclick="simularQuedaPonte(${p.id})">${on?'Simular queda':'Religar'}</button>
+      <button class="btn claro" style="flex:0 0 auto; padding:7px 12px; font-size:12.5px" onclick="pingPonte(${p.id})">Testar sinal</button>
+      <button class="btn principal" style="flex:0 0 auto; padding:7px 12px; font-size:12.5px" onclick="descobrirAparelhos(${p.id})">Descobrir aparelhos</button>
+    </div>
+  </div>`;
+}
+function parearPonte(){
+  const cod=('EDI-'+Math.random().toString(36).slice(2,6)+'-'+Math.random().toString(36).slice(2,6)).toUpperCase();
+  abrirModal(`<h3>${tIco('importar')}Parear nova ponte</h3>
+    <div class="sub" style="margin-bottom:10px">Ligue o aparelho da ponte na tomada e na rede (um mini-PC na portaria, ou o próprio DVR com saída de internet). Ele conecta sozinho — <b>só de saída</b>: a nuvem nunca abre porta pra dentro do prédio.</div>
+    <label>Código de pareamento</label>
+    <div class="item" style="text-align:center; padding:14px; background:var(--cinza-claro); margin:2px 0 4px"><span style="font-size:1.4rem; font-weight:800; letter-spacing:.08em">${cod}</span></div>
+    <label style="margin-top:6px">Onde ela fica</label>
+    <select id="pt-local"><option>Portaria — Torre A</option><option>Portaria — Torre B</option><option>Guarita / garagem</option><option>Sala técnica</option></select>
+    <button class="btn principal btn-grande" onclick="salvarPonte('${cod}')">Confirmar pareamento</button>
+    <div class="aviso-lgpd">Digite o código na ponte (ou aponte a câmera pro QR que ela mostra). Vale por 10 min e fica amarrada só a este condomínio.</div>`);
+}
+function salvarPonte(cod){
+  const local=document.getElementById('pt-local').value;
+  const id=Math.max(0,...pontes.map(p=>p.id))+1;
+  pontes.push({id, nome:'Ponte — '+local.replace('Portaria — ','').replace(' / ','/'), local, status:'online', desde:'agora', heartbeat:'agora', aparelhos:[]});
+  logAudit('pareou uma ponte local ('+local+')',atorInt());
+  fecharModal(); irPara('integracoes'); toast('Ponte pareada e online — agora descubra os aparelhos.');
+}
+function simularQuedaPonte(id){
+  const p=pontes.find(x=>x.id===id); if(!p) return;
+  if(p.status==='online'){ p.status='offline'; p.caiu='agora'; toast(p.nome+': caiu — aparelhos indisponíveis, registro manual segue.'); }
+  else { p.status='online'; p.heartbeat='agora'; toast(p.nome+': religada e online.'); }
+  irPara('integracoes');
+}
+function pingPonte(id){
+  const p=pontes.find(x=>x.id===id); if(!p) return;
+  if(p.status==='online'){ p.heartbeat='agora'; toast(p.nome+': sinal ok — respondeu agora.'); }
+  else { toast(p.nome+': sem resposta — verifique energia e rede.'); }
+  irPara('integracoes');
+}
+function descobrirAparelhos(id){
+  const p=pontes.find(x=>x.id===id); if(!p) return;
+  if(p.status!=='online'){ toast('A ponte está offline — religue antes de descobrir.'); return; }
+  const achados=CATALOGO_EDGE.filter(a=>!pontes.some(x=>x.aparelhos.includes(a)));
+  abrirModal(`<h3>${tIco('importar')}Aparelhos na rede</h3>
+    <div class="sub" style="margin-bottom:10px">A ${p.nome} varreu a rede do prédio e encontrou estes aparelhos. Adote os que são deste condomínio.</div>
+    ${achados.length?achados.map((a,ix)=>`<div class="item"><div class="linha1"><span class="nome">${a}</span><button class="btn principal" style="flex:0 0 auto; padding:6px 12px; font-size:13px" onclick="adotarAparelho(${id},'${a.replace(/'/g,'')}')">Adotar</button></div><div class="sub" style="margin-top:3px">descoberto via ${/ONVIF/.test(a)?'ONVIF':'API local'} · IP 192.168.0.${11+ix}</div></div>`).join(''):`<div class="sub" style="padding:6px 0">Todos os aparelhos da rede já foram adotados. 🎉</div>`}
+    <div class="aviso-lgpd">Só adote o que pertence ao condomínio. A credencial de acesso vai pro <b>cofre</b>; o template facial fica guardado na ponte (local, LGPD).</div>`);
+}
+function adotarAparelho(id,nome){
+  const p=pontes.find(x=>x.id===id); if(!p) return;
+  if(!p.aparelhos.includes(nome)) p.aparelhos.push(nome);
+  const alvo=EDGE_INTEGRACAO[nome];
+  const i=alvo&&integracoes.find(x=>x.nome===alvo);
+  if(i && i.status!=='conectada'){ i.status='conectada'; i.sync='agora'; i.autor=atorInt(); i.det=''; }
+  logAudit('adotou o aparelho '+nome+' na '+p.nome,atorInt());
+  fecharModal(); irPara('integracoes'); toast(nome+' adotado e conectado (demo).');
+}
+function edgeBanner(){
+  const on=pontes.filter(p=>p.status==='online');
+  if(on.length) return `<div class="item" style="border-color:var(--verde); margin-top:8px"><div class="sub" style="margin:0">${tIco('importar')}Conecta pela <b>${on[0].nome}</b> (online). Os aparelhos são descobertos na rede pela ponte — dá pra adotar direto por lá, em <b>Descobrir aparelhos</b>.</div></div>`;
+  return `<div class="item" style="border-color:var(--laranja); margin-top:8px"><div class="sub" style="margin:0 0 8px">${tIco('alerta')}Este aparelho fica na rede do prédio (IP interno) e conecta por uma <b>ponte local</b> — e ainda não há nenhuma online.</div><button class="btn principal" style="flex:0 0 auto" onclick="parearPonte()">Parear ponte primeiro</button></div>`;
 }
 TELAS.integracoes = () => {
   const cont=s=>integracoes.filter(i=>i.status===s).length;
@@ -3872,6 +4529,11 @@ TELAS.integracoes = () => {
     return `<div class="item" style="${i.status==='erro'?'border-color:var(--vermelho)':i.status==='pendente'?'border-color:var(--laranja)':''}">
       <div class="linha1"><span class="nome">${i.nome}</span><span class="chip ${st[1]}">${st[0]}</span></div>
       <div class="sub" style="margin-top:4px">${i.sub}</div>
+      ${i.proto?`<div class="sub" style="margin-top:5px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:.73rem">
+        <span class="chip cinza" style="border:none; padding:2px 8px">${i.proto}</span>
+        ${i.badge?`<span class="chip ${(BADGE_INT[i.badge]||['','cinza'])[1]}" style="border:none; padding:2px 8px">${(BADGE_INT[i.badge]||[''])[0]}</span>`:''}
+        ${i.edge?`<span style="color:var(--cinza)">· requer ponte local (edge)</span>`:''}
+      </div>`:''}
       ${i.det?`<div class="sub" style="margin-top:4px; color:${i.status==='erro'?'var(--vermelho)':'var(--laranja)'}">${i.det}</div>`:''}
       <div class="sub" style="margin-top:6px; display:flex; gap:7px; flex-wrap:wrap; align-items:center">
         <span class="chip cinza" style="border:none; padding:2px 9px; font-size:.7rem; font-weight:700">${i.dono==='carteira'?'gerida pela administradora':'deste condomínio'}</span>
@@ -3895,6 +4557,7 @@ TELAS.integracoes = () => {
       ${pend?`<span class="chip ${cont('erro')?'vermelho':'laranja'}" style="border:none">${pend} pendência${pend>1?'s':''}</span>`:''}
       ${nconf?`<span class="chip cinza" style="border:none">${nconf} não configurada${nconf>1?'s':''}</span>`:''}
     </div>
+    ${pontesBloco()}
     ${fams.map(f=>`<h2>${f}</h2>${integracoes.filter(i=>i.fam===f).map(intCard).join('')}`).join('')}
     <div class="aviso-lgpd">Quem gere o quê: integrações técnicas da carteira (WhatsApp, banco, ERP) ficam com a <b>administradora</b>; as do prédio (portaria, elevador, câmeras) com o <b>síndico</b>. Toda conexão ou alteração é registrada na trilha de auditoria.</div>
   </div>`;
@@ -4127,6 +4790,11 @@ function praAgir(){
   if(typeof compra!=='undefined' && compra.status!=='aprovada') itens.push({cor:'acao', tit:'Revisar cotações do zelador', ctx:'2-3 orçamentos por escrito prontos pra sua decisão.', acao:'Revisar', fn:`fecharModal();irPara('compras')`});
   if(!provaReconhecida) itens.push({cor:'verde', tit:'Dar visto na operação do zelador', ctx:'Reconheça o que ele já fez e registrou hoje.', acao:'Ver e dar visto', fn:`fecharModal();verProvaSindico()`});
   if(!assembleia.convocada) itens.push({cor:'acao', tit:'Convocar a assembleia 25/06', ctx:'Pauta minutada — falta convocar pelos canais.', acao:'Convocar', fn:`fecharModal();irPara('assembleia')`, sec:'Rascunho Edi', secfn:`rascunhoEdi('convocacao')`});
+  /* obrigações do ano (Agenda) que entraram na janela de ação viram pendência aqui — inbox único, sem card paralelo.
+     Só governança/seguro/contrato/mandato; interrupções e a AGO (já acima) ficam de fora pra não duplicar. */
+  agendaEventos.forEach(e=>{ if((e.publico==='sindico'||e.publico==='ambos') && (e.cat==='obrigacao'||e.cat==='contrato'||e.cat==='mandato') && e.status!=='resolvido'){
+    const st=agStatus(e.data); if(st[1]==='laranja'||st[1]==='vermelho')
+      itens.push({cor: st[1]==='vermelho'?'vermelho':'laranja', tit:`${e.titulo.split('—')[0].trim()} — ${st[0]}${e.status==='andamento'?' · em andamento':''}`, ctx:e.base||'Obrigação do ano — planeje com antecedência.', acao:'Providenciar', fn:`fecharModal();verObrigacao(${e.id})`}); } });
   return itens;
 }
 function praAgirCard(){
@@ -5124,6 +5792,44 @@ function pulsoNota(){ return pulso.respostas?pulso.soma/pulso.respostas:0; }
 function pulsoNPS(){ return pulso.respostas?Math.round((pulso.dist.prom-pulso.dist.det)/pulso.respostas*100):0; }
 function pctUn(n){ return Math.round(n/TOTAL_UN*100); }
 function enqueteVotos(){ return enquete.ativa?enquete.opcoes.reduce((s,o)=>s+o[1],0):0; }
+/* ===== BENCHMARK ANÔNIMO DO CONDOMÍNIO (retenção do síndico) ===== */
+function benchmarkCardSindico(){
+  if(!modOn('benchmark')) return '';
+  const inad=Math.round(inadimplentes.length/TOTAL_UN*100);
+  const melhor=inad<REGIAO.inadimplencia;
+  return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verBenchmark()">
+    <div class="linha1"><span class="nome">${tIco('grafico')}Como seu condomínio se compara</span><span class="chip ${melhor?'verde':'laranja'}">ver ›</span></div>
+    <div class="sub" style="margin-top:5px">Inadimplência ${inad}% vs ${REGIAO.inadimplencia}% da região · leitura, assembleia e custo — só médias anônimas.</div>
+  </button>`;
+}
+function verBenchmark(){
+  const inad=Math.round(inadimplentes.length/TOTAL_UN*100);
+  const leitura=pctUn(participacao.leituraOficial);
+  const assemb=pctUn(participacao.assembleiaUlt);
+  const taxa=528;
+  const row=(lbl,meu,reg,tipo,menorMelhor,dica,ref)=>{
+    const d=meu-reg, bom=menorMelhor?d<0:d>0, naMedia=Math.abs(d)<=(tipo==='rs'?8:2);
+    const chip=naMedia?['na média','cinza']:bom?['melhor','verde']:['atenção','laranja'];
+    const fv=v=>tipo==='rs'?fmt(v):v+'%';
+    return `<div class="item" style="padding:11px 13px"><div class="linha1"><span class="nome" style="font-size:.9rem">${lbl}</span><span class="chip ${chip[1]}">${chip[0]}</span></div>
+      <div class="sub" style="margin-top:3px">Seu condomínio <b>${fv(meu)}</b> · ${ref||'média da região'} ${fv(reg)}</div>
+      ${!naMedia&&!bom&&dica?`<div class="sub" style="margin-top:3px; color:var(--laranja)">${dica}</div>`:''}</div>`;
+  };
+  const coorte = benchDemoFraca?3:REGIAO.coorte;
+  const formacao = coorte<COORTE_MIN;
+  const refLbl = formacao?'índice de mercado (Secovi/ABADI)':'média da região';
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('grafico')}Como seu condomínio se compara</h3>
+    <div class="sub" style="margin-bottom:10px">Contra a <b>${formacao?'referência de mercado':'média de condomínios parecidos da região'}</b> — só médias agregadas e anônimas, nunca um condomínio identificado (LGPD).</div>
+    ${formacao?`<div class="item" style="border-color:var(--laranja); background:var(--laranja-claro,#fff6ec)"><div class="sub" style="margin:0">${tIco('alerta')}<b>Base em formação:</b> ainda há poucos condomínios parecidos na sua região (${coorte}). Enquanto isso, a referência vem de <b>índices de mercado</b> — e fica mais precisa conforme a base cresce.</div></div>`:''}
+    ${row('Inadimplência', inad, REGIAO.inadimplencia, '%', true, 'Reforce a régua de cobrança e o lembrete no WhatsApp.', refLbl)}
+    ${row('Custo por unidade (taxa)', taxa, REGIAO.taxaUnidade, 'rs', true, 'Acima da média — vale revisar contratos e consumo no balancete.', refLbl)}
+    ${row('Leitura dos comunicados', leitura, REGIAO.leitura, '%', false, '', refLbl)}
+    ${row('Presença na assembleia', assemb, REGIAO.assembleia, '%', false, '', refLbl)}
+    <div class="sub" style="margin:10px 0 0; font-size:.78rem; color:var(--cinza)">${formacao?'Fonte: índices setoriais (Secovi/ABADI), até a base local encorpar.':`Baseado em <b>${coorte}</b> condomínios parecidos (mesma faixa de nº de unidades e região) · fonte: base EdiVita + índices de mercado.`}</div>
+    <div class="aviso-lgpd">É sinal de gestão, não ranking público. Nenhum condomínio vizinho aparece nominalmente; só entra na média com um mínimo de ${COORTE_MIN} condomínios na faixa (anonimato), e a participação é opt-in.</div>
+    <div class="botoes"><button class="btn claro" onclick="benchDemoFraca=!benchDemoFraca;verBenchmark()">${benchDemoFraca?'↩ Ver base consolidada':'Simular base em formação'}</button></div>
+    <button class="btn principal btn-grande" onclick="fecharModal()">Entendi</button>`);
+}
 function participacaoCardSindico(){
   const votos=enqueteVotos();
   const media=Math.round((pctUn(participacao.appAtivo)+pctUn(participacao.leituraOficial)+pctUn(votos)+pctUn(participacao.assembleiaUlt))/4);
