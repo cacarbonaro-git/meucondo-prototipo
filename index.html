@@ -46,6 +46,14 @@
   @media (max-width:620px){ #app{padding-top:calc(112px + env(safe-area-inset-top))} }
   .tela{display:none; padding:0 16px}
   .tela.on{display:block}
+  .praagir-full{display:none}
+  .inad-desk{display:none}
+  .tbl-sind{width:100%; border-collapse:collapse; margin-bottom:8px}
+  .tbl-sind th{text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--cinza); padding:9px 12px; border-bottom:2px solid var(--borda); white-space:nowrap}
+  .tbl-sind td{padding:12px; border-bottom:1px solid var(--borda); font-size:.9rem; vertical-align:middle}
+  .tbl-sind tbody tr:last-child td{border-bottom:none}
+  .tbl-sind tbody tr:hover{background:var(--cinza-claro)}
+  .tbl-sind th.n,.tbl-sind td.n{text-align:right}
 
   /* cabeçalho de cada perfil */
   .topo{padding:18px 16px 14px; background:var(--verde); color:#fff; margin:0 -16px 16px; border-radius:0 0 18px 18px}
@@ -382,6 +390,48 @@
     #app, #menu{max-width:720px}
     #modal{max-width:720px}
   }
+
+  /* ===== SHELL DESKTOP — só perfil síndico, ≥1024px (Fase 1: navegação) ===== */
+  @media (min-width:1024px){
+    body[data-perfil="sindico"] #menu{
+      top:0; bottom:auto; left:0; transform:none;
+      width:250px; max-width:250px; height:100vh;
+      flex-direction:column; align-items:stretch; justify-content:flex-start;
+      border-top:none; border-right:1px solid var(--borda);
+      padding:60px 10px 20px; gap:2px; overflow-y:auto;
+    }
+    body[data-perfil="sindico"] #menu button{
+      flex:0 0 auto; flex-direction:row; justify-content:flex-start;
+      gap:12px; padding:11px 12px; font-size:.92rem; text-align:left; border-radius:10px;
+    }
+    body[data-perfil="sindico"] #menu button .ico{ font-size:1.15rem; width:22px; text-align:center }
+    body[data-perfil="sindico"] #menu button.on{ background:var(--verde-claro) }
+    body[data-perfil="sindico"] #app{
+      max-width:1360px; margin:0; padding:80px 48px 48px 300px;
+    }
+    body[data-perfil="sindico"] #edi-fab{ right:34px; bottom:34px }
+
+    /* home numa largura confortável (o dashboard 2-col por CSS auto embaralhava os cards;
+       o dashboard real virá por reestruturação explícita da TELAS.inicio em colunas) */
+
+    /* detalhe abre como painel lateral direito = master-detail (isto funcionou) */
+    body[data-perfil="sindico"] #fundo-modal{ align-items:stretch; justify-content:flex-end; background:transparent; pointer-events:none; padding-top:52px }
+    body[data-perfil="sindico"] #modal{ height:auto; max-height:none; width:470px; max-width:470px; border-radius:0; pointer-events:auto; box-shadow:none; border-left:1px solid var(--borda); background:var(--branco) }
+    body[data-perfil="sindico"] #app{ transition:padding-right .22s ease }
+    body[data-perfil="sindico"].md-open #app{ padding-right:504px }
+    body[data-perfil="sindico"].md-open .home-sindico .dash{ grid-template-columns:1fr }
+    body[data-perfil="sindico"].md-open .home-sindico .dash-side{ display:none }
+    body[data-perfil="sindico"].md-open .gerir-grid > .item{ flex-basis:100% !important }
+
+    /* Fase 2b: home vira dashboard de colunas explícitas (validado no estudo) */
+    body[data-perfil="sindico"] .home-sindico .dash{ display:grid; grid-template-columns:1.55fr 1fr; gap:22px; align-items:start }
+    body[data-perfil="sindico"] .home-sindico .dash .full{ grid-column:1 / -1 }
+    body[data-perfil="sindico"] .gerir-grid > .item{ flex-basis:calc(33.333% - 6px) !important }
+    body[data-perfil="sindico"] .praagir-preview{ display:none !important }
+    body[data-perfil="sindico"] .praagir-full{ display:block }
+    body[data-perfil="sindico"] .inad-desk{ display:block }
+    body[data-perfil="sindico"] .inad-mob{ display:none }
+  }
 </style>
 </head>
 <body class="tema-b">
@@ -403,7 +453,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.78';
+const VERSAO='v4.91';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1239,8 +1289,8 @@ function toastAcao(m,rotulo,fn){
   t.innerHTML=`${m}<button onclick="window._toastFn&&window._toastFn();document.querySelector('#toast').style.display='none'">${rotulo}</button>`;
   t.style.display='block'; clearTimeout(t._x); t._x=setTimeout(()=>t.style.display='none',7000);
 }
-function abrirModal(html){ $('#modal').innerHTML=`<button class="fechar-x" onclick="fecharModal()" aria-label="Fechar">✕</button>`+html; $('#fundo-modal').classList.add('on'); }
-function fecharModal(){ if(wlEditing){ wlEditing=false; if(wlSnap){ _wlPut(wlSnap); wlSnap=null; aplicarTema(); atualizar(); } } $('#fundo-modal').classList.remove('on'); }
+function abrirModal(html){ $('#modal').innerHTML=`<button class="fechar-x" onclick="fecharModal()" aria-label="Fechar">✕</button>`+html; $('#fundo-modal').classList.add('on'); document.body.classList.add('md-open'); }
+function fecharModal(){ if(wlEditing){ wlEditing=false; if(wlSnap){ _wlPut(wlSnap); wlSnap=null; aplicarTema(); atualizar(); } } $('#fundo-modal').classList.remove('on'); document.body.classList.remove('md-open'); }
 
 const MENUS = {
   sindico:[['inicio','casa','Início'],['inadimplencia','cifrao','Cobrança'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['comunicados','megafone','Comunicados']],
@@ -1292,6 +1342,7 @@ function trocarPerfil(p){
 }
 function irPara(tela){
   telaAtual=tela;
+  document.body.dataset.perfil = perfil || '';  /* shell desktop escopado por perfil (só síndico ≥1024) */
   /* ${nomeAssist} unificado: botão flutuante em TODOS os perfis, sempre no mesmo canto —
      padrão único (some só dentro da própria conversa) */
   /* FAB removido: o ${nomeAssist} tem duas âncoras — a barra de busca no topo da home e a aba "${nomeAssist}" na barra inferior. Um botão flutuante a mais só tapava conteúdo. */
@@ -1466,7 +1517,7 @@ TELAS.inicio = () => {
   const totAberto = inadimplentes.reduce((s,i)=>s+divida(i),0);
   const venc = manutencoes.filter(m=>m.status==='vencida').length;
   /* Home do síndico: comando do ${nomeAssist} → Agora (arrecadação) → digest único de pendências → Indicadores → Reservas → Balancete */
-  return `<div class="tela on">
+  return `<div class="tela on home-sindico">
   <div class="topo"><h1>Olá, síndico</h1><p>${COND.nome} · 2 torres · 60 unidades</p></div>
 
   ${comandoEdi(`Peça ao ${nomeAssist}… "quem deve há mais de 60 dias?"`)}
@@ -1479,6 +1530,7 @@ TELAS.inicio = () => {
       <span style="display:flex; align-items:center; gap:6px; flex:0 0 auto"><span class="chip cinza" style="font-size:.72rem">${p.pct}%</span><span>›</span></span>
     </button>`;})()}
 
+  <div class="dash"><div class="dash-main">
   <div class="secao">AGORA</div>
   <button class="item" style="width:100%; text-align:left; display:block" onclick="mesGraf=5;verBalancete()">
     <div class="linha1"><span class="nome">${tIco('cifrao')}Arrecadação de junho: ${fmt(25920)}</span><span class="chip verde">90% ›</span></div>
@@ -1494,12 +1546,15 @@ TELAS.inicio = () => {
   </button>`:''}
 
   ${praAgirCard()}
+  </div><div class="dash-side">
+  <div class="secao">Comunidade &amp; indicadores</div>
   ${enqueteResumoSindico()}
   ${participacaoCardSindico()}
   ${benchmarkCardSindico()}
   ${pautaColabCardSindico()}
+  </div><div class="full">
   <h2>Gerir o condomínio</h2>
-  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px">
+  <div class="gerir-grid" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px">
     ${gerirEntrada('predio','Unidades & moradores',"abrirUnidades()")}
     ${gerirEntrada('pessoas','Pessoas & papéis',"irPara('pessoas')",(()=>{const p=pessoas.filter(x=>x.status==='convidado').length+claims.length;return[p?''+p:'ok',p?'laranja':'verde'];})())}
     ${gerirEntrada('grafico','Seu impacto',"verImpacto()")}
@@ -1511,10 +1566,12 @@ TELAS.inicio = () => {
     ${modOn('agenda')?gerirEntrada('checklist','Agenda & obrigações',"irPara('agenda')",(()=>{const p=agendaEventos.some(e=>(e.publico==='sindico'||e.publico==='ambos')&&agStatus(e.data)[1]==='laranja');return[p?'a vencer':'ok',p?'laranja':'verde'];})()):''}
     ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
   </div>
+  </div><div class="full">
 <h2>Balancete de maio</h2>
   <div class="item"><div class="linha1"><span class="nome">Receitas ${fmt(28350)} · Despesas ${fmt(24180)}</span><span class="chip verde">+ ${fmt(4170)}</span></div>
   <div class="sub">Pessoal 46% · Manutenção 22% · Consumo 19% · Administrativa 13%</div>
 <div class="botoes"><button class="btn principal" onclick="mesGraf=4;verBalancete()">${tIco('grafico')}Ver gráfico</button><button class="btn claro" onclick="toast('No produto final: balancete completo exportável em Excel')">Exportar Excel</button></div></div>
+  </div></div>
 </div>`;
 };
 
@@ -1534,11 +1591,19 @@ TELAS.inadimplencia = () => {
   <div class="topo"><h1>${tIco("cifrao")}Cobrança</h1><p>Visível só para você e o conselho (LGPD)</p></div>
   ${filtroTorreHtml()}
   ${faixaRow}
-  ${lista.length?lista.map(({i,ix})=>{ const [f,c]=faixa(i.dias); return `
-  <button class="item" style="width:100%; text-align:left; display:block" onclick="verCobranca(${ix})">
-    <div class="linha1"><span class="nome">${i.un} — ${i.resp}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${c}">${f}</span><span style="color:var(--cinza)">›</span></span></div>
-    <div class="sub">${i.meses.length} competência(s) · saldo <b>${fmt(divida(i))}</b>${i.alugada?` · ${tIco('casa')}alugada`:''}</div>
-  </button>`;}).join(''):vazio('check','Ninguém nessa faixa','Troque o filtro de atraso ou de torre.')}
+  ${lista.length?`
+  <div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Unidade</th><th>Responsável</th><th>Atraso</th><th class="n">Comp.</th><th class="n">Saldo</th><th></th></tr></thead><tbody>
+    ${lista.map(({i,ix})=>{ const [f,c]=faixa(i.dias); return `<tr onclick="verCobranca(${ix})" style="cursor:pointer">
+      <td><b>${i.un}</b>${i.alugada?` ${tIco('casa')}`:''}</td><td>${i.resp}</td>
+      <td><span class="chip ${c}">${f}</span></td><td class="n">${i.meses.length}</td>
+      <td class="n"><b>${fmt(divida(i))}</b></td><td style="text-align:right; color:var(--cinza)">›</td></tr>`;}).join('')}
+  </tbody></table></div>
+  <div class="inad-mob">${lista.map(({i,ix})=>{ const [f,c]=faixa(i.dias); return `
+    <button class="item" style="width:100%; text-align:left; display:block" onclick="verCobranca(${ix})">
+      <div class="linha1"><span class="nome">${i.un} — ${i.resp}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${c}">${f}</span><span style="color:var(--cinza)">›</span></span></div>
+      <div class="sub">${i.meses.length} competência(s) · saldo <b>${fmt(divida(i))}</b>${i.alugada?` · ${tIco('casa')}alugada`:''}</div>
+    </button>`;}).join('')}</div>
+  `:vazio('check','Ninguém nessa faixa','Troque o filtro de atraso ou de torre.')}
   <div class="aviso-lgpd">Toque numa unidade para cobrar ou dar baixa. Multa de 2% + juros de 1% a.m. conforme o Código Civil (art. 1.336 §1º) — o sistema não permite configurar acima do teto legal.</div>
 </div>`;
 };
@@ -4183,7 +4248,8 @@ let integracoes = [
   {fam:'Financeiro', nome:'Boleto registrado', sub:'Emissão e conciliação de boletos bancários.', status:'pendente', det:'Falta o convênio do banco — aguardando a administradora liberar.', autor:'—', quando:'—', dono:'carteira', proto:'CNAB / convênio bancário', badge:'homologado', edge:false},
   {fam:'Financeiro', nome:'ERP contábil', sub:'Exporta os lançamentos pro sistema contábil da administradora.', status:'conectada', sync:'ontem', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'API / arquivo (CSV·OFX)', badge:'homologado', edge:false},
   {fam:'Portaria & Acesso', nome:'Control iD iDFace', sub:'Facial + cartão; o sistema provisiona e revoga as credenciais sozinho.', status:'conectada', sync:'há 2 min', autor:'Síndico', quando:'20/05', dono:'condominio', proto:'REST API TCP/IP', badge:'nativo', edge:true},
-  {fam:'Portaria & Acesso', nome:'Controle de acesso (outras marcas)', sub:'Intelbras, ZKTeco, Hikvision, Dahua — via SDK do fabricante ou modo genérico Wiegand.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio', proto:'SDK / Wiegand·relé', badge:'solicitar', edge:true},
+  {fam:'Portaria & Acesso', nome:'Intelbras (HTTP API)', sub:'Câmera, DVR/NVR e controle de acesso Intelbras via HTTP API do equipamento ou INC Cloud — sem SDK nativo.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio', proto:'HTTP API (device) · INC Cloud', badge:'homologado', edge:true},
+  {fam:'Portaria & Acesso', nome:'Acesso/CFTV (outras marcas)', sub:'Hikvision (ISAPI), Dahua (HTTP API/CGI), ZKTeco — HTTP API do equipamento; SDK só p/ recurso avançado, Wiegand/relé como fallback.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio', proto:'HTTP API (ISAPI/CGI)', badge:'homologado', edge:true},
   {fam:'Portaria & Acesso', nome:'Cancela veicular (TAG/placa)', sub:'Leitura de TAG e placa na entrada da garagem.', status:'conectada', sync:'há 9 min', autor:'Síndico', quando:'20/05', dono:'condominio', proto:'LPR/UHF · relé', badge:'homologado', edge:true},
   {fam:'Predial / IoT', nome:'Telemetria de elevador', sub:'O sensor da conservadora dispara o aviso de parada automaticamente.', status:'erro', det:'Sensor da Torre B sem responder desde ontem — o aviso manual segue funcionando.', autor:'Síndico', quando:'18/05', dono:'condominio', proto:'webhook da conservadora', badge:'homologado', edge:false},
   {fam:'Predial / IoT', nome:'CFTV / câmeras', sub:'Descobre as câmeras por ONVIF e liga aos eventos de portaria.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio', proto:'ONVIF / RTSP', badge:'nativo', edge:true},
@@ -4399,9 +4465,12 @@ const CONFIG_INT={
  'Control iD iDFace':{passos:['Instalar o conector edge na portaria','Descobrir os controladores na rede','Testar o provisionamento de uma credencial'],
    campos:[['Endereço do controlador','192.168.0.10','ro'],['Modelo','Control iD iDFace/iDBlock','select'],['Provisionar/revogar automático','ligado','toggle'],['Modos de acesso','facial · cartão · QR · PIN','ro']],
    nota:'Conector nativo via API REST TCP/IP da Control iD (documentada, standalone/online). Requer a ponte edge na portaria — o equipamento tem IP na rede interna. Template facial é dado sensível (LGPD): guarda local.'},
- 'Controle de acesso (outras marcas)':{passos:['Solicitar o SDK/API ao fabricante','Instalar o conector edge na portaria','Homologar o modelo e o firmware'],
-   campos:[['Fabricante','Intelbras · ZKTeco · Hikvision · Dahua','select'],['Integração','SDK sob solicitação / homologação','ro'],['Modo genérico (fallback)','Wiegand / relé','select']],
-   nota:'Esses fabricantes liberam SDK/API sob solicitação (às vezes NDA). Enquanto não homologado, opera no modo genérico Wiegand/relé via controlador intermediário.'},
+ 'Intelbras (HTTP API)':{passos:['Escolher o modo — equipamento (HTTP API) ou nuvem INC','Se equipamento: adotar pela ponte na rede; se INC: informar a chave de acesso','Testar o login e um evento'],
+   campos:[['Modo de conexão','Equipamento (HTTP API) via ponte · Nuvem INC (sem ponte)','select'],['Endpoint','/cgi-bin/api/ · login por token','ro'],['Autenticação','token/digest (device) · chave de acesso (INC)','ro'],['Stream de vídeo','RTSP','ro']],
+   nota:'A Intelbras publica a HTTP API Protocol Specification (v3.59) — REST no próprio equipamento (/cgi-bin/api, login por token), sem SDK nativo. Dois caminhos: (1) equipamento na rede via ponte edge — o dado fica no prédio; (2) INC Cloud (nuvem-a-nuvem, autenticação por chave) — dispensa a ponte, mas o vídeo/evento passa pela nuvem da Intelbras (operador terceiro na LGPD). Cobertura varia por modelo/firmware; vídeo por RTSP.'},
+ 'Acesso/CFTV (outras marcas)':{passos:['Habilitar a HTTP API no equipamento (ISAPI/CGI)','Adotar pela ponte na rede','Homologar o modelo e o firmware'],
+   campos:[['Fabricante','Hikvision (ISAPI) · Dahua (HTTP API/CGI) · ZKTeco','select'],['Integração','HTTP API do equipamento','ro'],['Fallback genérico','Wiegand / relé','select']],
+   nota:'Hikvision (ISAPI) e Dahua (HTTP API/CGI) expõem API HTTP no próprio aparelho — o SDK nativo só é necessário para recursos avançados. Onde o modelo não expõe, opera no modo genérico Wiegand/relé via controlador. Requer a ponte edge (IP interno).'},
  'Cancela veicular (TAG/placa)':{passos:['Conectar a leitora de TAG/LPR da garagem','Vincular as faixas/garagem','Sincronizar a lista de placas com as unidades'],
    campos:[['Leitora','TAG (UHF) + LPR','select'],['Garagem / faixas','G1 · G2','ro'],['Lista de placas','sincronizada com as unidades','toggle']]},
  'Telemetria de elevador':{passos:['Selecionar a conservadora/fabricante','Configurar o webhook/sensor por torre','Testar o disparo de parada'],
@@ -4798,10 +4867,26 @@ function praAgir(){
   return itens;
 }
 function praAgirCard(){
-  const n=praAgir().length;
-  return `<button class="item" style="width:100%; text-align:left; display:block; margin:2px 0 6px; border-left:3px solid var(--verde)" onclick="verPraAgir()">
-    <div class="linha1"><span class="nome">${tIco('check')}Pra agir</span><span class="chip ${n?'laranja':'verde'}">${n?n+' pendência'+(n>1?'s':''):'tudo em dia'} ›</span></div>
-    <div class="sub" style="margin-top:5px">Tudo que depende de você num lugar — aprove, responda ou delegue de uma vez. No produto final chega no seu WhatsApp toda segunda.</div></button>`;
+  const itens=praAgir();
+  const n=itens.length;
+  const cardC=c=>c==='acao'?'gold':c;
+  const listaFull = n ? itens.map(i=>`<div class="item" style="border-left:3px solid var(--${cardC(i.cor)})">
+      <div class="linha1"><span class="nome" style="font-size:.95rem">${i.tit}</span></div>
+      <div class="sub" style="margin-top:3px">${i.ctx}</div>
+      <div class="botoes" style="justify-content:flex-end; margin-top:8px">
+        ${i.sec?`<button class="btn claro" style="flex:0 0 auto; padding:8px 13px; font-size:13px" onclick="${i.secfn}">${i.sec}</button>`:''}
+        <button class="btn principal" style="flex:0 0 auto; padding:8px 13px; font-size:13px" onclick="${i.fn}">${i.acao}</button>
+      </div></div>`).join('') : vazio('check','Tudo em dia','Sem pendências que dependam de você agora.');
+  return `<div class="praagir-wrap" style="margin:2px 0 6px">
+    <button class="item praagir-preview" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verPraAgir()">
+      <div class="linha1"><span class="nome">${tIco('check')}Pra agir</span><span class="chip ${n?'laranja':'verde'}">${n?n+' pendência'+(n>1?'s':''):'tudo em dia'} ›</span></div>
+      <div class="sub" style="margin-top:5px">Tudo que depende de você num lugar — aprove, responda ou delegue de uma vez. No produto final chega no seu WhatsApp toda segunda.</div>
+    </button>
+    <div class="praagir-full">
+      <div class="linha1" style="margin:0 0 8px 2px; display:flex; align-items:baseline; gap:8px"><span class="nome">${tIco('check')}Pra agir — ${n}</span><span class="sub" style="margin:0; font-size:.78rem">clique num item, o detalhe abre ao lado</span></div>
+      ${listaFull}
+    </div>
+  </div>`;
 }
 function verPraAgir(){
   const itens=praAgir();
