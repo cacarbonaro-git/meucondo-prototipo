@@ -11,7 +11,7 @@
   :root{
     --verde:#0e7a5f; --verde-claro:#e6f4f0; --verde-escuro:#0a5c48;
     --gold:#eab14a;
-    --laranja:#e07b00; --laranja-txt:#9a5400; --vermelho:#c0392b; --vermelho-claro:#fdecea;
+    --laranja:#e07b00; --laranja-txt:#9a5400; --laranja-claro:#fff6ec; --vermelho:#c0392b; --vermelho-claro:#fdecea;
     --amarelo-claro:#fef5e7; --cinza:#4b5563; --cinza-claro:#f3f4f6;
     --borda:#e5e7eb; --texto:#1f2937; --branco:#fff;
   }
@@ -46,8 +46,10 @@
   @media (max-width:620px){ #app{padding-top:calc(112px + env(safe-area-inset-top))} }
   .tela{display:none; padding:0 16px}
   .tela.on{display:block}
-  .praagir-full{display:none}
   .inad-desk{display:none}
+  .resumo-bal{width:100%; text-align:left; display:block; cursor:pointer; background:var(--branco); font-family:inherit}
+  .resumo-bal:hover{border-color:var(--verde)}
+  #menu .desk-only, #menu .menu-sep-desk{display:none}
   .tbl-sind{width:100%; border-collapse:collapse; margin-bottom:8px}
   .tbl-sind th{text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--cinza); padding:9px 12px; border-bottom:2px solid var(--borda); white-space:nowrap}
   .tbl-sind td{padding:12px; border-bottom:1px solid var(--borda); font-size:.9rem; vertical-align:middle}
@@ -226,7 +228,7 @@
      Dark mode padrão (#050816), roxo royal, dourado só em selo premium,
      vidro no modal. "Nunca parecer sistema de administração de condomínio." */
   body.tema-p{--verde:#5B4DFF; --verde-claro:#221d4d; --verde-escuro:#C9C2FF;
-    --laranja:#FBBF24; --vermelho:#F87171; --vermelho-claro:#3a1320; --amarelo-claro:#3a2a10;
+    --laranja:#FBBF24; --laranja-txt:#F7B733; --laranja-claro:#2a1f0a; --vermelho:#F87171; --vermelho-claro:#3a1320; --amarelo-claro:#3a2a10;
     --cinza:#9AA1B8; --cinza-claro:#101B33; --borda:#232C47; --texto:#F5F6FA; --branco:#0B1430;
     background:#050816}
   body.tema-p #app{background:#050816}
@@ -406,6 +408,9 @@
     }
     body[data-perfil="sindico"] #menu button .ico{ font-size:1.15rem; width:22px; text-align:center }
     body[data-perfil="sindico"] #menu button.on{ background:var(--verde-claro) }
+    /* desktop: a sidebar do síndico expõe os destinos profundos direto (grupo Gerir) */
+    body[data-perfil="sindico"] #menu .desk-only{ display:flex }
+    body[data-perfil="sindico"] #menu .menu-sep-desk{ display:block; margin:14px 12px 4px; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--cinza); font-weight:700 }
     body[data-perfil="sindico"] #app{
       max-width:1360px; margin:0; padding:80px 48px 48px 300px;
     }
@@ -415,8 +420,8 @@
        o dashboard real virá por reestruturação explícita da TELAS.inicio em colunas) */
 
     /* detalhe abre como painel lateral direito = master-detail (isto funcionou) */
-    body[data-perfil="sindico"] #fundo-modal{ align-items:stretch; justify-content:flex-end; background:transparent; pointer-events:none; padding-top:52px }
-    body[data-perfil="sindico"] #modal{ height:auto; max-height:none; width:470px; max-width:470px; border-radius:0; pointer-events:auto; box-shadow:none; border-left:1px solid var(--borda); background:var(--branco) }
+    body[data-perfil="sindico"] #fundo-modal{ align-items:stretch; justify-content:flex-end; background:transparent; pointer-events:none; padding:52px 0 0 0 }
+    body[data-perfil="sindico"] #modal{ height:calc(100vh - 52px); max-height:none; width:470px; max-width:470px; border-radius:0; pointer-events:auto; box-shadow:none; border-left:1px solid var(--borda); background:var(--branco); overflow-y:auto }
     body[data-perfil="sindico"] #app{ transition:padding-right .22s ease }
     body[data-perfil="sindico"].md-open #app{ padding-right:504px }
     body[data-perfil="sindico"].md-open .home-sindico .dash{ grid-template-columns:1fr }
@@ -425,10 +430,11 @@
 
     /* Fase 2b: home vira dashboard de colunas explícitas (validado no estudo) */
     body[data-perfil="sindico"] .home-sindico .dash{ display:grid; grid-template-columns:1.55fr 1fr; gap:22px; align-items:start }
+    /* itens de grid têm min-width:auto e não encolhem → transbordam sob a coluna de detalhe.
+       min-width:0 deixa a coluna respeitar o recuo (padding-right) quando o detalhe abre. */
+    body[data-perfil="sindico"] .home-sindico .dash > *{ min-width:0 }
     body[data-perfil="sindico"] .home-sindico .dash .full{ grid-column:1 / -1 }
     body[data-perfil="sindico"] .gerir-grid > .item{ flex-basis:calc(33.333% - 6px) !important }
-    body[data-perfil="sindico"] .praagir-preview{ display:none !important }
-    body[data-perfil="sindico"] .praagir-full{ display:block }
     body[data-perfil="sindico"] .inad-desk{ display:block }
     body[data-perfil="sindico"] .inad-mob{ display:none }
   }
@@ -453,7 +459,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.91';
+const VERSAO='v4.105';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1316,10 +1322,29 @@ const PERFIS_COND={
 const PERFIL_COND_LABEL={clube:'Condomínio-clube', padrao:'Padrão', simples:'Prédio simples', custom:'Personalizado'};
 /* 'comercial' (uso misto) é toggle independente — não entra no match dos presets Clube/Padrão/Simples */
 function perfilCondAtual(){ const a=Object.keys(modulos).filter(k=>k!=='comercial'&&modOn(k)).sort().join(','); for(const p in PERFIS_COND){ if(PERFIS_COND[p].slice().sort().join(',')===a) return p; } return 'custom'; }
+/* Menu — mobile: só as abas do perfil (barra inferior). Desktop (síndico ≥1024):
+   a sidebar ganha os destinos profundos direto (grupo "Gerir"), aproveitando o
+   espaço vertical. Os extras usam .desk-only, escondidos no mobile via CSS. */
+function menuBtnsHTML(p){
+  const base=navItens(p).map(([id,icn,lbl])=>`<button id="mb-${id}" onclick="irPara('${id}')"><span class="ico">${ico(icn)}</span>${lbl}</button>`).join('');
+  if(p!=='sindico') return base;
+  const extra=[
+    ['pessoas','pessoas','Pessoas & papéis',"irPara('pessoas')"],
+    ['cdocs','pasta','Documentos & laudos',"irPara('cdocs')"],
+    ['reservas','calendario','Reservas',"irPara('reservas')"],
+    modOn('agenda')?['agenda','checklist','Agenda & obrigações',"irPara('agenda')"]:null,
+    modOn('integracoes')?['integracoes','importar','Integrações',"irPara('integracoes')"]:null,
+    ['fontesEdi','robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')"],
+    ['auditoria','checklist','Trilha de auditoria',"irPara('auditoria')"],
+  ].filter(Boolean);
+  return base
+    + `<div class="menu-sep-desk desk-only">Gerir o condomínio</div>`
+    + extra.map(([id,icn,lbl,fn])=>`<button id="mb-${id}" class="desk-only" onclick="${fn}"><span class="ico">${ico(icn)}</span>${lbl}</button>`).join('');
+}
 function refreshNav(){
   const m=document.getElementById('menu'); if(!m) return;
   const itens=navItens(perfil); if(!itens.length) return; /* na entrada ainda não há perfil */
-  m.innerHTML=itens.map(([id,icn,lbl])=>`<button id="mb-${id}" onclick="irPara('${id}')"><span class="ico">${ico(icn)}</span>${lbl}</button>`).join('');
+  m.innerHTML=menuBtnsHTML(perfil);
   irPara(itens.some(it=>it[0]===telaAtual)?telaAtual:itens[0][0]);
 }
 function setPerfilCond(p){ const on=PERFIS_COND[p]||[]; Object.keys(modulos).forEach(k=>{ if(k!=='comercial') modulos[k]=on.includes(k); }); aposModulo(); }
@@ -1337,7 +1362,7 @@ function trocarPerfil(p){
   $('#rb-cog')&&$('#rb-cog').classList.add('on');
   const m=$('#menu');
   const itens=navItens(p);
-  m.innerHTML = itens.map(([id,icn,lbl])=>`<button id="mb-${id}" onclick="irPara('${id}')"><span class="ico">${ico(icn)}</span>${lbl}</button>`).join('');
+  m.innerHTML = menuBtnsHTML(p);
   irPara(itens[0][0]);
 }
 function irPara(tela){
@@ -1545,6 +1570,7 @@ TELAS.inicio = () => {
     <div class="linha1"><span class="nome">${tIco('alerta')}${venc} manutenç${venc>1?'ões vencidas':'ão vencida'}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip vermelho">prazo legal ›</span></span></div>
   </button>`:''}
 
+  ${assembleiaSindicoCard()}
   ${praAgirCard()}
   </div><div class="dash-side">
   <div class="secao">Comunidade &amp; indicadores</div>
@@ -1567,10 +1593,10 @@ TELAS.inicio = () => {
     ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
   </div>
   </div><div class="full">
-<h2>Balancete de maio</h2>
-  <div class="item"><div class="linha1"><span class="nome">Receitas ${fmt(28350)} · Despesas ${fmt(24180)}</span><span class="chip verde">+ ${fmt(4170)}</span></div>
-  <div class="sub">Pessoal 46% · Manutenção 22% · Consumo 19% · Administrativa 13%</div>
-<div class="botoes"><button class="btn principal" onclick="mesGraf=4;verBalancete()">${tIco('grafico')}Ver gráfico</button><button class="btn claro" onclick="toast('No produto final: balancete completo exportável em Excel')">Exportar Excel</button></div></div>
+  <button class="item resumo-bal" onclick="mesGraf=4;verBalancete()">
+    <div class="linha1"><span class="nome">${tIco('grafico')}Maio fechou <b style="color:var(--verde)">+${fmt(4170)}</b></span><span class="chip verde">ver balancete ›</span></div>
+    <div class="sub" style="margin-top:2px">Receitas ${fmt(28350)} · Despesas ${fmt(24180)}</div>
+  </button>
   </div></div>
 </div>`;
 };
@@ -1708,7 +1734,7 @@ TELAS.manutencao = () => {
   const boardHtml=`<div style="display:flex; gap:10px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:8px; margin-bottom:8px">
     ${colsBoard.map(([lbl,st,cor])=>{const its=baseAll.filter(x=>x.m.status===st);
       return `<div style="flex:0 0 80%; max-width:290px; min-width:225px; background:var(--cinza-claro); border-radius:12px; padding:10px">
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:9px"><span style="width:9px; height:9px; border-radius:50%; background:var(--${cor}); flex:0 0 auto"></span><span style="font-weight:700; font-size:.82rem">${lbl}</span><span class="chip cinza" style="border:none; padding:1px 7px; font-size:.66rem; background:#fff">${its.length}</span></div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:9px"><span style="width:9px; height:9px; border-radius:50%; background:var(--${cor}); flex:0 0 auto"></span><span style="font-weight:700; font-size:.82rem">${lbl}</span><span class="chip cinza" style="border:none; padding:1px 7px; font-size:.66rem; background:var(--branco)">${its.length}</span></div>
         ${its.length?its.map(x=>cardMini(x.m,x.ix)).join(''):`<div class="sub" style="opacity:.55; font-size:.74rem; padding:6px 2px">nada aqui</div>`}
       </div>`;}).join('')}
   </div>
@@ -2084,7 +2110,7 @@ function slotsHtml(area, clicavel){
       const eMinha=minha(s), oc=!eMinha&&ocupadoOutro(s);
       if(eMinha) return `<button class="chip verde" style="${base}; cursor:${clicavel?'pointer':'default'}; box-shadow:inset 0 0 0 2px var(--verde-escuro)" ${clicavel?`onclick="cancelarSlotPergunta('${area}',${dx.m},${dx.d},'${s}')"`:''}>${tIco('check')}${s} · sua reserva</button>`;
       if(oc) return `<button class="chip cinza" style="${base}; opacity:.5; cursor:default" disabled>${s} · ocupado</button>`;
-      return `<button class="chip" style="${base}; background:#fff; color:var(--verde-escuro); box-shadow:inset 0 0 0 1.5px var(--verde); cursor:${clicavel?'pointer':'default'}" ${clicavel?`onclick="pedirSlot('${area}',${dx.m},${dx.d},'${s}')"`:''}>${s}</button>`;
+      return `<button class="chip" style="${base}; background:var(--branco); color:var(--verde-escuro); box-shadow:inset 0 0 0 1.5px var(--verde); cursor:${clicavel?'pointer':'default'}" ${clicavel?`onclick="pedirSlot('${area}',${dx.m},${dx.d},'${s}')"`:''}>${s}</button>`;
     }).join('')}
   </div>`;
 }
@@ -2736,7 +2762,7 @@ TELAS.mhome = () => {
      como fallback. Rollback: versoes/v2.38_*.html */
   return `<div class="tela on">
   <div class="topo" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px">
-    <div><h1>Oi, ${MORADOR.nome.split(' ')[0]}!</h1><button onclick="verImoveis()" style="background:none; border:none; padding:0; margin:0; color:var(--cinza); font-family:inherit; font-size:inherit; cursor:pointer; text-align:left">${MORADOR.un} · ${MORADOR.papel} · ${COND.nome}${meusImoveis.length>1?' <span style="color:var(--verde-escuro); font-weight:700">▾ trocar imóvel</span>':''}</button></div>
+    <div><h1>Oi, ${MORADOR.nome.split(' ')[0]}!</h1><button onclick="verImoveis()" style="background:none; border:none; padding:0; margin:2px 0 0; color:inherit; opacity:.85; font-family:inherit; font-size:.85rem; cursor:pointer; text-align:left">${MORADOR.un} · ${MORADOR.papel} · ${COND.nome}${meusImoveis.length>1?' <span style="font-weight:700; text-decoration:underline; opacity:1">▾ trocar imóvel</span>':''}</button></div>
     ${(()=>{const u=notificacoesMorador().filter(n=>!n.lida).length;
       return `<button aria-label="Notificações${u?` — ${u} nova${u>1?'s':''}`:''}" onclick="verNotificacoes()" style="position:relative; flex:0 0 auto; background:none; border:none; padding:6px; margin-top:2px; color:var(--texto); cursor:pointer">
         <span style="display:inline-block; width:24px; height:24px">${ico('sino')}</span>
@@ -2764,6 +2790,7 @@ TELAS.mhome = () => {
 
   ${resumoMoradorCard()}
   <div class="secao">AGORA</div>
+  ${assembleiaAoVivoCard('morador')}
   ${agendaMoradorCard()}
   ${entregaEsperadaCard()}
   ${(()=>{const est=estadoVotacao(); const j=assembleia.votoJanela; const votou=!!assembleia.votoRemoto[MORADOR.un]; const proc=assembleia.procuracoes[MORADOR.un];
@@ -2774,6 +2801,7 @@ TELAS.mhome = () => {
     return `<button class="item" style="width:100%; text-align:left; display:block; border-color:var(--verde)" onclick="abrirVotacao()">
       <div class="linha1"><span class="nome">${tIco('checklist')}Assembleia 25/06 — votação aberta</span><span class="chip ${votou?'verde':proc?'cinza':'laranja'}">${votou?'voto enviado':proc?'procuração':'votar agora ›'}</span></div>
       <div class="sub" style="margin-top:5px">${votou?'Seu voto está registrado — pode alterar até '+j.fecha+'.':proc?'Você deu procuração para '+proc+'.':'Vote à distância pela pauta — aberta até '+j.fecha+', vale como presença.'}</div></button>`;})()}
+  ${!assembleia.modoVivo?`<button class="btn claro" style="width:100%; justify-content:center; margin:2px 0 6px" onclick="toggleLembreteAsm()">${asmLembrete?'✓ Vou te lembrar 2h antes da assembleia':'🔔 Lembrar 2h antes da assembleia'}</button>`:''}
   ${minhaEnc?`<div class="item" style="border-color:var(--laranja)">
     <div class="linha1"><span class="nome">${tIco('pacote')}Encomenda na portaria!</span><span class="chip cinza">${minhaEnc.transp}</span></div>
     <div style="display:flex; gap:10px; align-items:center; margin-top:8px">
@@ -3351,7 +3379,6 @@ let laudos = [
   {tipo:'Laudo',      titulo:'SPDA / para-raios',             resp:'Eng. Marcelo Prado',   crea:'CREA-SP 5069841', emitido:'03/04/2026', validade:'03/04/2027', norma:'NBR 5419',           manut:'Para-raios (SPDA)'},
   {tipo:'ART',        titulo:'Recarga de extintores',         resp:'Téc. Anderson Lima',   crea:'CFT 1120334',     emitido:'20/07/2025', validade:'20/07/2026', norma:'NBR 12962',          manut:'Extintores'},
   {tipo:'Laudo',      titulo:'Inspeção predial — fachada e estrutura', resp:'Eng. Civ. Renata Souza', crea:'CREA-SP 5088120', emitido:'10/03/2026', validade:'10/03/2031', norma:'NBR 16747 · CC 1.341', manut:null},
-  {tipo:'Certificado',titulo:'AVCB — Auto de Vistoria do Corpo de Bombeiros', resp:'CBPMESP', crea:'—',          emitido:'15/05/2025', validade:'15/05/2027', norma:'IT-01 CBPMESP',       manut:null},
 ];
 function validadeStatus(v){
   if(!v||v==='—') return {label:'por execução', cor:'cinza'};
@@ -3362,15 +3389,17 @@ function validadeStatus(v){
   return {label:'válido até '+v, cor:'verde'};
 }
 function laudoDaManu(m){ return laudos.find(l=>l.manut && (m.item||'').includes(l.manut)); }
+const laudosOrdenados=()=>{const ord=l=>{const c=validadeStatus(l.validade).cor; return c==='vermelho'?0:c==='laranja'?1:c==='verde'?2:3;}; return [...laudos].sort((a,b)=>ord(a)-ord(b));};
+function laudoRow(l){
+  const s=validadeStatus(l.validade); const i=laudos.indexOf(l);
+  return `<button class="item" style="width:100%; text-align:left; display:block" onclick="abrirLaudoDoc(${i})">
+    <div class="linha1"><span class="nome" style="font-size:.92rem"><span class="chip cinza" style="border:none; margin-right:5px">${l.tipo}</span>${l.titulo}</span><span class="chip ${s.cor}">${s.label} ›</span></div>
+    <div class="sub" style="margin-top:3px">${l.resp} · ${l.crea} · emitido ${l.emitido} · ${l.norma}</div></button>`;
+}
 function verLaudosArts(){
-  const ord=l=>{const c=validadeStatus(l.validade).cor; return c==='vermelho'?0:c==='laranja'?1:c==='verde'?2:3;};
-  const lst=[...laudos].sort((a,b)=>ord(a)-ord(b));
   abrirModal(`<h3>${tIco('pasta')}Laudos &amp; ARTs técnicos</h3>
     <div class="sub" style="margin-bottom:10px">Documentos de responsabilidade técnica recebidos — <b>ART</b>, <b>laudo</b> e <b>certificado</b>, com o responsável (CREA/CFT) e a validade. O ${nomeAssist} sabe quais obras exigem ART e avisa quando faltar ou vencer.</div>
-    ${lst.map(l=>{const s=validadeStatus(l.validade); const i=laudos.indexOf(l);
-      return `<button class="item" style="width:100%; text-align:left; display:block" onclick="abrirLaudoDoc(${i})">
-      <div class="linha1"><span class="nome" style="font-size:.92rem"><span class="chip cinza" style="border:none; margin-right:5px">${l.tipo}</span>${l.titulo}</span><span class="chip ${s.cor}">${s.label} ›</span></div>
-      <div class="sub" style="margin-top:3px">${l.resp} · ${l.crea} · emitido ${l.emitido} · ${l.norma}</div></button>`;}).join('')}
+    ${laudosOrdenados().map(laudoRow).join('')}
     <div class="aviso-lgpd">Guarda a prova de conformidade que a lei exige (elétrica NR-10, elevador NR-12, estrutural CC art. 1.341, SPDA NBR 5419, gás). Somente leitura para o conselho; sobrevive à troca de síndico.</div>`);
 }
 function abrirLaudoDoc(i){
@@ -3416,14 +3445,22 @@ function concluirAssinatura(){
   assinatura=null; fecharModal(); atualizar();
   toast('Assinada e arquivada no acervo (Documentos).');
 }
-TELAS.cdocs = () => `<div class="tela on">
+TELAS.cdocs = () => {
+  const aggCor = laudos.some(l=>validadeStatus(l.validade).cor==='vermelho')?'vermelho':laudos.some(l=>validadeStatus(l.validade).cor==='laranja')?'laranja':'verde';
+  return `<div class="tela on">
   <div class="topo"><h1>${tIco("pasta")}Documentos do condomínio</h1><p>Acervo que sobrevive à troca de síndico</p></div>
-  ${docsAssinados.length?`<div class="secao" style="margin-top:0">ASSINADOS RECENTEMENTE</div>${docsAssinados.map(d=>`<button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verDoc('${d.titulo.replace(/['"]/g,'')}','${d.info.replace(/['"]/g,'')}')"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('contrato')}${d.titulo}</span><span class="chip verde">assinada ›</span></div><div class="sub">${d.info}</div></button>`).join('')}<div class="secao">ACERVO</div>`:''}
+  ${docsAssinados.length?`<div class="secao" style="margin-top:0">ASSINADOS RECENTEMENTE</div>${docsAssinados.map(d=>`<button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verDoc('${d.titulo.replace(/['"]/g,'')}','${d.info.replace(/['"]/g,'')}')"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('contrato')}${d.titulo}</span><span class="chip verde">assinada ›</span></div><div class="sub">${d.info}</div></button>`).join('')}`:''}
+
+  <div class="secao"${docsAssinados.length?'':' style="margin-top:0"'}>ACERVO INSTITUCIONAL</div>
   ${[['Convenção condominial','registrada em cartório · 1998'],['Regimento interno','última revisão 03/2024'],['Atas de assembleia','12 documentos · 2019–2026'],['Apólice do seguro obrigatório','vigência até 20/08/2026'],['AVCB','válido até 15/05/2027'],['Prestações de contas','mensais desde 01/2024'],['Contratos de prestadores','elevador, limpeza, dedetização']].map(d=>`
   <button class="item" style="width:100%; text-align:left; display:block" onclick="${d[0]==='Atas de assembleia'?'verAssembleiasAnteriores()':`verDoc('${d[0]}','${d[1]}')`}"><div class="linha1"><span class="nome" style="font-size:.9rem">${d[0]}</span><span style="color:var(--cinza)">›</span></div><div class="sub">${d[1]}</div></button>`).join('')}
-  <button class="item" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verLaudosArts()"><div class="linha1"><span class="nome" style="font-size:.9rem">${tIco('balanca')}Laudos &amp; ARTs técnicos</span><span class="chip ${laudos.some(l=>validadeStatus(l.validade).cor==='vermelho')?'vermelho':laudos.some(l=>validadeStatus(l.validade).cor==='laranja')?'laranja':'verde'}">${laudos.length} docs ›</span></div><div class="sub">ART, laudo e certificado — responsável técnico (CREA/CFT) e validade</div></button>
+
+  <div class="secao" style="display:flex; align-items:center; justify-content:space-between">${tIco('balanca')}<span style="flex:1; margin-left:6px">LAUDOS &amp; ARTs TÉCNICOS</span><span class="chip ${aggCor}" style="border:none">${laudos.length} docs</span></div>
+  <div class="sub" style="margin:-4px 4px 8px">Responsabilidade técnica (CREA/CFT) e validade — o ${nomeAssist} avisa quando faltar ou vencer.</div>
+  ${laudosOrdenados().map(laudoRow).join('')}
+
   <div class="aviso-lgpd" style="margin-top:6px">Acervo somente leitura para o conselho. Os documentos de guarda obrigatória (atas, prestação de contas) não podem ser apagados.</div>
-</div>`;
+</div>`;};
 
 /* ===== AJUSTES — "deixe do seu jeito" (progresso + conversão por valor) ===== */
 /* "Terminar configuração" = assistente passo a passo (mesmo modelo do onboarding),
@@ -3697,6 +3734,9 @@ let assembleia={
   ],
   convocada:false, presentes:[], canais:{zap:false, app:false, print:false, painel:false},
   modoVivo:false, gravando:false, presentesN:34, votos:[], offPauta:false, ataGerada:false,
+  salaModo:'hibrida',        // presencial | hibrida | remota (formato da assembleia — CC 1.354-A / Lei 14.309/2022)
+  online:['A-204','B-408','B-1201','A-305','A-102','A-401'],   // unidades conectadas AO VIVO na sala (presença remota)
+  transIdx:0,                // quantas falas da transcrição já entraram
   votoJanela:{abre:'08/06', fecha:'25/06 19h30', modo:'híbrido', forcar:null}, // forcar: null | 'abrir' | 'fechar' (hoje da demo = 10/06)
   votoRemoto:{ 'A-110':{2:'sim',3:'nao'}, 'B-408':{2:'nao',3:'sim'}, 'A-204':{2:'sim',3:'sim'} },   // só itens de voto antecipado (2 e 3); os "ao vivo" são votados na assembleia
   procuracoes:{ 'B-605':'A-204' },
@@ -3715,6 +3755,7 @@ TELAS.assembleia = () => {
   const abas=`<div class="abas">
     <button class="${abaAsm==='convocacao'?'on':''}" onclick="abaAsm='convocacao';atualizar()"><span class="ico-in">${ico('megafone')}</span> Convocação</button>
     <button class="${abaAsm==='presenca'?'on':''}" onclick="abaAsm='presenca';atualizar()"><span class="ico-in">${ico('pessoas')}</span> Presença</button>
+    <button class="${abaAsm==='sala'?'on':''}" onclick="abaAsm='sala';atualizar()"><span class="ico-in">${ico('microfone')}</span> Sala${a.modoVivo?' <span style="color:var(--vermelho)">●</span>':''}</button>
     <button class="${abaAsm==='ata'?'on':''}" onclick="abaAsm='ata';atualizar()"><span class="ico-in">${ico('contrato')}</span> Ata</button>
   </div>`;
   let corpo='';
@@ -3752,6 +3793,9 @@ TELAS.assembleia = () => {
     ${UNIDADES_DEMO.map(u=>{const p=a.presentes.includes(u);
       return `<button class="chip ${p?'verde':'cinza'}" style="border:none; margin:3px; cursor:pointer" onclick="togglePresenca('${u}')">${p?' ':''}${u}</button>`;}).join('')}
     <div class="aviso-lgpd">No produto final: lista completa das 60 unidades, procurações registradas e peso por fração ideal calculado automaticamente.</div>`;
+  }
+  if(abaAsm==='sala'){
+    corpo=salaAssembleiaHtml();
   }
   if(abaAsm==='ata'){
     corpo=ataAssembleiaHtml();
@@ -3811,11 +3855,13 @@ function avaliarFinal(p,v,presN){
   return {flag:false, resultado:`Reprovado (${v.sim} a favor, ${v.nao} contra, ${v.abst} abst.${remTxt}).`};
 }
 function iniciarAssembleiaVivo(){
-  const a=assembleia; a.modoVivo=true; a.gravando=true; a.ataGerada=false;
+  const a=assembleia; a.modoVivo=true; a.gravando=true; a.ataGerada=false; a.transIdx=0;
   if(!a.votos.length) a.votos=a.pauta.map((p,i)=> i===3?{sim:22,nao:8,abst:4}:([{sim:30,nao:2,abst:2},{sim:28,nao:4,abst:1},{sim:25,nao:7,abst:2}][i]||{sim:0,nao:0,abst:0}));
+  abaAsm='sala';
   atualizar();
+  asmTransStart();   // transcrição começa a rolar
 }
-function encerrarAssembleiaVivo(){ assembleia.modoVivo=false; assembleia.gravando=false; toast('Modo ao vivo encerrado — a ata-rascunho fica salva pra revisão.'); atualizar(); }
+function encerrarAssembleiaVivo(){ assembleia.modoVivo=false; assembleia.gravando=false; asmTransStop(); toast('Sala encerrada — a ata-rascunho fica salva pra revisão.'); atualizar(); }
 function votoMais(i,t){ assembleia.votos[i][t]++; atualizar(); }
 function votoMenos(i,t){ assembleia.votos[i][t]=Math.max(0,assembleia.votos[i][t]-1); atualizar(); }
 function ataRascunhoHtml(){
@@ -3838,30 +3884,82 @@ function ataRascunhoHtml(){
 }
 function ataAssembleiaHtml(){
   const a=assembleia;
+  if(a.ataGerada) return ataRascunhoHtml();
+  const ata=`ATA DA ASSEMBLEIA GERAL ORDINÁRIA — ${COND.nome}\n\nAos 25/06/2026, às 20h (2ª chamada), no ${a.local}, reuniram-se ___ unidades, conforme lista de presença.\n\n${a.pauta.map((p,i)=>`${i+1}. ${p.t}: [deliberação] — aprovado/reprovado por [votos]`).join('\n\n')}\n\nNada mais havendo, lavrou-se a presente ata.\nPresidente da mesa: ____________   Secretário: ____________`;
+  return `<div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome">${tIco('microfone')}A ata sai da Sala ao vivo</span><span class="chip verde">recomendado</span></div>
+    <div class="sub" style="margin-top:5px">Conduza a assembleia pela aba <b>Sala</b> — grava, transcreve, registra o voto item a item (presencial + online) e o ${nomeAssist} confere quórum e legalidade. A ata sai como rascunho pronto pra revisar e assinar.</div>
+    <button class="btn principal" style="margin-top:10px" onclick="abaAsm='sala';atualizar()"><span class="ico-in">${ico('microfone')}</span> Ir para a Sala</button></div>
+    <div class="sub" style="margin:14px 0 6px"><b>Modelo de ata (manual)</b> — se preferir lavrar à mão</div>
+    <div class="msg-preview" style="white-space:pre-wrap">${ata}</div>
+    <div class="botoes"><button class="btn claro" onclick="copiar(document.querySelector('.msg-preview').textContent,'Modelo de ata copiado')">Copiar modelo</button></div>`;
+}
+/* ===== SALA DA ASSEMBLEIA (ao vivo) — presencial, híbrida ou 100% remota ===== */
+const TRANSCRICAO_ASM=[
+  {who:'Síndico (Roberto)', hora:'20h03', t:'Boa noite a todos, presenciais e quem está online. Declaro aberta a assembleia em 2ª chamada. A reunião está sendo gravada e transcrita — a ata sai dessa transcrição.'},
+  {who:'Secretária (Mariana)', hora:'20h04', t:'Temos 34 unidades na sala e 6 conectadas online, mais 3 votos remotos antecipados. Quórum atingido.'},
+  {who:'Síndico (Roberto)', hora:'20h05', t:'Item 1 da pauta: prestação de contas 2025/2026. Passo a palavra ao conselho fiscal.'},
+  {who:'Conselho (A-204, online)', hora:'20h07', t:'Contas conferidas. Uma ressalva no reparo da bomba, já esclarecida com a nota fiscal. Parecer favorável.'},
+  {who:'B-408 (online)', hora:'20h09', t:'De acordo com o parecer. Podemos votar.'},
+  {who:'Síndico (Roberto)', hora:'20h10', t:'Em votação o item 1. Presenciais nos crachás, online pelo app.'},
+  {who:'Secretária (Mariana)', hora:'20h12', t:'Item 1 aprovado. Seguindo para o item 2, eleição do conselho fiscal.'},
+  {who:'A-110 (presencial)', hora:'20h14', t:'Inscrevo a chapa atual para recondução. Não há chapa concorrente.'},
+  {who:'Síndico (Roberto)', hora:'20h16', t:'Item 2 em votação. Item 3 e 4 já têm voto antecipado computado; vamos confirmar ao vivo.'},
+];
+let asmTransTimer=null;
+function asmTransHtml(){
+  const lst=TRANSCRICAO_ASM.slice(0, assembleia.transIdx);
+  if(!lst.length) return `<div class="sub" style="margin:0">Aguardando a primeira fala…</div>`;
+  return lst.map(l=>`<div style="margin-bottom:9px"><div style="display:flex; gap:8px; align-items:baseline"><b style="font-size:.82rem; color:var(--verde-escuro)">${l.who}</b><span class="sub" style="margin:0; font-size:.72rem">${l.hora}</span></div><div class="sub" style="margin:2px 0 0; color:var(--texto)">${l.t}</div></div>`).join('');
+}
+function asmTransStop(){ if(asmTransTimer){ clearInterval(asmTransTimer); asmTransTimer=null; } }
+function asmTransStart(){
+  asmTransStop();
+  asmTransTimer=setInterval(()=>{
+    const box=document.getElementById('sala-trans');
+    if(!box || !assembleia.modoVivo){ asmTransStop(); return; }        // saiu da sala/encerrou
+    if(!assembleia.gravando) return;                                    // gravação pausada
+    if(assembleia.transIdx>=TRANSCRICAO_ASM.length){ asmTransStop(); return; }
+    assembleia.transIdx++;
+    box.innerHTML=asmTransHtml(); box.scrollTop=box.scrollHeight;
+  }, 2400);
+}
+function setSalaModo(m){ assembleia.salaModo=m; atualizar(); }
+function salaAssembleiaHtml(){
+  const a=assembleia;
+  const MODOS={presencial:'Presencial', hibrida:'Híbrida (sala + online)', remota:'100% remota'};
   if(!a.modoVivo){
-    const ata=`ATA DA ASSEMBLEIA GERAL ORDINÁRIA — ${COND.nome}\n\nAos 25/06/2026, às 20h (2ª chamada), no ${a.local}, reuniram-se ___ unidades, conforme lista de presença.\n\n${a.pauta.map((p,i)=>`${i+1}. ${p.t}: [deliberação] — aprovado/reprovado por [votos]`).join('\n\n')}\n\nNada mais havendo, lavrou-se a presente ata.\nPresidente da mesa: ____________   Secretário: ____________`;
-    return `<div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome">${tIco('microfone')}Modo assembleia (ao vivo)</span><span class="chip verde">novo</span></div>
-      <div class="sub" style="margin-top:5px">Grava a reunião, registra o voto item a item e o ${nomeAssist} confere quórum e legalidade em tempo real — a ata sai como rascunho pra você revisar e assinar.</div>
-      <button class="btn principal" style="margin-top:10px" onclick="iniciarAssembleiaVivo()"><span class="ico-in">${ico('microfone')}</span> Iniciar modo assembleia</button></div>
-      <div class="sub" style="margin:14px 0 6px"><b>Modelo de ata (manual)</b></div>
-      <div class="msg-preview" style="white-space:pre-wrap">${ata}</div>
-      <div class="botoes"><button class="btn claro" onclick="copiar(document.querySelector('.msg-preview').textContent,'Modelo de ata copiado')">Copiar modelo</button></div>
-      <div class="aviso-lgpd">No modo ao vivo, todos os presentes são avisados da gravação (LGPD) — voz é dado pessoal; o registro oficial é a ata, não o áudio, que pode ser descartado após a aprovação.</div>`;
+    const opt=(k)=>`<button class="chip ${a.salaModo===k?'verde':'cinza'}" style="border:none; cursor:pointer" onclick="setSalaModo('${k}')">${MODOS[k]}</button>`;
+    return `<div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome">${tIco('microfone')}Sala da assembleia</span><span class="chip verde">novo</span></div>
+      <div class="sub" style="margin-top:5px">Uma sala ao vivo que <b>grava e transcreve</b>, soma a presença de quem está na sala e de quem entra <b>online</b>, registra o <b>voto por item</b> dos dois lados e o ${nomeAssist} confere quórum e legalidade — a ata sai como rascunho pronto pra assinar. Assembleia virtual e híbrida têm respaldo no <b>art. 1.354-A do Código Civil</b> (Lei 14.309/2022).</div>
+      <div class="sub" style="margin:12px 0 6px; font-weight:700; color:var(--cinza)">Formato desta assembleia</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap">${opt('presencial')}${opt('hibrida')}${opt('remota')}</div>
+      <button class="btn principal btn-grande" style="margin-top:12px" onclick="iniciarAssembleiaVivo()"><span class="ico-in">${ico('microfone')}</span> Entrar na sala e iniciar</button>
+      <div class="aviso-lgpd" style="margin-top:10px">Todos os participantes são avisados da gravação (LGPD) — a voz é dado pessoal. O registro oficial é a <b>ata</b>, não o áudio, que pode ser descartado após a aprovação.</div></div>`;
   }
+  const presenciais = a.salaModo==='remota'?0:a.presentesN;
+  const online = a.online.length;
+  const quorumVivo = presenciais + online;
   const itens=a.pauta.map((p,i)=>{const v=a.votos[i]||{sim:0,nao:0,abst:0}; const s=statusItem(i);
     const stepper=(t,lbl,cor)=>`<div style="display:flex; align-items:center; gap:8px"><button class="chip cinza" style="border:none; min-width:32px" onclick="votoMenos(${i},'${t}')">−</button><b style="min-width:28px; text-align:center; color:${cor}">${v[t]}</b><button class="chip cinza" style="border:none; min-width:32px" onclick="votoMais(${i},'${t}')">+</button><span class="sub" style="margin:0">${lbl}</span></div>`;
     return `<div class="item"><div class="linha1"><span class="nome" style="font-size:.9rem">${i+1}. ${p.t}</span><span class="chip ${s.chip[1]}">${s.chip[0]}</span></div>
       <div class="sub" style="margin:2px 0 8px">${s.hint}</div>
       <div style="display:flex; flex-direction:column; gap:6px">${stepper('sim','a favor','var(--verde-escuro)')}${stepper('nao','contra','var(--vermelho)')}${stepper('abst','abstenção','var(--cinza)')}</div></div>`;}).join('');
-  return `<div class="item" style="border-color:var(--vermelho)"><div class="linha1"><span class="nome">${a.gravando?'<span style="color:var(--vermelho)">● Gravando</span>':'Gravação pausada'}</span>${a.gravando?`<button class="chip cinza" style="border:none" onclick="assembleia.gravando=false;atualizar()">Pausar</button>`:`<button class="chip verde" style="border:none" onclick="assembleia.gravando=true;atualizar()">Retomar</button>`}</div>
-    <div class="sub" style="margin-top:4px">Transcrição automática (pt-BR, com identificação de quem fala).</div></div>
-    <div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome">${tIco('pessoas')}Apuração híbrida</span><span class="chip verde">${presentesEfetivo()} presentes</span></div>
-      <div class="sub" style="margin-top:3px">${a.presentesN} na sala + <b>${remotosCount()} por voto remoto (app)</b>${procuracoesCount()?` · ${procuracoesCount()} procuração(ões)`:''} — de 60 unidades. O voto remoto entra na apuração de cada item, com peso por fração ideal.</div></div>
-    <div class="sub" style="margin:12px 0 6px"><b>Votação por item</b> — presenciais nos botões; remotos somam sozinhos. O ${nomeAssist} confere o quórum ao vivo</div>
+  return `<div class="item" style="border-color:var(--vermelho)"><div class="linha1"><span class="nome">${a.gravando?'<span style="color:var(--vermelho)">● Ao vivo · gravando</span>':'Gravação pausada'}</span><span style="display:flex; gap:6px; align-items:center"><span class="chip cinza" style="border:none">${MODOS[a.salaModo]}</span>${a.gravando?`<button class="chip cinza" style="border:none" onclick="assembleia.gravando=false;atualizar()">Pausar</button>`:`<button class="chip verde" style="border:none" onclick="assembleia.gravando=true;atualizar()">Retomar</button>`}</span></div></div>
+
+    <div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome">${tIco('pessoas')}Quem está na sala</span><span class="chip verde">${quorumVivo} ao vivo · quórum ok</span></div>
+      <div class="sub" style="margin-top:4px">${presenciais?`<b>${presenciais}</b> presenciais · `:''}<b>${online}</b> online${procuracoesCount()?` · ${procuracoesCount()} procuração(ões)`:''} — de 60 unidades. ${remotosCount()?`Mais <b>${remotosCount()}</b> voto(s) remoto(s) antecipado(s), que entram na apuração.`:''}</div>
+      <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:8px">${a.online.map(u=>`<span class="chip cinza" style="border:none">${tIco('pessoas')}${u} · online</span>`).join('')}</div></div>
+
+    <div class="item" style="border-color:var(--borda)"><div class="linha1"><span class="nome">${tIco('microfone')}Transcrição ao vivo</span><span class="sub" style="margin:0; font-size:.74rem">pt-BR · identifica quem fala</span></div>
+      <div id="sala-trans" style="margin-top:8px; max-height:200px; overflow-y:auto; padding-right:4px">${asmTransHtml()}</div></div>
+
+    <div class="sub" style="margin:14px 0 6px"><b>Votação por item</b> — presenciais e online somam juntos; o ${nomeAssist} confere o quórum ao vivo.</div>
     ${itens}
     <label style="display:flex; align-items:flex-start; gap:8px; font-weight:400; color:var(--texto); margin:10px 0"><input type="checkbox" ${a.offPauta?'checked':''} onclick="assembleia.offPauta=!assembleia.offPauta;atualizar()" style="width:auto; margin:3px 0 0"> <span>Registrar um tema levantado <b>fora da pauta</b> (ex.: câmeras na garagem) <span class="sub" style="margin:0">— pra ver o ${nomeAssist} alertar que não é deliberável</span></span></label>
-    <button class="btn principal btn-grande" onclick="assembleia.ataGerada=true;atualizar()"><span class="ico-in">${ico('contrato')}</span> Gerar ata-rascunho</button>
-    ${a.ataGerada?ataRascunhoHtml():''}`;
+    <div class="botoes">
+      <button class="btn principal btn-grande" onclick="assembleia.ataGerada=true;abaAsm='ata';asmTransStop();atualizar()"><span class="ico-in">${ico('contrato')}</span> Encerrar e gerar ata</button>
+      <button class="btn claro" onclick="encerrarAssembleiaVivo()">Encerrar sem gerar</button>
+    </div>`;
 }
 /* ===== JANELA DE VOTAÇÃO (agendada → aberta → encerrada) ===== */
 function _ddmm(s){const m=(s||'').match(/(\d\d)\/(\d\d)/); return m?new Date(hoje.getFullYear(),+m[2]-1,+m[1]):null;}
@@ -4244,6 +4342,7 @@ const PRESTADORES=[
 /* ===== CENTRAL DE INTEGRAÇÕES (configuração — síndico / administradora) ===== */
 let integracoes = [
   {fam:'Comunicação', nome:'WhatsApp Business', sub:'Avisos, cobrança e respostas do Edi pelo número oficial do condomínio.', status:'conectada', sync:'há 4 min', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'Cloud API (Meta) + webhook', badge:'nativo', edge:false},
+  {fam:'Comunicação', nome:'Mídia de elevador (TV)', sub:'Leva os comunicados do condomínio às telas dos elevadores da rede de mídia (FocusMídia, Elemídia, TV Síndico). A publicidade veiculada é rateada e abate parte da taxa.', status:'naoconfig', autor:'—', quando:'—', dono:'condominio', proto:'API/CMS de digital signage · playlist', badge:'homologado', edge:false},
   {fam:'Financeiro', nome:'PIX / banco', sub:'Gera o PIX da taxa e dá baixa automática quando o morador paga.', status:'conectada', sync:'há 1 h', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'API PIX (BACEN) + webhook', badge:'nativo', edge:false},
   {fam:'Financeiro', nome:'Boleto registrado', sub:'Emissão e conciliação de boletos bancários.', status:'pendente', det:'Falta o convênio do banco — aguardando a administradora liberar.', autor:'—', quando:'—', dono:'carteira', proto:'CNAB / convênio bancário', badge:'homologado', edge:false},
   {fam:'Financeiro', nome:'ERP contábil', sub:'Exporta os lançamentos pro sistema contábil da administradora.', status:'conectada', sync:'ontem', autor:'Administradora', quando:'12/05', dono:'carteira', proto:'API / arquivo (CSV·OFX)', badge:'homologado', edge:false},
@@ -4866,27 +4965,52 @@ function praAgir(){
       itens.push({cor: st[1]==='vermelho'?'vermelho':'laranja', tit:`${e.titulo.split('—')[0].trim()} — ${st[0]}${e.status==='andamento'?' · em andamento':''}`, ctx:e.base||'Obrigação do ano — planeje com antecedência.', acao:'Providenciar', fn:`fecharModal();verObrigacao(${e.id})`}); } });
   return itens;
 }
+/* ===== ASSEMBLEIA NA HOME — descoberta + "acontecendo agora" + lembrete ===== */
+let asmLembrete=false;
+function toggleLembreteAsm(){ asmLembrete=!asmLembrete; toast(asmLembrete?'Feito — a gente te lembra 2h antes e 15 min antes (WhatsApp + app).':'Lembrete da assembleia removido.'); atualizar(); }
+function diasParaAssembleia(){ const alvo=new Date(2026,5,25); const h=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()); return Math.round((alvo-h)/86400000); }
+function assembleiaAoVivoCard(perfil){
+  const a=assembleia; if(!a.modoVivo) return '';
+  const sind=perfil==='sindico';
+  const pauta=a.pauta[0]?` Em pauta: ${a.pauta[0].t}.`:'';
+  return `<div class="item" style="border:2px solid var(--vermelho); background:var(--vermelho-claro)">
+    <div class="linha1"><span class="nome"><span style="color:var(--vermelho)">●</span> Assembleia ao vivo agora</span><span class="chip vermelho">em andamento</span></div>
+    <div class="sub" style="margin:5px 0 9px">${a.data.split(',')[0]} · ${a.local}. ${sind?'Conduza a sala, registre os votos e gere a ata.':'Entre pra acompanhar e votar ao vivo — vale como presença.'}${pauta}</div>
+    <button class="btn principal btn-grande" onclick="${sind?"irPara('assembleia');abaAsm='sala';atualizar()":'abrirVotacao()'}">${tIco('microfone')}Entrar na assembleia</button>
+  </div>`;
+}
+function assembleiaSindicoCard(){
+  const a=assembleia;
+  if(a.modoVivo) return assembleiaAoVivoCard('sindico');
+  const d=diasParaAssembleia();
+  const quando = d>1?`em ${d} dias`:d===1?'amanhã':d===0?'hoje':'encerrada';
+  return `<div class="item" style="border-color:var(--verde)">
+    <div class="linha1"><span class="nome">${tIco('checklist')}Assembleia ${a.data.split(',')[0]}</span><span class="chip ${d<=1&&d>=0?'laranja':'cinza'}">${quando}</span></div>
+    <div class="sub" style="margin:4px 0 9px">${a.local} · ${(a.data.split(', ')[1]||'')}. Convocação, presença, sala ao vivo e ata — num lugar só.${a.convocada?'':' <b>Ainda não convocada.</b>'}</div>
+    <div class="botoes">
+      <button class="btn principal" style="flex:0 0 auto" onclick="irPara('assembleia')">Abrir o kit</button>
+      <button class="btn claro" style="flex:0 0 auto" onclick="irPara('assembleia');abaAsm='sala';atualizar()">${tIco('microfone')}Iniciar a sala</button>
+      <button class="btn claro" style="flex:0 0 auto" onclick="toggleLembreteAsm()">${asmLembrete?'✓ Lembrete 2h antes':'🔔 Lembrar 2h antes'}</button>
+    </div>
+  </div>`;
+}
 function praAgirCard(){
   const itens=praAgir();
   const n=itens.length;
   const cardC=c=>c==='acao'?'gold':c;
-  const listaFull = n ? itens.map(i=>`<div class="item" style="border-left:3px solid var(--${cardC(i.cor)})">
-      <div class="linha1"><span class="nome" style="font-size:.95rem">${i.tit}</span></div>
-      <div class="sub" style="margin-top:3px">${i.ctx}</div>
-      <div class="botoes" style="justify-content:flex-end; margin-top:8px">
-        ${i.sec?`<button class="btn claro" style="flex:0 0 auto; padding:8px 13px; font-size:13px" onclick="${i.secfn}">${i.sec}</button>`:''}
-        <button class="btn principal" style="flex:0 0 auto; padding:8px 13px; font-size:13px" onclick="${i.fn}">${i.acao}</button>
-      </div></div>`).join('') : vazio('check','Tudo em dia','Sem pendências que dependam de você agora.');
-  return `<div class="praagir-wrap" style="margin:2px 0 6px">
-    <button class="item praagir-preview" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde)" onclick="verPraAgir()">
-      <div class="linha1"><span class="nome">${tIco('check')}Pra agir</span><span class="chip ${n?'laranja':'verde'}">${n?n+' pendência'+(n>1?'s':''):'tudo em dia'} ›</span></div>
-      <div class="sub" style="margin-top:5px">Tudo que depende de você num lugar — aprove, responda ou delegue de uma vez. No produto final chega no seu WhatsApp toda segunda.</div>
-    </button>
-    <div class="praagir-full">
-      <div class="linha1" style="margin:0 0 8px 2px; display:flex; align-items:baseline; gap:8px"><span class="nome">${tIco('check')}Pra agir — ${n}</span><span class="sub" style="margin:0; font-size:.78rem">clique num item, o detalhe abre ao lado</span></div>
-      ${listaFull}
-    </div>
-  </div>`;
+  const lbl=c=>c==='vermelho'?['urgente','vermelho']:c==='acao'?['aprovar','laranja']:['a vencer','laranja'];
+  const preview = itens.slice(0,3).map(i=>{const L=lbl(i.cor);
+    return `<div style="display:flex; align-items:center; gap:9px; padding:9px 0; border-top:1px solid var(--borda)">
+      <span style="width:8px; height:8px; border-radius:50%; background:var(--${cardC(i.cor)}); flex:0 0 auto"></span>
+      <span style="flex:1; min-width:0; font-size:.88rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${i.tit}</span>
+      <span class="chip ${L[1]}" style="flex:0 0 auto">${L[0]}</span>
+    </div>`;}).join('');
+  return `<button class="item praagir-wrap" style="width:100%; text-align:left; display:block; border-left:3px solid var(--verde); margin:2px 0 6px" onclick="verPraAgir()">
+    <div class="linha1"><span class="nome">${tIco('check')}Pra agir</span><span class="chip ${n?'laranja':'verde'}">${n?n+' pendência'+(n>1?'s':''):'tudo em dia'} ›</span></div>
+    <div class="sub" style="margin-top:5px">Tudo que depende de você num lugar — aprove, responda ou delegue. ${n?'Abra a fila pra resolver de uma vez (no desktop, o detalhe abre ao lado).':'Sem pendências agora.'}</div>
+    ${preview}
+    ${n?`<div class="sub" style="margin-top:9px; color:var(--verde-escuro); font-weight:700">${n>3?`+ ${n-3} — abrir a fila completa`:'Abrir a fila completa'} ›</div>`:''}
+  </button>`;
 }
 function verPraAgir(){
   const itens=praAgir();
@@ -6129,33 +6253,44 @@ function logAudit(a, ator){ auditoria.unshift({q:hojeData(), ator:ator||(PERFIS_
 let auditFiltro='Todos', auditMes='Todos';
 const mmAudit=e=>(e.q.split('/')[1]||'');
 const icoAudit=a=>/comunicad/.test(a)?'megafone':/parecer/.test(a)?'grafico':/despesa/.test(a)?'cifrao':/reforma/.test(a)?'martelo':/manuten/.test(a)?'chave':/chave|entrega|acesso|portaria/.test(a)?'porta':'checklist';
-function verAuditoria(){
+/* re-render sensível ao contexto: como página (tela) no desktop/sidebar, como modal no mobile/gerir */
+function auditRerender(){ if(telaAtual==='auditoria'){ irPara('auditoria'); } else { verAuditoria(); } }
+/* corpo compartilhado — pg=true remove o teto de altura da lista (vira página) */
+function auditoriaBody(pg){
   const atores=[...new Set(auditoria.map(e=>e.ator))];
   const meses=[...new Set(auditoria.map(mmAudit))].sort((a,b)=>b.localeCompare(a));
   if(auditFiltro!=='Todos'&&!atores.includes(auditFiltro)) auditFiltro='Todos';
   if(auditMes!=='Todos'&&!meses.includes(auditMes)) auditMes='Todos';
   const lista=auditoria.filter(e=>(auditFiltro==='Todos'||e.ator===auditFiltro)&&(auditMes==='Todos'||mmAudit(e)===auditMes));
   const rotuloLbl='font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--cinza); margin:0 0 5px';
-  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('checklist')}Trilha de auditoria</h3>
+  return `<h3 style="display:flex; align-items:center; gap:8px">${tIco('checklist')}Trilha de auditoria</h3>
     <div class="sub" style="margin-bottom:10px">Quem fez o quê e quando — registro que sobrevive à troca de síndico. Síndico e conselho fiscal veem; é a blindagem da gestão e da prestação de contas.</div>
     <div style="${rotuloLbl}">Quem</div>
     <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:10px">
-      ${['Todos',...atores].map(a=>`<button class="chip ${auditFiltro===a?'verde':'cinza'}" style="border:none; flex:0 0 auto; white-space:nowrap" onclick="auditFiltro='${a}';verAuditoria()">${a}</button>`).join('')}
+      ${['Todos',...atores].map(a=>`<button class="chip ${auditFiltro===a?'verde':'cinza'}" style="border:none; flex:0 0 auto; white-space:nowrap" onclick="auditFiltro='${a}';auditRerender()">${a}</button>`).join('')}
     </div>
     <div style="${rotuloLbl}">Quando</div>
     <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:12px">
-      ${['Todos',...meses].map(m=>`<button class="chip ${auditMes===m?'verde':'cinza'}" style="border:none; flex:0 0 auto; white-space:nowrap" onclick="auditMes='${m}';verAuditoria()">${m==='Todos'?'Todos':MES_NOME[+m]+'/2026'}</button>`).join('')}
+      ${['Todos',...meses].map(m=>`<button class="chip ${auditMes===m?'verde':'cinza'}" style="border:none; flex:0 0 auto; white-space:nowrap" onclick="auditMes='${m}';auditRerender()">${m==='Todos'?'Todos':MES_NOME[+m]+'/2026'}</button>`).join('')}
     </div>
-    <div style="max-height:42vh; overflow-y:auto">
+    <div class="inad-desk"><table class="tbl-sind">
+      <thead><tr><th style="width:20%">Quando</th><th style="width:22%">Quem</th><th>Ação</th></tr></thead>
+      <tbody>${lista.length?lista.map(e=>`<tr><td style="white-space:nowrap; color:var(--cinza)">${e.q}</td><td><span style="display:inline-flex; align-items:center; gap:7px"><span class="ico-in" style="color:var(--cinza)">${ico(icoAudit(e.a))}</span><b>${e.ator}</b></span></td><td>${e.a}</td></tr>`).join(''):`<tr><td colspan="3"><span class="sub" style="margin:0">Nenhum registro com esse filtro.</span></td></tr>`}</tbody>
+    </table></div>
+    <div class="inad-mob" style="${pg?'':'max-height:42vh; overflow-y:auto'}">
       ${lista.length?lista.map(e=>`<div class="item" style="padding:11px 13px"><div class="linha1"><span class="nome" style="font-size:.9rem; display:flex; align-items:center; gap:7px"><span class="ico-in" style="color:var(--cinza)">${ico(icoAudit(e.a))}</span>${e.ator}</span><span class="chip cinza">${e.q}</span></div><div class="sub" style="margin-top:2px">${e.a}</div></div>`).join(''):vazio('checklist','Nenhum registro com esse filtro','Ajuste ou limpe os filtros acima.')}
     </div>
     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px">
       <span class="sub" style="margin:0">${lista.length} de ${auditoria.length} registro(s)${auditFiltro!=='Todos'?' · '+auditFiltro:''}${auditMes!=='Todos'?' · '+MES_NOME[+auditMes]:''}.</span>
-      ${(auditFiltro!=='Todos'||auditMes!=='Todos')?`<button class="chip cinza" style="border:none; flex:0 0 auto" onclick="auditFiltro='Todos';auditMes='Todos';verAuditoria()">✕ limpar</button>`:''}
+      ${(auditFiltro!=='Todos'||auditMes!=='Todos')?`<button class="chip cinza" style="border:none; flex:0 0 auto" onclick="auditFiltro='Todos';auditMes='Todos';auditRerender()">✕ limpar</button>`:''}
     </div>
-    <div class="aviso-lgpd">No produto final cada registro é datado com carimbo de tempo e não pode ser editado nem apagado — vale como prova em prestação de contas e na passagem de gestão. Com muito histórico, o "Quando" vira seletor de mês/ano.</div>
-    <button class="btn principal btn-grande" onclick="auditFiltro='Todos';auditMes='Todos';fecharModal()">Fechar</button>`);
+    <div class="aviso-lgpd">No produto final cada registro é datado com carimbo de tempo e não pode ser editado nem apagado — vale como prova em prestação de contas e na passagem de gestão. Com muito histórico, o "Quando" vira seletor de mês/ano.</div>`;
 }
+function verAuditoria(){
+  abrirModal(auditoriaBody(false)+`<button class="btn principal btn-grande" onclick="auditFiltro='Todos';auditMes='Todos';fecharModal()">Fechar</button>`);
+}
+/* tela cheia (sidebar do desktop): troca a coluna principal como qualquer outro destino */
+TELAS.auditoria = () => `<div class="tela on" id="tela-auditoria">${auditoriaBody(true)}</div>`;
 function auditoriaCardSindico(){
   const u=auditoria[0];
   return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verAuditoria()">
