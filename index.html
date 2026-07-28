@@ -459,7 +459,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.105';
+const VERSAO='v4.110';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -587,13 +587,14 @@ let ajLista=[]; let ajStep=0;
 
 /* ---------- dados fictícios ---------- */
 let inadimplentes = [
-  {un:'A-102', resp:'Marcos Pereira',  tel:'5511990000001', meses:['Mai/2026','Jun/2026'], dias:36},
-  {un:'A-204', resp:'Fernanda Lima',   tel:'5511990000002', meses:['Jun/2026'],            dias:5, alugada:true},
-  {un:'A-307', resp:'Roberto Nakamura',tel:'5511990000003', meses:['Abr/2026','Mai/2026','Jun/2026'], dias:66},
-  {un:'B-401', resp:'Juliana Castro',  tel:'',              meses:['Jun/2026'],            dias:5},
-  {un:'B-503', resp:'Antônio Ferreira',tel:'5511990000005', meses:['Dez/2025','Jan/2026','Fev/2026','Mar/2026','Abr/2026','Mai/2026','Jun/2026'], dias:187},
-  {un:'B-605', resp:'Patrícia Gomes',  tel:'5511990000006', meses:['Mai/2026','Jun/2026'], dias:36},
+  {un:'A-102', resp:'Marcos Pereira',  tel:'5511990000001', meses:['Mai/2026','Jun/2026'], dias:36, cobr:'lembrete enviado'},
+  {un:'A-204', resp:'Fernanda Lima',   tel:'5511990000002', meses:['Jun/2026'],            dias:5, alugada:true, cobr:'1º aviso'},
+  {un:'A-307', resp:'Roberto Nakamura',tel:'5511990000003', meses:['Abr/2026','Mai/2026','Jun/2026'], dias:66, cobr:'notificado'},
+  {un:'B-401', resp:'Juliana Castro',  tel:'',              meses:['Jun/2026'],            dias:5, cobr:'a avisar'},
+  {un:'B-503', resp:'Antônio Ferreira',tel:'5511990000005', meses:['Dez/2025','Jan/2026','Fev/2026','Mar/2026','Abr/2026','Mai/2026','Jun/2026'], dias:187, cobr:'em cobrança'},
+  {un:'B-605', resp:'Patrícia Gomes',  tel:'5511990000006', meses:['Mai/2026','Jun/2026'], dias:36, cobr:'lembrete enviado'},
 ];
+const corCobr=s=>/notific|cobran|judicial/i.test(s||'')?'vermelho':/lembrete/i.test(s||'')?'laranja':'cinza';
 function faixa(d){ return d<=30?['1–30 dias','laranja']:d<=60?['31–60 dias','laranja']:d<=90?['61–90 dias','vermelho']:['90+ dias','vermelho']; }
 const faixaKey=d=>d<=30?'1–30':d<=60?'31–60':d<=90?'61–90':'90+';
 let inadFaixa='Todas';
@@ -1332,7 +1333,7 @@ function menuBtnsHTML(p){
     ['pessoas','pessoas','Pessoas & papéis',"irPara('pessoas')"],
     ['cdocs','pasta','Documentos & laudos',"irPara('cdocs')"],
     ['reservas','calendario','Reservas',"irPara('reservas')"],
-    modOn('agenda')?['agenda','checklist','Agenda & obrigações',"irPara('agenda')"]:null,
+    modOn('agenda')?['agenda','checklist','Agenda do prédio',"irPara('agenda')"]:null,
     modOn('integracoes')?['integracoes','importar','Integrações',"irPara('integracoes')"]:null,
     ['fontesEdi','robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')"],
     ['auditoria','checklist','Trilha de auditoria',"irPara('auditoria')"],
@@ -1589,7 +1590,7 @@ TELAS.inicio = () => {
     ${gerirEntrada('pasta','Documentos & laudos',"irPara('cdocs')",(()=>{const venc=laudos.some(l=>validadeStatus(l.validade).cor==='vermelho');const prox=laudos.some(l=>validadeStatus(l.validade).cor==='laranja');return[venc?'vencido':prox?'a vencer':'ok',venc?'vermelho':prox?'laranja':'verde'];})())}
     ${modOn('integracoes')?gerirEntrada('importar','Integrações',"irPara('integracoes')",(()=>{const p=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;return[p?''+p:'ok',p?'laranja':'verde'];})()):''}
     ${gerirEntrada('calendario','Agenda de reservas',"irPara('reservas')")}
-    ${modOn('agenda')?gerirEntrada('checklist','Agenda & obrigações',"irPara('agenda')",(()=>{const p=agendaEventos.some(e=>(e.publico==='sindico'||e.publico==='ambos')&&agStatus(e.data)[1]==='laranja');return[p?'a vencer':'ok',p?'laranja':'verde'];})()):''}
+    ${modOn('agenda')?gerirEntrada('checklist','Agenda do prédio',"irPara('agenda')",(()=>{const p=agendaEventos.some(e=>(e.publico==='sindico'||e.publico==='ambos')&&agStatus(e.data)[1]==='laranja');return[p?'a vencer':'ok',p?'laranja':'verde'];})()):''}
     ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
   </div>
   </div><div class="full">
@@ -1618,16 +1619,17 @@ TELAS.inadimplencia = () => {
   ${filtroTorreHtml()}
   ${faixaRow}
   ${lista.length?`
-  <div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Unidade</th><th>Responsável</th><th>Atraso</th><th class="n">Comp.</th><th class="n">Saldo</th><th></th></tr></thead><tbody>
-    ${lista.map(({i,ix})=>{ const [f,c]=faixa(i.dias); return `<tr onclick="verCobranca(${ix})" style="cursor:pointer">
+  <div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Unidade</th><th>Responsável</th><th>Atraso</th><th class="n">Comp.</th><th class="n">Saldo</th><th>Situação</th><th></th></tr></thead><tbody>
+    ${lista.map(({i,ix})=>{ const c=faixa(i.dias)[1]; return `<tr onclick="verCobranca(${ix})" style="cursor:pointer">
       <td><b>${i.un}</b>${i.alugada?` ${tIco('casa')}`:''}</td><td>${i.resp}</td>
-      <td><span class="chip ${c}">${f}</span></td><td class="n">${i.meses.length}</td>
-      <td class="n"><b>${fmt(divida(i))}</b></td><td style="text-align:right; color:var(--cinza)">›</td></tr>`;}).join('')}
+      <td><span class="chip ${c}">${i.dias} dias</span></td><td class="n">${i.meses.length}</td>
+      <td class="n"><b>${fmt(divida(i))}</b></td><td><span class="chip ${corCobr(i.cobr)}">${i.cobr}</span></td><td style="text-align:right; color:var(--cinza)">›</td></tr>`;}).join('')}
   </tbody></table></div>
-  <div class="inad-mob">${lista.map(({i,ix})=>{ const [f,c]=faixa(i.dias); return `
+  <div class="inad-mob">${lista.map(({i,ix})=>{ const c=faixa(i.dias)[1]; return `
     <button class="item" style="width:100%; text-align:left; display:block" onclick="verCobranca(${ix})">
-      <div class="linha1"><span class="nome">${i.un} — ${i.resp}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${c}">${f}</span><span style="color:var(--cinza)">›</span></span></div>
+      <div class="linha1"><span class="nome">${i.un} — ${i.resp}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${c}">${i.dias} dias</span><span style="color:var(--cinza)">›</span></span></div>
       <div class="sub">${i.meses.length} competência(s) · saldo <b>${fmt(divida(i))}</b>${i.alugada?` · ${tIco('casa')}alugada`:''}</div>
+      <div class="sub" style="margin-top:4px"><span class="chip ${corCobr(i.cobr)}" style="border:none">${i.cobr}</span></div>
     </button>`;}).join('')}</div>
   `:vazio('check','Ninguém nessa faixa','Troque o filtro de atraso ou de torre.')}
   <div class="aviso-lgpd">Toque numa unidade para cobrar ou dar baixa. Multa de 2% + juros de 1% a.m. conforme o Código Civil (art. 1.336 §1º) — o sistema não permite configurar acima do teto legal.</div>
@@ -2408,6 +2410,18 @@ function agFmt(data){ const [y,m,d]=data.split('-').map(Number); const dt=new Da
 function agIco(cat){ return {interrupcao:'chave',assembleia:'checklist',obrigacao:'alerta',contrato:'caderno',mandato:'pessoas'}[cat]||'calendario'; }
 function agToggleLembrete(id){ agLembrete[id]=!agLembrete[id]; toast(agLembrete[id]?'Pronto — te lembro 1 dia antes.':'Lembrete removido.'); irPara('agenda'); }
 /* obrigação acionável: o síndico dá sequência dentro do app (não é só um lembrete passivo) */
+/* stepper do ciclo da obrigação: Aberto → Providenciar → Em andamento → Resolvido */
+function stepperObr(status){
+  const steps=['Aberto','Providenciar','Em andamento','Resolvido'];
+  const idx = status==='resolvido'?3:status==='andamento'?2:status==='providenciar'?1:0;
+  return `<div style="display:flex; margin:12px 0 14px">${steps.map((s,k)=>{
+    const done=k<idx, cur=k===idx, dot=done?'var(--verde)':cur?'var(--laranja)':'var(--borda)';
+    return `<div style="flex:1; text-align:center; position:relative; min-width:0">
+      ${k>0?`<div style="position:absolute; top:8px; right:50%; width:100%; height:2px; background:${k<=idx?'var(--verde)':'var(--borda)'}"></div>`:''}
+      <div style="position:relative; z-index:1; width:18px; height:18px; border-radius:50%; margin:0 auto 6px; background:${dot}; display:flex; align-items:center; justify-content:center; ${cur?'box-shadow:0 0 0 4px var(--amarelo-claro)':''}">${done?'<span style="color:#fff; font-size:.62rem; line-height:1">✓</span>':''}</div>
+      <div style="font-size:.7rem; font-weight:${cur?'700':'600'}; color:${done||cur?'var(--texto)':'var(--cinza)'}; line-height:1.15; padding:0 2px">${s}</div>
+    </div>`;}).join('')}</div>`;
+}
 function verObrigacao(id){
   const e=agendaEventos.find(x=>x.id===id); if(!e) return;
   const st=agStatus(e.data);
@@ -2416,32 +2430,38 @@ function verObrigacao(id){
   const resolvido = e.status==='resolvido';
   const ct = contratos.find(c=>c.agendaId===e.id);
   abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco(agIco(e.cat))}${e.titulo}</h3>
-    <div class="sub" style="margin-bottom:4px">Prazo: <b>${agFmt(e.data)}</b> · <span class="chip ${resolvido?'verde':e.status==='andamento'?'laranja':st[1]}">${resolvido?'resolvido ✓':e.status==='andamento'?'em andamento':st[0]}</span></div>
+    <div class="sub" style="margin-bottom:4px">Prazo: <b>${agFmt(e.data)}</b> · <span class="chip ${resolvido?'verde':(e.status==='andamento'||e.status==='providenciar')?'laranja':st[1]}">${resolvido?'resolvido ✓':e.status==='andamento'?'em andamento':e.status==='providenciar'?'providenciando':st[0]}</span></div>
+    ${stepperObr(e.status)}
     <div class="sub" style="margin-bottom:8px; font-size:.82rem">${clip()}${e.base||''}</div>
     <div class="item" style="padding:9px 12px; margin-bottom:8px"><div class="sub" style="margin:0; font-size:.79rem"><b>De onde vem esta data:</b> ${ct?`contrato de ${ct.nome} — você informou início/prazo/reajuste e o app derivou o vencimento`:(eleicao?'convenção — início do mandato + duração (CC art. 1.347)':'validade do próprio documento (AVCB / apólice / alvará) — anexe o PDF pra o Edi ler')}</div></div>
     ${resolvido
       ? `<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="sub" style="margin:0">${tIco('check')}Concluído e comprovante no acervo de Documentos. Próxima renovação reagendada e na trilha de auditoria.</div></div>`
-      : `<div class="botoes" style="flex-direction:column">
-        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="${ct?`novoContrato(${ct.id})`:'novoContrato()'}">${tIco('contrato')}${ct?'Ver / atualizar o contrato (datas)':'Cadastrar o prazo / enviar o documento'}</button>
-        ${vendor?`<button class="btn principal btn-grande" onclick="obrProvidenciar(${id})">${tIco('maleta')}Pedir 3 orçamentos aos fornecedores</button>`:''}
-        ${eleicao?`<button class="btn principal btn-grande" onclick="fecharModal();irPara('assembleia')">${tIco('checklist')}Incluir a eleição na pauta da assembleia</button>`:''}
-        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrRascunho(${id})">${clip()}Rascunho do Edi (pedido/comunicado pronto)</button>
-        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrDelegar(${id})">${tIco('pessoas')}Delegar ao auxiliar de gestão</button>
-        ${e.status!=='andamento'?`<button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrStatus(${id},'andamento')">${tIco('lapis')}Marcar em andamento</button>`:''}
-        <button class="btn claro btn-grande" style="justify-content:flex-start" onclick="obrResolver(${id})">${tIco('check')}Marcar resolvido — anexar comprovante</button>
-      </div>`}
+      : (()=>{ const orcaP = vendor && e.status!=='providenciar' && e.status!=='andamento';
+        const primaria = eleicao
+          ? `<button class="btn principal" style="flex-basis:100%" onclick="fecharModal();irPara('assembleia')">${tIco('checklist')}Incluir na pauta</button>`
+          : orcaP
+            ? `<button class="btn principal" style="flex-basis:100%" onclick="obrProvidenciar(${id})">${tIco('maleta')}Pedir 3 orçamentos</button>`
+            : `<button class="btn principal" style="flex-basis:100%" onclick="obrResolver(${id})">${tIco('check')}Marcar resolvido</button>`;
+        return `<div class="botoes" style="margin-top:12px">
+          ${primaria}
+          <button class="btn claro" onclick="${ct?`novoContrato(${ct.id})`:'novoContrato()'}">${tIco('contrato')}${ct?'Atualizar contrato':'Cadastrar prazo'}</button>
+          <button class="btn claro" onclick="obrRascunho(${id})">${clip()}Rascunho do Edi</button>
+          <button class="btn claro" onclick="obrDelegar(${id})">${tIco('pessoas')}Delegar</button>
+          ${e.status!=='andamento'?`<button class="btn claro" onclick="obrStatus(${id},'andamento')">${tIco('lapis')}Em andamento</button>`:''}
+          ${(eleicao||orcaP)?`<button class="btn claro" onclick="obrResolver(${id})">${tIco('check')}Marcar resolvido</button>`:''}
+        </div>`;})()}
     <div class="aviso-lgpd">Cada ação entra na trilha de auditoria. Ao resolver, o comprovante (novo AVCB/apólice/alvará) vai pro acervo de Documentos e a próxima renovação é reagendada — o síndico do ano que vem já herda o calendário.</div>`);
 }
-function obrProvidenciar(id){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status='andamento';
+function obrProvidenciar(id){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status='providenciar';
   if(typeof logAudit==='function') logAudit(`iniciou a renovação de "${e.titulo}" (pediu orçamentos)`,'Síndico');
-  fecharModal(); toast('Pedido de orçamento gerado — no produto, vai aos fornecedores cadastrados; entra em "em andamento".'); atualizar(); }
+  atualizar(); verObrigacao(id); toast('Pedido de orçamento gerado — vai aos fornecedores; avançou para "Providenciar".'); }
 function obrRascunho(id){ const e=agendaEventos.find(x=>x.id===id); toast('Edi rascunhou o pedido/comunicado de "'+(e?e.titulo.split('—')[0].trim():'')+'" — revise e envie.'); }
 function obrDelegar(id){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; if(typeof logAudit==='function') logAudit(`delegou "${e.titulo}" ao auxiliar de gestão`,'Síndico'); toast('Delegado ao auxiliar (sob sua responsabilidade, CC art. 1.348) — auditado.'); }
-function obrStatus(id,s){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status=s; if(typeof logAudit==='function') logAudit(`marcou "${e.titulo}" como ${s}`,'Síndico'); fecharModal(); toast('Marcado como '+s+'.'); atualizar(); }
+function obrStatus(id,s){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status=s; if(typeof logAudit==='function') logAudit(`marcou "${e.titulo}" como ${s}`,'Síndico'); atualizar(); verObrigacao(id); toast('Marcado como '+s+'.'); }
 function obrResolver(id){ const e=agendaEventos.find(x=>x.id===id); if(!e) return; e.status='resolvido';
   if(typeof logAudit==='function') logAudit(`concluiu "${e.titulo}" e anexou o comprovante`,'Síndico');
   const proxAno=(+e.data.split('-')[0])+1;
-  fecharModal(); toast('Resolvido! Comprovante no acervo; próxima renovação reagendada para '+proxAno+'.'); atualizar(); }
+  atualizar(); verObrigacao(id); toast('Resolvido! Comprovante no acervo; próxima renovação reagendada para '+proxAno+'.'); }
 
 /* ===== CADASTRO DE CONTRATO — de onde a Agenda pega as datas ===== */
 function contratoDeriva(inicio, prazoMeses, dataBaseMes, avisoDias){
@@ -2511,7 +2531,7 @@ TELAS.agenda = () => {
     .slice().sort((a,b)=>a.data.localeCompare(b.data));
   const acion=e=> isS && (e.cat==='obrigacao'||e.cat==='contrato'||e.cat==='mandato');
   const card=e=>{const st=agStatus(e.data);
-    const chip = e.status==='resolvido'?['resolvido ✓','verde']:e.status==='andamento'?['em andamento','laranja']:st;
+    const chip = e.status==='resolvido'?['resolvido ✓','verde']:e.status==='andamento'?['em andamento','laranja']:e.status==='providenciar'?['providenciando','laranja']:st;
     const inner=`<div class="linha1"><span class="nome">${tIco(agIco(e.cat))}${e.titulo}</span><span class="chip ${chip[1]}">${chip[0]}${acion(e)?' ›':''}</span></div>
     <div class="sub" style="margin-top:4px">${agFmt(e.data)}${e.janela?' · '+e.janela:''}${e.afeta&&e.afeta!=='Condomínio'?' · '+e.afeta:''}</div>
     ${e.acao&&!isS?`<div class="sub" style="margin-top:3px">${e.acao}</div>`:''}
@@ -2520,7 +2540,7 @@ TELAS.agenda = () => {
     return acion(e)?`<button class="item" style="width:100%; text-align:left; display:block" onclick="verObrigacao(${e.id})">${inner}</button>`:`<div class="item">${inner}</div>`;};
   if(isS){
     return `<div class="tela on">
-      <div class="topo" style="display:flex; align-items:center; gap:12px"><button class="btn claro" style="flex:0 0 auto; padding:8px 12px" onclick="irPara('inicio')">‹ Voltar</button><div><h1 style="margin:0">${tIco('checklist')}Agenda & obrigações</h1><p style="margin:2px 0 0">O ano do síndico — nenhum prazo legal ou contrato perdido</p></div></div>
+      <div class="topo" style="display:flex; align-items:center; gap:12px"><button class="btn claro" style="flex:0 0 auto; padding:8px 12px" onclick="irPara('inicio')">‹ Voltar</button><div><h1 style="margin:0">${tIco('checklist')}Agenda do prédio</h1><p style="margin:2px 0 0">O ano do síndico — nenhum prazo legal ou contrato perdido</p></div></div>
       <button class="btn claro btn-grande" style="margin:2px 0 10px; justify-content:flex-start" onclick="novoContrato()">${tIco('contrato')}+ Cadastrar contrato / prazo — o app deriva as datas</button>
       ${evs.map(card).join('')}
       <div class="aviso-lgpd">Prazos de <b>equipamento</b> (elevador, extintores, laudos/ARTs) ficam em <b>Manutenção</b>; aqui estão as obrigações de <b>governança, seguro, contratos e mandato</b>. O Edi te avisa antes de cada uma vencer — é o que tira o "o que eu estou esquecendo?" da cabeça do síndico.</div>
@@ -4962,7 +4982,7 @@ function praAgir(){
      Só governança/seguro/contrato/mandato; interrupções e a AGO (já acima) ficam de fora pra não duplicar. */
   agendaEventos.forEach(e=>{ if((e.publico==='sindico'||e.publico==='ambos') && (e.cat==='obrigacao'||e.cat==='contrato'||e.cat==='mandato') && e.status!=='resolvido'){
     const st=agStatus(e.data); if(st[1]==='laranja'||st[1]==='vermelho')
-      itens.push({cor: st[1]==='vermelho'?'vermelho':'laranja', tit:`${e.titulo.split('—')[0].trim()} — ${st[0]}${e.status==='andamento'?' · em andamento':''}`, ctx:e.base||'Obrigação do ano — planeje com antecedência.', acao:'Providenciar', fn:`fecharModal();verObrigacao(${e.id})`}); } });
+      itens.push({cor: st[1]==='vermelho'?'vermelho':'laranja', tit:`${e.titulo.split('—')[0].trim()} — ${st[0]}${e.status==='andamento'?' · em andamento':e.status==='providenciar'?' · providenciando':''}`, ctx:e.base||'Obrigação do ano — planeje com antecedência.', acao:'Providenciar', fn:`fecharModal();verObrigacao(${e.id})`}); } });
   return itens;
 }
 /* ===== ASSEMBLEIA NA HOME — descoberta + "acontecendo agora" + lembrete ===== */
