@@ -422,6 +422,8 @@
     /* detalhe abre como painel lateral direito = master-detail (isto funcionou) */
     body[data-perfil="sindico"] #fundo-modal{ align-items:stretch; justify-content:flex-end; background:transparent; pointer-events:none; padding:52px 0 0 0 }
     body[data-perfil="sindico"] #modal{ height:calc(100vh - 52px); max-height:none; width:470px; max-width:470px; border-radius:0; pointer-events:auto; box-shadow:none; border-left:1px solid var(--borda); background:var(--branco); overflow-y:auto }
+    /* a coluna de detalhe tem ~470px: cards de 4-col (regra ≥700px) vazam → 2 col aqui */
+    body[data-perfil="sindico"] #modal .cards{ grid-template-columns:1fr 1fr }
     body[data-perfil="sindico"] #app{ transition:padding-right .22s ease }
     body[data-perfil="sindico"].md-open #app{ padding-right:504px }
     body[data-perfil="sindico"].md-open .home-sindico .dash{ grid-template-columns:1fr }
@@ -459,7 +461,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.110';
+const VERSAO='v4.113';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1300,7 +1302,7 @@ function abrirModal(html){ $('#modal').innerHTML=`<button class="fechar-x" oncli
 function fecharModal(){ if(wlEditing){ wlEditing=false; if(wlSnap){ _wlPut(wlSnap); wlSnap=null; aplicarTema(); atualizar(); } } $('#fundo-modal').classList.remove('on'); document.body.classList.remove('md-open'); }
 
 const MENUS = {
-  sindico:[['inicio','casa','Início'],['inadimplencia','cifrao','Cobrança'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['comunicados','megafone','Comunicados']],
+  sindico:[['inicio','casa','Início'],['financeiro','cifrao','Financeiro'],['ocorrencias','balao','Ocorrências'],['manutencao','chave','Manutenção'],['comunicados','megafone','Comunicados']],
   portaria:[['encomendas','pacote','Encomendas'],['visitantes','porta','Visitantes'],['acessos','chave','Acessos']],
   zelador:[['rotina','checklist','Rotina'],['livro','caderno','Livro'],['manuzel','chave','Preventiva'],['triagem','maleta','Resolver'],['estoque','prancheta','Estoque']],
   conselho:[['ccontas','grafico','Contas'],['cdocs','pasta','Documentos']],
@@ -1618,8 +1620,13 @@ TELAS.inadimplencia = () => {
   <div class="topo"><h1>${tIco("cifrao")}Cobrança</h1><p>Visível só para você e o conselho (LGPD)</p></div>
   ${filtroTorreHtml()}
   ${faixaRow}
-  ${lista.length?`
-  <div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Unidade</th><th>Responsável</th><th>Atraso</th><th class="n">Comp.</th><th class="n">Saldo</th><th>Situação</th><th></th></tr></thead><tbody>
+  ${lista.length?inadTabelaHtml(lista):vazio('check','Ninguém nessa faixa','Troque o filtro de atraso ou de torre.')}
+  <div class="aviso-lgpd">Toque numa unidade para cobrar ou dar baixa. Multa de 2% + juros de 1% a.m. conforme o Código Civil (art. 1.336 §1º) — o sistema não permite configurar acima do teto legal.</div>
+</div>`;
+};
+/* tabela de inadimplência reutilizável (Cobrança + Financeiro): tabela no desktop, cards no mobile */
+function inadTabelaHtml(lista){
+  return `<div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Unidade</th><th>Responsável</th><th>Atraso</th><th class="n">Comp.</th><th class="n">Saldo</th><th>Situação</th><th></th></tr></thead><tbody>
     ${lista.map(({i,ix})=>{ const c=faixa(i.dias)[1]; return `<tr onclick="verCobranca(${ix})" style="cursor:pointer">
       <td><b>${i.un}</b>${i.alugada?` ${tIco('casa')}`:''}</td><td>${i.resp}</td>
       <td><span class="chip ${c}">${i.dias} dias</span></td><td class="n">${i.meses.length}</td>
@@ -1630,9 +1637,38 @@ TELAS.inadimplencia = () => {
       <div class="linha1"><span class="nome">${i.un} — ${i.resp}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${c}">${i.dias} dias</span><span style="color:var(--cinza)">›</span></span></div>
       <div class="sub">${i.meses.length} competência(s) · saldo <b>${fmt(divida(i))}</b>${i.alugada?` · ${tIco('casa')}alugada`:''}</div>
       <div class="sub" style="margin-top:4px"><span class="chip ${corCobr(i.cobr)}" style="border:none">${i.cobr}</span></div>
-    </button>`;}).join('')}</div>
-  `:vazio('check','Ninguém nessa faixa','Troque o filtro de atraso ou de torre.')}
-  <div class="aviso-lgpd">Toque numa unidade para cobrar ou dar baixa. Multa de 2% + juros de 1% a.m. conforme o Código Civil (art. 1.336 §1º) — o sistema não permite configurar acima do teto legal.</div>
+    </button>`;}).join('')}</div>`;
+}
+/* ===== FINANCEIRO — visão geral: KPIs + inadimplência + balancete num lugar só ===== */
+TELAS.financeiro = () => {
+  const totAberto = inadimplentes.reduce((s,i)=>s+divida(i),0);
+  const lista = inadimplentes.map(i=>({i,ix:inadimplentes.indexOf(i)})).sort((a,b)=>b.i.dias-a.i.dias);
+  const Mai = BALANCETE.meses.find(x=>x.m==='Mai') || {rec:28350,desp:24180,cat:[46,22,19,13]};
+  const saldo = Mai.rec - Mai.desp;
+  const comp = [['Pessoal',Mai.cat[0]],['Manutenção',Mai.cat[1]],['Consumo',Mai.cat[2]],['Administrativa',Mai.cat[3]]];
+  return `<div class="tela on">
+  <div class="topo"><h1>${tIco('cifrao')}Financeiro</h1><p>O dinheiro do prédio num lugar — tabela no desktop, cards no celular.</p></div>
+  <div class="cards" style="margin-bottom:6px">
+    <div class="card ok"><div class="num">${saldo>=0?'+':''}${fmt(saldo)}</div><div class="lbl">saldo de maio</div></div>
+    <div class="card aten"><div class="num">${fmt(totAberto)}</div><div class="lbl">${inadimplentes.length} unidades em atraso</div></div>
+    <div class="card"><div class="num">${fmt(25920)}</div><div class="lbl">arrecadado em junho</div></div>
+    <div class="card ok"><div class="num">${fmt(38400)}</div><div class="lbl">fundo de reserva</div></div>
+  </div>
+  <div class="secao" style="display:flex; align-items:center; justify-content:space-between">${tIco('alerta')}<span style="flex:1; margin-left:6px">INADIMPLÊNCIA</span><button class="chip cinza" style="border:none; cursor:pointer" onclick="irPara('inadimplencia')">filtros e ações ›</button></div>
+  ${lista.length?inadTabelaHtml(lista):vazio('check','Ninguém em atraso','Todas as unidades em dia.')}
+  <div class="secao">BALANCETE · MAIO</div>
+  <div class="fin-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+    <div class="item">
+      <div class="linha1"><span class="sub" style="margin:0">Receitas</span><b class="n" style="color:var(--verde-escuro)">${fmt(Mai.rec)}</b></div>
+      <div class="linha1" style="margin-top:6px"><span class="sub" style="margin:0">Despesas</span><b class="n">${fmt(Mai.desp)}</b></div>
+      <div class="linha1" style="margin-top:8px; border-top:1px solid var(--borda); padding-top:8px"><span class="nome">Saldo</span><b class="n" style="color:var(--verde-escuro)">${saldo>=0?'+':''}${fmt(saldo)}</b></div>
+    </div>
+    <div class="item">
+      <div class="sub" style="margin:0 0 8px; font-weight:700; color:var(--cinza); text-transform:uppercase; font-size:.7rem; letter-spacing:.04em">Composição das despesas</div>
+      ${comp.map(([l,p])=>`<div class="linha1" style="margin-bottom:5px"><span class="sub" style="margin:0">${l}</span><b class="n">${p}%</b></div>`).join('')}
+    </div>
+  </div>
+  <div class="botoes" style="margin-top:12px"><button class="btn claro" onclick="mesGraf=4;verBalancete()">${tIco('grafico')}Ver balancete completo</button></div>
 </div>`;
 };
 /* detalhe da cobrança: competências, situação da unidade e ações */
