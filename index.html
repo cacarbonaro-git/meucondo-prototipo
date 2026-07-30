@@ -395,50 +395,58 @@
 
   /* ===== SHELL DESKTOP — só perfil síndico, ≥1024px (Fase 1: navegação) ===== */
   @media (min-width:1024px){
-    body[data-perfil="sindico"] #menu{
+    body.desk-shell #menu{
       top:0; bottom:auto; left:0; transform:none;
       width:250px; max-width:250px; height:100vh;
       flex-direction:column; align-items:stretch; justify-content:flex-start;
       border-top:none; border-right:1px solid var(--borda);
       padding:60px 10px 20px; gap:2px; overflow-y:auto;
     }
-    body[data-perfil="sindico"] #menu button{
+    body.desk-shell #menu button{
       flex:0 0 auto; flex-direction:row; justify-content:flex-start;
       gap:12px; padding:11px 12px; font-size:.92rem; text-align:left; border-radius:10px;
     }
-    body[data-perfil="sindico"] #menu button .ico{ font-size:1.15rem; width:22px; text-align:center }
-    body[data-perfil="sindico"] #menu button.on{ background:var(--verde-claro) }
+    body.desk-shell #menu button .ico{ font-size:1.15rem; width:22px; text-align:center }
+    body.desk-shell #menu button.on{ background:var(--verde-claro) }
     /* desktop: a sidebar do síndico expõe os destinos profundos direto (grupo Gerir) */
-    body[data-perfil="sindico"] #menu .desk-only{ display:flex }
-    body[data-perfil="sindico"] #menu .menu-sep-desk{ display:block; margin:14px 12px 4px; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--cinza); font-weight:700 }
-    body[data-perfil="sindico"] #app{
+    body.desk-shell #menu .desk-only{ display:flex }
+    body.desk-shell #menu .menu-sep-desk{ display:block; margin:14px 12px 4px; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--cinza); font-weight:700 }
+    body.desk-shell #app{
       max-width:1360px; margin:0; padding:80px 48px 48px 300px;
     }
-    body[data-perfil="sindico"] #edi-fab{ right:34px; bottom:34px }
+    body.desk-shell #edi-fab{ right:34px; bottom:34px }
 
     /* home numa largura confortável (o dashboard 2-col por CSS auto embaralhava os cards;
        o dashboard real virá por reestruturação explícita da TELAS.inicio em colunas) */
 
     /* detalhe abre como painel lateral direito = master-detail (isto funcionou) */
-    body[data-perfil="sindico"] #fundo-modal{ align-items:stretch; justify-content:flex-end; background:transparent; pointer-events:none; padding:52px 0 0 0 }
-    body[data-perfil="sindico"] #modal{ height:calc(100vh - 52px); max-height:none; width:470px; max-width:470px; border-radius:0; pointer-events:auto; box-shadow:none; border-left:1px solid var(--borda); background:var(--branco); overflow-y:auto }
+    body.desk-shell #fundo-modal{ align-items:stretch; justify-content:flex-end; background:transparent; pointer-events:none; padding:52px 0 0 0 }
+    body.desk-shell #modal{ height:calc(100vh - 52px); max-height:none; width:470px; max-width:470px; border-radius:0; pointer-events:auto; box-shadow:none; border-left:1px solid var(--borda); background:var(--branco); overflow-y:auto }
     /* a coluna de detalhe tem ~470px: cards de 4-col (regra ≥700px) vazam → 2 col aqui */
-    body[data-perfil="sindico"] #modal .cards{ grid-template-columns:1fr 1fr }
-    body[data-perfil="sindico"] #app{ transition:padding-right .22s ease }
-    body[data-perfil="sindico"].md-open #app{ padding-right:504px }
-    body[data-perfil="sindico"].md-open .home-sindico .dash{ grid-template-columns:1fr }
-    body[data-perfil="sindico"].md-open .home-sindico .dash-side{ display:none }
-    body[data-perfil="sindico"].md-open .gerir-grid > .item{ flex-basis:100% !important }
+    body.desk-shell #modal .cards{ grid-template-columns:1fr 1fr }
+    body.desk-shell #app{ transition:padding-right .22s ease }
+    body.desk-shell.md-open #app{ padding-right:504px }
+    /* master-detail: qualquer dashboard .dash colapsa p/ 1 coluna e esconde a coluna lateral quando o detalhe abre */
+    body.desk-shell.md-open .dash{ grid-template-columns:1fr }
+    body.desk-shell.md-open .dash-side{ display:none }
+    body.desk-shell.md-open .gerir-grid > .item{ flex-basis:100% !important }
 
     /* Fase 2b: home vira dashboard de colunas explícitas (validado no estudo) */
-    body[data-perfil="sindico"] .home-sindico .dash{ display:grid; grid-template-columns:1.55fr 1fr; gap:22px; align-items:start }
+    /* .dash = primitivo de dashboard desktop reutilizável (2 colunas explícitas) */
+    body.desk-shell .dash{ display:grid; grid-template-columns:1.55fr 1fr; gap:22px; align-items:start }
     /* itens de grid têm min-width:auto e não encolhem → transbordam sob a coluna de detalhe.
-       min-width:0 deixa a coluna respeitar o recuo (padding-right) quando o detalhe abre. */
-    body[data-perfil="sindico"] .home-sindico .dash > *{ min-width:0 }
-    body[data-perfil="sindico"] .home-sindico .dash .full{ grid-column:1 / -1 }
-    body[data-perfil="sindico"] .gerir-grid > .item{ flex-basis:calc(33.333% - 6px) !important }
-    body[data-perfil="sindico"] .inad-desk{ display:block }
-    body[data-perfil="sindico"] .inad-mob{ display:none }
+       min-width:0 (embutido no primitivo) deixa a coluna respeitar o recuo quando o detalhe abre. */
+    body.desk-shell .dash > *{ min-width:0 }
+    body.desk-shell .dash .full{ grid-column:1 / -1 }
+    body.desk-shell .gerir-grid > .item{ flex-basis:calc(33.333% - 6px) !important }
+    body.desk-shell .inad-desk{ display:block }
+    body.desk-shell .inad-mob{ display:none }
+    /* telas de lista no desktop: leem numa coluna confortável (viram a lista do master-detail),
+       em vez de esticar de ponta a ponta como um celular largo. Tabelas e o dashboard seguem largos. */
+    body.desk-shell[data-tela="pessoas"] .tela,
+    body.desk-shell[data-tela="ocorrencias"] .tela,
+    body.desk-shell[data-tela="comunicados"] .tela,
+    body.desk-shell[data-tela="agenda"] .tela{ max-width:880px }
   }
 </style>
 </head>
@@ -461,7 +469,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.113';
+const VERSAO='v4.116';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -1370,7 +1378,10 @@ function trocarPerfil(p){
 }
 function irPara(tela){
   telaAtual=tela;
-  document.body.dataset.perfil = perfil || '';  /* shell desktop escopado por perfil (só síndico ≥1024) */
+  document.body.dataset.perfil = perfil || '';
+  document.body.dataset.tela = tela || '';   /* permite CSS por tela (ex.: capar largura das telas de lista no desktop) */
+  /* shell desktop (≥1024): síndico e administradora — inclui a adm dentro de um condomínio (admContexto) */
+  document.body.classList.toggle('desk-shell', perfil==='sindico'||perfil==='administradora');
   /* ${nomeAssist} unificado: botão flutuante em TODOS os perfis, sempre no mesmo canto —
      padrão único (some só dentro da própria conversa) */
   /* FAB removido: o ${nomeAssist} tem duas âncoras — a barra de busca no topo da home e a aba "${nomeAssist}" na barra inferior. Um botão flutuante a mais só tapava conteúdo. */
@@ -6589,12 +6600,17 @@ ${alertas?`<button class="card alerta" onclick="verAlertas()"><div class="num">$
     <div class="sub" style="margin-top:5px">WhatsApp, banco e ERP num lugar — define o padrão da carteira; cada prédio sobrescreve o que é local.</div></button>
   <div class="secao">SEUS CONDOMÍNIOS</div>
   <button class="btn claro btn-grande" style="margin-bottom:10px" onclick="adicionarCondoAdm()">+ Adicionar condomínio à carteira</button>
-  ${carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status];
+  <div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Condomínio</th><th>Cidade</th><th class="n">Un.</th><th>Síndico</th><th class="n">Inadimpl.</th><th class="n">Ocor.</th><th>Status</th><th></th></tr></thead><tbody>
+    ${carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status]; return `<tr onclick="verCondo(${ix})" style="cursor:pointer">
+      <td><b>${c.nome}</b>${c.atual?' <span class="chip verde" style="border:none">demo</span>':''}</td><td>${c.cidade}</td><td class="n">${c.un}</td><td>${c.sindico}</td>
+      <td class="n">${c.inadPct}%</td><td class="n">${c.ocor}</td><td><span class="chip ${cor}">${rot}</span></td><td style="text-align:right; color:var(--cinza)">›</td></tr>`;}).join('')}
+  </tbody></table></div>
+  <div class="inad-mob">${carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status];
     return `<button class="item" style="width:100%; text-align:left; display:block; border-left:4px solid var(--${cor})" onclick="verCondo(${ix})">
     <div class="linha1"><span class="nome">${c.nome}${c.atual?' <span class="chip verde" style="border:none">demo</span>':''}</span><span class="chip ${cor}">${rot}</span></div>
     <div class="sub" style="margin-top:5px">${c.cidade} · ${c.un} un · síndico: ${c.sindico}</div>
     <div class="sub" style="margin-top:4px">Inadimplência ${c.inadPct}% (${fmt(c.inad)}) · ${c.ocor} ocorrências · ${c.manut} manut. vencida(s)</div>
-  </button>`;}).join('')}
+  </button>`;}).join('')}</div>
   <div class="aviso-lgpd" style="margin-top:6px">Visão da administradora: indicadores operacionais da carteira. O financeiro nasce no ERP (boleto/cobrança) e é espelhado aqui — cada síndico enxerga só o próprio condomínio.</div>
 </div>`;
 };
@@ -6682,10 +6698,14 @@ TELAS.admcobranca = () => {
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("cifrao")}Cobrança da carteira</h1><p>${fmt(tInad)} a recuperar · espelho do ERP</p></div>
   <div class="secao">INADIMPLÊNCIA POR CONDOMÍNIO</div>
-  ${ordenada.map(c=>{const ix=carteira.indexOf(c); const k=c.inadPct>15?'vermelho':c.inadPct>10?'laranja':'verde';
+  <div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Condomínio</th><th>Cidade</th><th class="n">Inadimpl.</th><th class="n">Em aberto</th><th></th></tr></thead><tbody>
+    ${ordenada.map(c=>{const ix=carteira.indexOf(c); const k=c.inadPct>15?'vermelho':c.inadPct>10?'laranja':'verde';
+      return `<tr onclick="verCondo(${ix})" style="cursor:pointer"><td><b>${c.nome}</b></td><td>${c.cidade}</td><td class="n"><span class="chip ${k}">${c.inadPct}%</span></td><td class="n"><b>${fmt(c.inad)}</b></td><td style="text-align:right; color:var(--cinza)">›</td></tr>`;}).join('')}
+  </tbody></table></div>
+  <div class="inad-mob">${ordenada.map(c=>{const ix=carteira.indexOf(c); const k=c.inadPct>15?'vermelho':c.inadPct>10?'laranja':'verde';
     return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verCondo(${ix})"><div class="linha1"><span class="nome">${c.nome}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${k}">${c.inadPct}%</span><span style="color:var(--cinza)">›</span></span></div>
     <div class="cat-trilha" style="margin-top:8px; height:8px"><div class="cat-barra" style="width:${Math.min(c.inadPct*2.5,100)}%; background:var(--${k})"></div></div>
-    <div class="sub" style="margin-top:5px">${fmt(c.inad)} em aberto · ${c.cidade}</div></button>`;}).join('')}
+    <div class="sub" style="margin-top:5px">${fmt(c.inad)} em aberto · ${c.cidade}</div></button>`;}).join('')}</div>
   <div class="aviso-lgpd" style="margin-top:6px">O boleto e a régua de cobrança rodam no ERP da administradora. O app só espelha o resultado e dá transparência ao síndico e ao conselho — nunca expõe nome de inadimplente ao morador (LGPD).</div>
 </div>`;
 };
