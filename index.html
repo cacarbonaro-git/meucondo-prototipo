@@ -50,6 +50,14 @@
   .resumo-bal{width:100%; text-align:left; display:block; cursor:pointer; background:var(--branco); font-family:inherit}
   .resumo-bal:hover{border-color:var(--verde)}
   #menu .desk-only, #menu .menu-sep-desk{display:none}
+  input.mlt-inp{-moz-appearance:textfield; appearance:textfield; padding:10px 8px; margin:0; text-align:center; font-weight:700; font-size:1rem}
+  input.mlt-inp::-webkit-outer-spin-button, input.mlt-inp::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+  /* config de multas: UM grid pras 3 colunas (rótulo · input · resultado) — todas as
+     linhas compartilham as trilhas, então os inputs alinham em coluna de verdade */
+  .mlt-grid{display:grid; grid-template-columns:1fr 64px auto; gap:16px 12px; align-items:center; margin-bottom:14px}
+  .mlt-grid .mlt-nome{margin:0; line-height:1.35}
+  .mlt-grid .mlt-inp{width:64px}
+  .mlt-grid .mlt-res{margin:0; text-align:right; color:var(--cinza); white-space:nowrap; justify-self:end}
   .tbl-sind{width:100%; border-collapse:collapse; margin-bottom:8px}
   .tbl-sind th{text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--cinza); padding:9px 12px; border-bottom:2px solid var(--borda); white-space:nowrap}
   .tbl-sind td{padding:12px; border-bottom:1px solid var(--borda); font-size:.9rem; vertical-align:middle}
@@ -110,7 +118,7 @@
   /* safe-area: no iPhone (Safari), a barra "home" cobre o menu sem esse respiro */
   #menu{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:var(--branco); border-top:1px solid var(--borda); display:flex; z-index:40; padding-bottom:env(safe-area-inset-bottom)}
   #menu button{flex:1; background:none; padding:10px 4px 14px; font-size:.74rem; color:var(--cinza); display:flex; flex-direction:column; align-items:center; gap:3px; border-radius:0}
-  #menu button .ico{font-size:1.35rem}
+  #menu button .ico{font-size:1.35rem; height:30px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box}
   #menu button.on{color:var(--verde); font-weight:700}
 
   /* calendário */
@@ -139,7 +147,7 @@
   #fundo-modal{display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.45); z-index:60; align-items:flex-end; justify-content:center}
   #fundo-modal.on{display:flex}
   #modal{background:var(--branco); width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:20px 18px calc(28px + env(safe-area-inset-bottom)); max-height:86vh; overflow-y:auto; -webkit-overflow-scrolling:touch}
-  #modal h3{font-size:1.05rem; margin-bottom:12px; padding-right:44px}
+  #modal h3{font-size:1.05rem; margin-bottom:12px; min-height:44px; display:flex; align-items:center; padding-right:8px}
   #modal .linha1{padding-right:44px} /* libera o canto pro X sticky não cobrir chips */
   .pix-caixa{background:var(--cinza-claro); border-radius:10px; padding:12px; font-family:monospace; font-size:.7rem; word-break:break-all; margin:10px 0; max-height:90px; overflow-y:auto}
   .msg-preview{background:#e7f8ef; border-left:4px solid #25d366; border-radius:8px; padding:12px; font-size:.85rem; white-space:pre-wrap; margin:10px 0}
@@ -378,7 +386,7 @@
   .step:active{background:var(--borda)}
   body.tema-b .step{background:#f4eee2}
   /* botão fechar dos modais */
-  #modal .fechar-x{position:sticky; top:0; float:right; z-index:5; background:var(--cinza-claro); color:var(--texto); width:44px; height:44px; border-radius:50%; font-size:1.15rem; line-height:1; margin:-6px -4px 0 8px}
+  #modal .fechar-x{position:sticky; top:0; float:right; z-index:5; background:var(--cinza-claro); color:var(--texto); width:44px; height:44px; border-radius:50%; font-size:1.15rem; line-height:1; margin:0 0 0 8px; display:inline-flex; align-items:center; justify-content:center}
 
   /* ===== tablet e desktop (Chrome/Safari/Edge): coluna mais larga e modal centralizado ===== */
   @media (min-width:700px){
@@ -433,11 +441,17 @@
 
     /* Fase 2b: home vira dashboard de colunas explícitas (validado no estudo) */
     /* .dash = primitivo de dashboard desktop reutilizável (2 colunas explícitas) */
-    body.desk-shell .dash{ display:grid; grid-template-columns:1.55fr 1fr; gap:22px; align-items:start }
+    body.desk-shell .dash{ display:grid; grid-template-columns:2fr 0.92fr; gap:22px; align-items:start }
     /* itens de grid têm min-width:auto e não encolhem → transbordam sob a coluna de detalhe.
        min-width:0 (embutido no primitivo) deixa a coluna respeitar o recuo quando o detalhe abre. */
     body.desk-shell .dash > *{ min-width:0 }
     body.desk-shell .dash .full{ grid-column:1 / -1 }
+    /* tabela dentro de uma coluna do dashboard: fixa o layout p/ caber no track (senão transborda sobre a outra coluna) */
+    body.desk-shell .dash-main{ overflow:hidden }
+    body.desk-shell .dash-main .tbl-sind{ table-layout:fixed }
+    body.desk-shell .dash-main .tbl-sind td{ overflow-wrap:anywhere }
+    body.desk-shell .dash-main .tbl-sind td.n{ white-space:nowrap }
+    body.desk-shell .dash-main .tbl-sind td:last-child{ white-space:nowrap }
     body.desk-shell .gerir-grid > .item{ flex-basis:calc(33.333% - 6px) !important }
     body.desk-shell .inad-desk{ display:block }
     body.desk-shell .inad-mob{ display:none }
@@ -446,6 +460,7 @@
     body.desk-shell[data-tela="pessoas"] .tela,
     body.desk-shell[data-tela="ocorrencias"] .tela,
     body.desk-shell[data-tela="comunicados"] .tela,
+    body.desk-shell[data-tela="acoes"] .tela,
     body.desk-shell[data-tela="agenda"] .tela{ max-width:880px }
   }
 </style>
@@ -462,14 +477,14 @@
 <div id="app"></div>
 
 <div id="menu"></div>
-<button id="edi-fab" onclick="irPara('mregras')" aria-label="Falar com o assistente"><small>Edi</small></button>
+<button id="edi-fab" onclick="abrirComandoEdi()" aria-label="Falar com o assistente"><small>Edi</small></button>
 <div id="fundo-modal" onclick="if(event.target===this)fecharModal()"><div id="modal"></div></div>
 <div id="toast"></div>
 
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.116';
+const VERSAO='v4.150';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -604,7 +619,7 @@ let inadimplentes = [
   {un:'B-503', resp:'Antônio Ferreira',tel:'5511990000005', meses:['Dez/2025','Jan/2026','Fev/2026','Mar/2026','Abr/2026','Mai/2026','Jun/2026'], dias:187, cobr:'em cobrança'},
   {un:'B-605', resp:'Patrícia Gomes',  tel:'5511990000006', meses:['Mai/2026','Jun/2026'], dias:36, cobr:'lembrete enviado'},
 ];
-const corCobr=s=>/notific|cobran|judicial/i.test(s||'')?'vermelho':/lembrete/i.test(s||'')?'laranja':'cinza';
+const corCobr=s=>/garantidora/i.test(s||'')?'verde':/notific|cobran|judicial/i.test(s||'')?'vermelho':/lembrete/i.test(s||'')?'laranja':'cinza';
 function faixa(d){ return d<=30?['1–30 dias','laranja']:d<=60?['31–60 dias','laranja']:d<=90?['61–90 dias','vermelho']:['90+ dias','vermelho']; }
 const faixaKey=d=>d<=30?'1–30':d<=60?'31–60':d<=90?'61–90':'90+';
 let inadFaixa='Todas';
@@ -736,7 +751,9 @@ function verPainelElevador(){
     <button class="btn principal btn-grande" onclick="fecharModal()">Fechar</button>`);
 }
 
-const MORADOR = {nome:'Carla Mendes', un:'A-305', emDia:true, papel:'inquilina'};
+const MORADOR = {nome:'Carla Mendes', un:'A-305', emDia:true, papel:'inquilina',
+  tel:'(11) 98888-1234', email:'carla.mendes@email.com', foto:null,
+  veiculos:['Fiat Argo prata · DEF-2G34'], pets:['Mel · cachorro (Golden, porte médio)']};
 /* Multi-imóvel: uma pessoa pode ter vínculos em vários condomínios (mora num, é dona de outro).
    Um login, um seletor de imóvel. `atual` marca o imóvel em contexto. */
 let meusImoveis = [
@@ -829,6 +846,34 @@ let ocorrencias = [
   {id:4, un:'B-408', tipo:'Reforma', titulo:'Troca de piso e abertura de vão na sala', desc:'Início previsto 22/06, duração ~3 semanas · mexe em estrutura · ART anexada', quando:'09/06', status:'aberta', resposta:'', art:{arquivo:'ART-2026-08812.pdf'}},
 ];
 const iconeOc = o => `<span class="ico-in">${ico(o.tipo==='Reforma'?'martelo':o.tipo==='Sugestão'?'lampada':o.tipo==='Operacional'?'maleta':o.tipo==='Dúvida'?'balao':'alerta')}</span>`;
+/* SLA de 1ª resposta (dias úteis-simplificado) por tipo — métrica de qualidade do atendimento.
+   Só vale enquanto a ocorrência está ABERTA e sem resposta; depois vira histórico. */
+let SLA_OC={'Reclamação':2,'Dúvida':2,'Operacional':1,'Reforma':3,'Sugestão':5};
+/* configurar as metas de 1ª resposta (dias) por tipo */
+function configurarSLA(){
+  const linha=(t)=>`<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px">
+    <span class="sub" style="margin:0">${t}</span>
+    <span style="display:inline-flex; align-items:center; gap:6px"><input id="sla-${t}" type="number" min="1" max="30" value="${SLA_OC[t]||3}" style="width:64px; text-align:center"> <span class="sub" style="margin:0; color:var(--cinza)">dia(s)</span></span></div>`;
+  abrirModal(`<h3>${tIco('checklist')}Metas de SLA — 1ª resposta</h3>
+    <div class="sub" style="margin-bottom:10px">Prazo (em dias) para a <b>primeira resposta</b> de cada tipo de ocorrência. O painel de SLA usa estas metas.</div>
+    ${Object.keys(SLA_OC).map(linha).join('')}
+    <button class="btn principal btn-grande" onclick="salvarSLA()">Salvar metas</button>
+    <div class="aviso-lgpd" style="margin-top:10px">Vale só para este condomínio. O SLA é um indicador interno de qualidade — não é prazo legal.</div>`);
+}
+function salvarSLA(){
+  Object.keys(SLA_OC).forEach(t=>{ const v=parseInt(($('#sla-'+t)||{}).value,10); if(v>=1&&v<=30) SLA_OC[t]=v; });
+  fecharModal(); toast('Metas de SLA atualizadas.'); if(telaAtual==='ocorrencias') atualizar();
+}
+function ocDias(o){ const p=(o.quando||'').split('/').map(Number); if(p.length<2) return 0; const dt=new Date(2026,p[1]-1,p[0]); return Math.max(0, Math.round((hoje-dt)/86400000)); }
+function slaOc(o){ /* [cor, rótulo] ou null quando não se aplica */
+  if(!modOn('sla')) return null;                 /* módulo desligado: sem SLA */
+  if(o.status==='resolvida' || o.resposta) return null;
+  const alvo=SLA_OC[o.tipo]||3, rest=alvo-ocDias(o);
+  if(rest>=2) return ['verde', `no prazo · ${rest}d`];
+  if(rest===1) return ['laranja','vence amanhã'];
+  if(rest===0) return ['laranja','vence hoje'];
+  return ['vermelho', `atrasada ${-rest}d`];
+}
 
 /* ---------- temas por condomínio (white-label) ----------
    Cada condomínio escolhe sua identidade visual na configuração — o app é o
@@ -1161,8 +1206,9 @@ function menuDemo(){
     <div class="sub" style="margin:16px 0 8px"><b>Aparência e acessibilidade</b></div>
     <button class="item" style="width:100%; text-align:left; display:block" onclick="fecharModal();escolherTema()">
       <div class="linha1"><span class="nome">${tIco('paleta')}Marca & cores (white-label)</span><span style="opacity:.4">›</span></div></button>
-<button class="item" style="width:100%; text-align:left; display:block" onclick="document.documentElement.classList.toggle('txt-grande');toast(document.documentElement.classList.contains('txt-grande')?'Texto grande ativado — tudo aumenta junto':'Texto no tamanho normal');menuDemo()">
-      <div class="linha1"><span class="nome">Aa+ Texto grande</span><span class="chip ${txtG?'verde':'cinza'}" style="border:none">${txtG?'ligado':'desligado'}</span></div></button>
+<button class="item" style="width:100%; text-align:left; display:block" onclick="fecharModal();abrirAcessibilidade()">
+      <div class="linha1"><span class="nome">${tIco('balao')}Acessibilidade</span><span class="chip ${txtG?'verde':'cinza'}" style="border:none">${txtG?'texto grande ›':'texto, voz, tom ›'}</span></div>
+      <div class="sub" style="margin-top:3px">Tamanho do texto, leitura em voz alta e o tom do ${nomeAssist} — num lugar só.</div></button>
     <details ${demoAberto?'open':''} ontoggle="demoAberto=this.open" style="margin:14px 0 4px">
     <summary style="font-weight:700; font-size:.9rem; cursor:pointer; padding:4px 0">Demonstração — simular cenários</summary>
     <div class="sub" style="margin:2px 0 8px">Mostra o app se adaptando a condomínios diferentes: nº de torres, áreas comuns, plano de módulos e situação do morador.</div>
@@ -1190,11 +1236,11 @@ function menuDemo(){
       </div>
       <div class="sub" style="margin:0 0 4px; font-size:.72rem; letter-spacing:.04em; color:var(--cinza)">INFRAESTRUTURA &amp; OPERAÇÃO</div>
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px">
-        ${[['reservas','Reservas'],['edi','Edi (IA)'],['portaria','Portaria'],['elevadores','Elevadores'],['triagem','Triagem'],['estoque','Estoque'],['integracoes','Integrações']].map(([k,l])=>`<button class="chip ${modulos[k]?'verde':'cinza'}" style="border:none" onclick="toggleModulo('${k}')">${l}</button>`).join('')}
+        ${[['reservas','Reservas'],['edi','Edi (IA)'],['portaria','Portaria'],['elevadores','Elevadores'],['triagem','Triagem'],['estoque','Estoque'],['integracoes','Integrações']].map(([k,l])=>`<button class="chip ${modulos[k]?'verde':'cinza'}" style="border:none" title="${(MOD_INFO[k]||'').replace(/"/g,'&quot;')}" aria-label="${l}: ${(MOD_INFO[k]||'').replace(/"/g,'&quot;')}" onclick="toggleModulo('${k}')">${l}</button>`).join('')}
       </div>
       <div class="sub" style="margin:0 0 4px; font-size:.72rem; letter-spacing:.04em; color:var(--cinza)">ENGAJAMENTO</div>
       <div style="display:flex; gap:6px; flex-wrap:wrap">
-        ${[['indicacoes','Indicações'],['achados','Achados'],['agenda','Agenda'],['benchmark','Benchmark'],['interfone','Interfone'],['entrega','Entrega esperada']].map(([k,l])=>`<button class="chip ${modulos[k]?'verde':'cinza'}" style="border:none" onclick="toggleModulo('${k}')">${l}</button>`).join('')}
+        ${[['indicacoes','Indicações'],['achados','Achados'],['agenda','Agenda do prédio'],['benchmark','Benchmark'],['interfone','Interfone'],['entrega','Entrega esperada'],['sla','SLA de resposta'],['vantagens','Vantagens'],['terceirizadas','Terceirizadas'],['acessibilidade','Acessibilidade']].map(([k,l])=>`<button class="chip ${modulos[k]?'verde':'cinza'}" style="border:none" title="${(MOD_INFO[k]||'').replace(/"/g,'&quot;')}" aria-label="${l}: ${(MOD_INFO[k]||'').replace(/"/g,'&quot;')}" onclick="toggleModulo('${k}')">${l}</button>`).join('')}
       </div></div>
     <div class="item" style="display:block">
       <div class="linha1"><span class="nome">${tIco('predio')}Uso misto (lojas comerciais)</span><span class="chip ${modOn('comercial')?'verde':'cinza'}" style="border:none">${modOn('comercial')?'ativo':'desligado'}</span></div>
@@ -1315,20 +1361,44 @@ const MENUS = {
   zelador:[['rotina','checklist','Rotina'],['livro','caderno','Livro'],['manuzel','chave','Preventiva'],['triagem','maleta','Resolver'],['estoque','prancheta','Estoque']],
   conselho:[['ccontas','grafico','Contas'],['cdocs','pasta','Documentos']],
   morador:[['mhome','casa','Início'],['mreservar','calendario','Reservar'],['mfalar','balao','Falar'],['mavisos','megafone','Avisos']],
-  administradora:[['carteira','predio','Carteira'],['admcobranca','cifrao','Cobrança'],['admatend','balao','Atendimento']],
+  administradora:[['carteira','predio','Carteira'],['acoes','checklist','Ações'],['admcobranca','cifrao','Cobrança'],['admatend','balao','Atendimento']],
 };
 const PERFIS_NOMES={sindico:'Síndico', conselho:'Conselho', zelador:'Zelador', portaria:'Portaria', morador:'Morador', administradora:'Administradora'};
 let demoAberto=false; /* mantém o grupo "Demonstração" aberto entre re-renders do menu */
 /* ===== MÓDULOS / PLANO (demo): cada condomínio liga só o que usa — nav, home e telas se adaptam ===== */
-let modulos={reservas:true, edi:true, portaria:true, elevadores:true, triagem:true, estoque:true, integracoes:true, indicacoes:true, achados:true, agenda:true, benchmark:true, interfone:true, entrega:true, comercial:false};
+let modulos={reservas:true, edi:true, portaria:true, elevadores:true, triagem:true, estoque:true, integracoes:true, indicacoes:true, achados:true, agenda:true, benchmark:true, interfone:true, entrega:true, sla:true, vantagens:true, terceirizadas:true, acessibilidade:true, comercial:false};
+/* descrição de cada módulo — vira tooltip (title) nos botões do configurador */
+const MOD_INFO={
+  reservas:'Reserva de áreas comuns (salão, churrasqueira) + agenda de reservas.',
+  edi:'O assistente Edi (IA): barra de comando, dúvidas do regimento e rascunhos.',
+  portaria:'Perfil e telas da portaria: visitantes, encomendas e controle de acesso.',
+  elevadores:'Status do elevador + aviso automático de parada, segmentado por torre.',
+  triagem:'Triagem de manutenção do zelador (resolve interno × chama prestador).',
+  estoque:'Controle de estoque de suprimentos do zelador.',
+  integracoes:'Central de Integrações (WhatsApp, banco, ERP, portaria/acesso, IoT).',
+  indicacoes:'Indicações de confiança — prestadores que os vizinhos usam e recomendam.',
+  achados:'Achados e perdidos — mural de itens perdidos/achados no prédio.',
+  agenda:'Agenda do prédio — eventos e obrigações que afetam o morador e o síndico (≠ agenda de reservas).',
+  benchmark:'Benchmark anônimo — como o condomínio se compara à média da região.',
+  interfone:'Interfone virtual — a portaria chama o morador pelo app, em tempo real.',
+  entrega:'Card "entrega esperada" na home — o morador avisa o que está aguardando.',
+  sla:'SLA de 1ª resposta nas ocorrências — metas por tipo e chips de prazo/atraso.',
+  vantagens:'Clube de vantagens — comércio e prestadores locais homologados, com desconto pro morador (opt-in por interesse; receita abate a taxa).',
+  terceirizadas:'Auditoria de terceirizadas — checklist mensal de salários/FGTS/INSS/certidões das empresas contratadas, com alerta de risco trabalhista (Súmula 331 TST) pro síndico e conselho.',
+  acessibilidade:'Modo acessibilidade — botões "Ouvir" (leitura em voz alta do boleto e do balancete) e o registro "Direto e simples" do Edi. Ligue pro prédio com moradores idosos ou com deficiência visual.',
+  comercial:'Uso misto (residencial + comercial) — categoria PJ, rateio por centro de custo e público de loja.',
+};
 const NAV_MOD={reservas:'reservas', mreservar:'reservas', triagem:'triagem', estoque:'estoque', mfalar:'edi'};
+/* blindagem: tela cujo módulo está desligado nunca renderiza — o irPara redireciona pra home.
+   Ponto único de verdade (mesmo que algum atalho esqueça de checar modOn). */
+const TELA_MOD={mreservar:'reservas', reservas:'reservas', triagem:'triagem', estoque:'estoque', agenda:'agenda', indicacoes:'indicacoes', achados:'achados', vantagens:'vantagens', terceirizadas:'terceirizadas'};
 function modOn(k){ return modulos[k]!==false; }
 function navItens(p){ return (MENUS[p]||[]).filter(it=>{const mk=NAV_MOD[it[0]]; return !mk || modOn(mk);}); }
 /* presets de DEMO: que módulos um tipo de condomínio costuma ter (não é plano de preço) */
 const PERFIS_COND={
-  clube:['reservas','edi','portaria','elevadores','triagem','estoque','integracoes','indicacoes','achados','agenda','benchmark','interfone','entrega'],
-  padrao:['reservas','edi','portaria','elevadores','indicacoes','achados','agenda','benchmark','interfone','entrega'],
-  simples:['reservas','edi','achados','agenda']
+  clube:['reservas','edi','portaria','elevadores','triagem','estoque','integracoes','indicacoes','achados','agenda','benchmark','interfone','entrega','terceirizadas','acessibilidade'],
+  padrao:['reservas','edi','portaria','elevadores','indicacoes','achados','agenda','benchmark','interfone','entrega','terceirizadas','acessibilidade'],
+  simples:['reservas','edi','achados','agenda','acessibilidade']
 };
 const PERFIL_COND_LABEL={clube:'Condomínio-clube', padrao:'Padrão', simples:'Prédio simples', custom:'Personalizado'};
 /* 'comercial' (uso misto) é toggle independente — não entra no match dos presets Clube/Padrão/Simples */
@@ -1345,6 +1415,8 @@ function menuBtnsHTML(p){
     ['reservas','calendario','Reservas',"irPara('reservas')"],
     modOn('agenda')?['agenda','checklist','Agenda do prédio',"irPara('agenda')"]:null,
     modOn('integracoes')?['integracoes','importar','Integrações',"irPara('integracoes')"]:null,
+    ['multas','balanca','Multas & infrações',"configurarMultas()"],
+    modOn('terceirizadas')?['terceirizadas','maleta','Terceirizadas & risco',"irPara('terceirizadas')"]:null,
     ['fontesEdi','robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')"],
     ['auditoria','checklist','Trilha de auditoria',"irPara('auditoria')"],
   ].filter(Boolean);
@@ -1359,7 +1431,7 @@ function refreshNav(){
   irPara(itens.some(it=>it[0]===telaAtual)?telaAtual:itens[0][0]);
 }
 function setPerfilCond(p){ const on=PERFIS_COND[p]||[]; Object.keys(modulos).forEach(k=>{ if(k!=='comercial') modulos[k]=on.includes(k); }); aposModulo(); }
-function toggleModulo(k){ modulos[k]=!modulos[k]; aposModulo(); }
+function toggleModulo(k){ modulos[k]=!modulos[k]; if(MOD_INFO[k]) toast(`${modulos[k]?'Ligado':'Desligado'} · ${MOD_INFO[k]}`); aposModulo(); }
 function aposModulo(){
   if(!modOn('portaria') && perfil==='portaria'){ fecharModal(); trocarPerfil('sindico'); menuDemo(); return; }
   refreshNav(); menuDemo();
@@ -1377,6 +1449,8 @@ function trocarPerfil(p){
   irPara(itens[0][0]);
 }
 function irPara(tela){
+  const _mk=TELA_MOD[tela];
+  if(_mk && !modOn(_mk)){ toast('Esse módulo está desligado — ligue em ⚙ Módulos.'); tela=(MENUS[perfil]&&MENUS[perfil][0]&&MENUS[perfil][0][0])||tela; }
   telaAtual=tela;
   document.body.dataset.perfil = perfil || '';
   document.body.dataset.tela = tela || '';   /* permite CSS por tela (ex.: capar largura das telas de lista no desktop) */
@@ -1392,7 +1466,7 @@ function irPara(tela){
   /* ${nomeAssist} fora da home: a home traz a barra "Peça ao ${nomeAssist}" no corpo (ali a intenção
      é "o que eu faço?"). Nas telas de tarefa/lista o topo é do conteúdo — o assistente vira um
      BOTÃO FLUTUANTE (não ocupa espaço) que abre o chat do ${nomeAssist}. */
-  if(perfil==='sindico' && modOn('edi') && !admContexto && tela!=='fontesEdi' && tela!=='mregras' && !$('#app').querySelector('.comando')){
+  if(['sindico','morador'].includes(perfil) && modOn('edi') && !admContexto && !['fontesEdi','mregras','mfalar'].includes(tela) && !$('#app').querySelector('.comando')){
     const fab=$('#edi-fab'); if(fab) fab.style.display='flex';
   }
   /* barra de contexto quando a administradora está gerindo um condomínio da carteira */
@@ -1433,13 +1507,19 @@ let obDocs={convencao:false, regimento:false, atas:0};
 let obOrigem='sindico';  /* 'sindico' (entra pelo login) ou 'administradora' (entra pela carteira) */
 let obEditIx=null;       /* índice na carteira em configuração; -1 = condomínio novo */
 let obNovo=null;         /* dados do condomínio novo sendo adicionado pela administradora */
-function irOnboarding(origem){ obOrigem=origem||'sindico'; obStep=1; obDocs={convencao:false, regimento:false, atas:0}; document.getElementById('menu').innerHTML=''; renderOnboarding(); }
+function irOnboarding(origem){ obOrigem=origem||'sindico'; obStep=0; obDocs={convencao:false, regimento:false, atas:0}; document.getElementById('menu').innerHTML=''; renderOnboarding(); }
 function renderOnboarding(){ document.getElementById('app').innerHTML=TELAS_ONBOARDING(); ajustarTopo&&ajustarTopo(); }
 function obProx(){ obStep++; renderOnboarding(); }
-function obVoltar(){ if(obStep>1){obStep--; renderOnboarding();} else if(obOrigem==='administradora'){ obOrigem='sindico'; obEditIx=null; obNovo=null; trocarPerfil('administradora'); } else { document.getElementById('app').innerHTML=TELAS.login(); } }
+function obVoltar(){ if(obStep>=1){obStep--; renderOnboarding();} else if(obOrigem==='administradora'){ obOrigem='sindico'; obEditIx=null; obNovo=null; trocarPerfil('administradora'); } else { document.getElementById('app').innerHTML=TELAS.login(); } }
 function TELAS_ONBOARDING(){
   const TOTAL=5;
   const OB_NOMES=['Importar','Unidades','Regras','Documentos','Pronto'];
+  const OB_GUIA={
+    1:'Todo condomínio já tem a lista de unidades em algum lugar. Me dá o arquivo que eu leio pra você.',
+    2:'Confere se ficou certo — já separei proprietário, morador e inquilino sozinho.',
+    3:'Só três coisas pra já poder cobrar. O resto a gente configura quando você for usar cada parte.',
+    4:'Subiu os documentos, eu passo a responder as dúvidas dos moradores citando o artigo — param de cair no seu WhatsApp.',
+  };
   const passo=(n)=>`<span style="flex:1; height:5px; border-radius:99px; background:${n<=obStep?'var(--verde)':'var(--cinza-claro)'}"></span>`;
   const barra=`<div style="display:flex; gap:5px; margin:4px 0 5px">${Array.from({length:TOTAL},(_,i)=>passo(i+1)).join('')}</div>
     <div style="display:flex; gap:5px; margin-bottom:14px">${OB_NOMES.map((nm,i)=>`<span style="flex:1; text-align:center; font-size:.64rem; line-height:1.2; font-weight:${i+1===obStep?'700':'500'}; color:${i+1===obStep?'var(--verde-escuro)':'var(--cinza)'}">${nm}</span>`).join('')}</div>`;
@@ -1447,6 +1527,15 @@ function TELAS_ONBOARDING(){
   const obOpc=(icon,titulo,apoio,oc,selo)=>`<button class="btn claro btn-grande" style="display:flex; align-items:center; gap:12px; text-align:left${selo?'; border:1.5px solid var(--verde); background:var(--verde-claro)':''}" onclick="${oc}">
     ${ico(icon)}<span style="flex:1"><b>${titulo}</b> <span style="font-weight:400; color:var(--cinza)">${apoio}</span>${selo?`<br><span style="font-size:.74rem; font-weight:700; color:var(--verde-escuro)">${selo}</span>`:''}</span><span style="color:var(--cinza); font-size:1.1rem">›</span>
   </button>`;
+  if(obStep===0){
+    corpo=`<div style="text-align:center; padding:6px 0 2px">
+      <span style="display:inline-flex; transform:scale(1.7); margin:10px 0 18px">${ediMini}</span>
+      <h2 style="justify-content:center; margin:0 0 8px">Oi! Eu sou o ${nomeAssist}</h2>
+      <div class="sub" style="margin:0 auto; max-width:340px">Vou te ajudar a botar o condomínio no ar em <b>5 passos rápidos</b> — uns 3 minutos. Pode <b>pular</b> o que não tiver agora e <b>voltar</b> quando quiser; nada aqui é definitivo.</div>
+    </div>
+    <div class="item" style="background:var(--verde-claro); border-color:#bce3d6; margin-top:16px"><div class="sub" style="margin:0"><b>No fim você sai com:</b> as unidades importadas, a cobrança configurada, os documentos treinando o ${nomeAssist} e as manutenções obrigatórias já no seu painel.</div></div>
+    <button class="btn principal btn-grande" onclick="obProx()">Começar — passo 1 de 5 ›</button>`;
+  }
   if(obStep===1){
     corpo=`<h2 style="margin-top:0; justify-content:flex-start; gap:8px">${tIco('importar')}Importe seu condomínio</h2>
     <div class="sub" style="margin-bottom:14px">Seu condomínio já está numa planilha ou no relatório da administradora. Suba o arquivo — a gente lê, você confere.</div>
@@ -1508,9 +1597,18 @@ function TELAS_ONBOARDING(){
   const nav = obStep<5
     ? `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px">${back}${obStep===1?'':`<button class="btn principal" style="width:auto; flex:0 0 auto; padding:12px 22px" onclick="obAvancarConfig()">${obStep===4?(obDocs.convencao||obDocs.regimento||obDocs.atas?'Continuar ›':'Pular por agora ›'):'Continuar ›'}</button>`}</div>`
     : `<div style="margin-top:8px">${back}</div>`;
+  const guia = (obStep>=1 && obStep<=4)
+    ? `<div class="edi-linha" style="margin:0 0 12px"><span class="edi-av" style="background:transparent; border:none">${ediMini}</span><div style="max-width:88%"><span class="edi-bolha" style="font-size:.86rem">${OB_GUIA[obStep]}</span></div></div>`
+    : '';
+  if(obStep===0){
+    return `<div class="tela on">
+      <div class="topo"><h1>${tIco('prancheta')}Configurar condomínio</h1><p>Uns minutos — e você já sai com o sistema útil</p></div>
+      ${corpo}<div style="margin-top:8px">${back}</div>
+    </div>`;
+  }
   return `<div class="tela on">
     <div class="topo"><h1>${tIco('prancheta')}Configurar condomínio</h1><p>Uns minutos — e você já sai com o sistema útil</p></div>
-    ${barra}${corpo}${nav}
+    ${barra}${guia}${corpo}${nav}
   </div>`;
 }
 function obImportar(tipo){
@@ -1604,6 +1702,8 @@ TELAS.inicio = () => {
     ${modOn('integracoes')?gerirEntrada('importar','Integrações',"irPara('integracoes')",(()=>{const p=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;return[p?''+p:'ok',p?'laranja':'verde'];})()):''}
     ${gerirEntrada('calendario','Agenda de reservas',"irPara('reservas')")}
     ${modOn('agenda')?gerirEntrada('checklist','Agenda do prédio',"irPara('agenda')",(()=>{const p=agendaEventos.some(e=>(e.publico==='sindico'||e.publico==='ambos')&&agStatus(e.data)[1]==='laranja');return[p?'a vencer':'ok',p?'laranja':'verde'];})()):''}
+    ${gerirEntrada('balanca','Multas & infrações',"configurarMultas()")}
+    ${modOn('terceirizadas')?gerirEntrada('maleta','Terceirizadas & risco',"irPara('terceirizadas')",tercBadge()):''}
     ${gerirEntrada('robo',nomeAssist+' · fontes',"abaFontes='curadoria';irPara('fontesEdi')",(()=>{const lac=curadoria.lacunas.length;return[lac?''+lac:'ok',lac?'laranja':'verde'];})())}
   </div>
   </div><div class="full">
@@ -1695,7 +1795,10 @@ function verCobranca(ix){
     <div class="botoes" style="margin-top:12px">
       <button class="btn zap" onclick="cobrar(${ix})">Cobrar no WhatsApp</button>
       <button class="btn claro" onclick="baixa(${ix})">Registrar pagamento</button>
-    </div>`);
+    </div>
+    ${i.escalonado
+      ? `<div class="item" style="border-color:var(--verde); background:var(--verde-claro); margin-top:12px"><div class="sub" style="margin:0; display:flex; gap:7px; align-items:flex-start">${tIco('maleta')}<span><b>Na ${i.garantidora}.</b> Caso entregue à garantidora — ela conduz a cobrança e seu contato fica protegido.</span></div></div>`
+      : `<button class="btn ${i.dias>=GARANTIDORA.prazoGatilho?'principal':'claro'} btn-grande" onclick="escalonarGarantidora(${ix})">${tIco('maleta')}Escalonar pra ${GARANTIDORA.nome}${i.dias>=GARANTIDORA.prazoGatilho?' →':''}</button>${i.dias<GARANTIDORA.prazoGatilho?`<div class="sub" style="margin-top:2px; text-align:center; font-size:.78rem">Recomendado a partir de ${GARANTIDORA.prazoGatilho} dias — hoje: ${i.dias}.</div>`:''}`}`);
 }
 
 function cobrar(ix){
@@ -1714,6 +1817,35 @@ function cobrar(ix){
              :`<button class="btn claro" onclick="copiar(window._msgCobranca,'Mensagem copiada — sem WhatsApp cadastrado')">Copiar mensagem</button>`}
     </div>
     <div class="aviso-lgpd">Você envia pelo seu WhatsApp — a mensagem já vai pronta. Nada é disparado automaticamente.</div>`);
+}
+/* ===== ESCALONAMENTO PRA GARANTIDORA (handoff B2B — ecossistema Duplique) =====
+   O Edi faz a 1ª cobrança amigável; estourou o prazo, o síndico entrega o caso
+   pronto pra garantidora, com o contato do gestor PROTEGIDO (a garantidora fala
+   com o devedor, o síndico sai da linha de frente). Reaproveitável p/ qualquer
+   garantidora parceira — Duplique é o padrão configurável. */
+const GARANTIDORA = {nome:'Duplique', prazoGatilho:60, cobertura:'antecipa a taxa e assume a régua de cobrança', contato:'gestor@duplique.com.br'};
+function escalonarGarantidora(ix){
+  const i=inadimplentes[ix]; if(!i) return;
+  abrirModal(`<h3>${tIco('maleta')}Escalonar pra ${GARANTIDORA.nome}</h3>
+    <div class="sub" style="margin-bottom:10px">O ${nomeAssist} já fez a cobrança amigável. A partir de ${GARANTIDORA.prazoGatilho} dias você pode entregar o caso pronto — a garantidora ${GARANTIDORA.cobertura}.</div>
+    <div class="secao">DOSSIÊ QUE VAI COM O CASO</div>
+    <div class="item">
+      <div class="linha1"><span class="nome">${i.un} — ${i.resp}</span><span class="chip ${faixa(i.dias)[1]}">${i.dias} dias</span></div>
+      <div class="sub" style="margin-top:4px">Competências: ${i.meses.join(', ')}</div>
+      <div class="sub">Saldo com encargos: <b>${fmt(divida(i))}</b></div>
+      <div class="sub">Histórico: ${i.cobr} · ${i.alugada?'unidade alugada (cobrança à proprietária)':'proprietário ocupante'}</div>
+    </div>
+    <div class="item" style="border-color:var(--verde); background:var(--verde-claro)">
+      <div class="sub" style="margin:0; display:flex; gap:7px; align-items:flex-start">${tIco('cadeado')}<span><b>Seu contato fica protegido.</b> Quem fala com o devedor a partir daqui é a ${GARANTIDORA.nome} — síndico e gestor saem da linha de frente. Menos atrito com o vizinho.</span></div>
+    </div>
+    <button class="btn principal btn-grande" onclick="confirmarEscalonamento(${ix})">${tIco('enviar')}Entregar caso pra ${GARANTIDORA.nome}</button>
+    <div class="aviso-lgpd">A garantidora é parceira configurável do condomínio (aqui: ${GARANTIDORA.nome}). Caso e dados seguem sob acordo de tratamento (LGPD); nada é enviado sem a sua confirmação.</div>`);
+}
+function confirmarEscalonamento(ix){
+  const i=inadimplentes[ix]; if(!i) return;
+  i.cobr='na garantidora'; i.escalonado=true; i.garantidora=GARANTIDORA.nome; i.escData=(typeof hojeData==='function')?hojeData():'';
+  if(typeof logAudit==='function') logAudit(`Escalonou ${i.un} para a garantidora ${GARANTIDORA.nome}`);
+  fecharModal(); toast(`${i.un} entregue pra ${GARANTIDORA.nome}. Você acompanha o status; o contato do gestor fica protegido.`); atualizar();
 }
 function baixa(ix){
   const i=inadimplentes[ix];
@@ -2618,6 +2750,53 @@ function agendaMoradorCard(){
 }
 
 /* ===== ACHADOS E PERDIDOS ===== */
+/* ===== Clube de vantagens (versão on-brand: opt-in por interesse, curado/homologado,
+   receita abate a taxa, sem mirar por perfil, separado do canal oficial) ===== */
+const CAT_VANT=['Pet','Academia','Restaurante','Mercado','Saúde','Casa & reforma'];
+let interessesVant=['Pet','Restaurante','Mercado'];   /* opt-in do morador — ele escolhe */
+let verTodasVant=false;
+const VANTAGENS=[
+  {nome:'Pet Feliz — banho & tosa', cat:'Pet', oferta:'15% off pra moradores', desc:'A 200m do prédio. Agende no WhatsApp com o código do condomínio.', vetado:true, dist:'200m'},
+  {nome:'AuAu Delivery — ração', cat:'Pet', oferta:'Frete grátis acima de R$120', desc:'Entrega no prédio, sem taxa de portaria.', vetado:false, dist:'bairro'},
+  {nome:'Academia Corpo em Foco', cat:'Academia', oferta:'Matrícula grátis + 10% na mensalidade', desc:'Parceria do condomínio — leve o comprovante de morador.', vetado:true, dist:'400m'},
+  {nome:'Cantina da Esquina', cat:'Restaurante', oferta:'10% no salão e no delivery', desc:'Comércio local do bairro.', vetado:false, dist:'150m'},
+  {nome:'Mercado Bom Preço', cat:'Mercado', oferta:'5% às terças pra moradores', desc:'Entrega no prédio sem taxa acima de R$150.', vetado:true, dist:'300m'},
+  {nome:'Clínica Vida — check-up', cat:'Saúde', oferta:'Consulta e exames com desconto', desc:'Rede credenciada; agendamento pelo app.', vetado:true, dist:'1,2km'},
+  {nome:'Reforma Já — pintura e reparos', cat:'Casa & reforma', oferta:'Orçamento grátis + 12% off', desc:'Prestador homologado — documento e seguro conferidos pela gestão.', vetado:true, dist:'bairro'},
+];
+function toggleInteresse(c){ const i=interessesVant.indexOf(c); if(i<0) interessesVant.push(c); else interessesVant.splice(i,1); atualizar(); }
+function verVantagem(ix){
+  const v=VANTAGENS[ix]; if(!v) return;
+  abrirModal(`<h3>${tIco('carrinho')}${v.nome}</h3>
+    <div class="linha1" style="margin-bottom:8px"><span class="sub">${v.cat} · ${v.dist}</span>${v.vetado?`<span class="chip verde">${tIco('check')}homologado pela gestão</span>`:'<span class="chip cinza">comércio local</span>'}</div>
+    <div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome">${tIco('cifrao')}${v.oferta}</span></div>
+      <div class="sub" style="margin-top:4px">${v.desc}</div></div>
+    <div class="botoes" style="margin-top:12px">
+      <button class="btn principal" onclick="toast('No produto final: gera o cupom/QR do morador e registra o uso (para o repasse que abate a taxa).')">Ativar cupom</button>
+      <button class="btn claro" onclick="toast('No produto final: abre a rota/telefone do parceiro.')">Como chegar</button>
+    </div>
+    <div class="aviso-lgpd" style="margin-top:10px">Você escolheu ver esta categoria — o app <b>não usa seus dados</b> para direcionar oferta. ${v.vetado?'Este parceiro foi <b>homologado pela gestão</b> (reputação/documentos conferidos).':'Comércio local indicado; a homologação formal é opcional.'} Parte da receita de parceria <b>abate a taxa do condomínio</b>.</div>`);
+}
+TELAS.vantagens = () => {
+  const sel=interessesVant, lista=VANTAGENS.filter(v=>verTodasVant||!sel.length||sel.includes(v.cat));
+  return `<div class="tela on">
+  <div class="topo"><h1>${tIco('carrinho')}Vantagens do prédio</h1><p>Comércio e prestadores locais — com desconto pra você</p></div>
+  <div class="item" style="border-color:var(--verde)"><div class="linha1"><span class="nome">${tIco('cifrao')}Receita que abate a taxa</span><span class="chip verde">benefício</span></div>
+    <div class="sub" style="margin-top:4px">Parceiros pagam pra estar aqui e <b>parte vira desconto na taxa do condomínio</b>. É curado pela gestão — não é anúncio empurrado.</div></div>
+  <div class="secao">SEUS INTERESSES <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--cinza)">— você escolhe o que quer ver (opt-in)</span></div>
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px">
+    ${CAT_VANT.map(c=>`<button class="chip ${sel.includes(c)?'verde':'cinza'}" style="border:${sel.includes(c)?'1px solid var(--verde)':'1px solid var(--borda)'}; background:${sel.includes(c)?'var(--verde-claro)':'transparent'}" aria-pressed="${sel.includes(c)}" onclick="toggleInteresse('${c}')">${c}</button>`).join('')}
+    <button class="chip cinza" style="border:none" onclick="verTodasVant=!verTodasVant;atualizar()">${verTodasVant?'filtrar pelos interesses':'ver todas'}</button>
+  </div>
+  ${lista.length?lista.map(v=>{const ix=VANTAGENS.indexOf(v);
+    return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verVantagem(${ix})">
+      <div class="linha1"><span class="nome">${v.nome}</span><span style="display:flex; align-items:center; gap:6px">${v.vetado?`<span class="chip verde" style="border:none">${tIco('check')}homologado</span>`:''}<span style="color:var(--cinza)">›</span></span></div>
+      <div class="sub" style="margin-top:4px"><span class="chip verde" style="border:none">${v.oferta}</span></div>
+      <div class="sub" style="margin-top:5px">${v.cat} · ${v.dist} · ${v.desc}</div>
+    </button>`;}).join(''):vazio('carrinho','Sem vantagens nesses interesses','Escolha outras categorias acima ou toque em "ver todas".')}
+  <div class="aviso-lgpd" style="margin-top:6px">Opt-in: só aparece o que você escolheu ver, e o app <b>não usa seus dados pessoais para mirar oferta</b>. As parcerias ficam separadas dos comunicados oficiais do condomínio (LGPD e política de canal).</div>
+</div>`;
+};
 TELAS.achados = () => {
   const noFiltro=perdidos.filter(p=>achFiltro==='Todos'||(achFiltro==='Achados'?p.tipo==='achado':p.tipo==='perdido'));
   const abertos=noFiltro.filter(p=>p.status!=='resolvido');
@@ -2830,11 +3009,14 @@ TELAS.mhome = () => {
   return `<div class="tela on">
   <div class="topo" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px">
     <div><h1>Oi, ${MORADOR.nome.split(' ')[0]}!</h1><button onclick="verImoveis()" style="background:none; border:none; padding:0; margin:2px 0 0; color:inherit; opacity:.85; font-family:inherit; font-size:.85rem; cursor:pointer; text-align:left">${MORADOR.un} · ${MORADOR.papel} · ${COND.nome}${meusImoveis.length>1?' <span style="font-weight:700; text-decoration:underline; opacity:1">▾ trocar imóvel</span>':''}</button></div>
+    <div style="display:flex; align-items:center; gap:8px; flex:0 0 auto">
     ${(()=>{const u=notificacoesMorador().filter(n=>!n.lida).length;
       return `<button aria-label="Notificações${u?` — ${u} nova${u>1?'s':''}`:''}" onclick="verNotificacoes()" style="position:relative; flex:0 0 auto; background:none; border:none; padding:6px; margin-top:2px; color:var(--texto); cursor:pointer">
         <span style="display:inline-block; width:24px; height:24px">${ico('sino')}</span>
         ${u?`<span aria-hidden="true" style="position:absolute; top:-1px; right:-1px; min-width:17px; height:17px; padding:0 4px; background:var(--vermelho); color:#fff; border-radius:99px; font-size:.64rem; font-weight:700; display:flex; align-items:center; justify-content:center">${u}</span>`:''}
       </button>`;})()}
+    <button aria-label="Meu perfil" title="Meu perfil" onclick="meuPerfil()" style="flex:0 0 auto; margin-top:2px; padding:0; border:none; background:none; cursor:pointer; line-height:0">${avatarHtml(34)}</button>
+    </div>
   </div>
 
   <div class="comando">
@@ -2892,9 +3074,11 @@ TELAS.mhome = () => {
     <button onclick="irPara('mreservar')"><span class="ic">${ico('calendario')}</span><b>Reservar</b><small>salão, churrasqueira</small></button>
     <button onclick="autorizarVisita()"><span class="ic">${ico('porta')}</span><b>Autorizar visitante</b><small>QR direto na portaria</small></button>
     <button onclick="irPara('mfalar')"><span class="ic">${ico('balao')}</span><b>Falar com o síndico</b><small>sugestão, reclamação</small></button>
+    <button onclick="verAntesDeFazer()"><span class="ic">${ico('balanca')}</span><b>Antes de fazer uma obra</b><small>a regra e o risco em R$</small></button>
     <button onclick="verTransparencia()"><span class="ic">${ico('cifrao')}</span><b>Pra onde vai meu dinheiro</b><small>contas do prédio</small></button>
     ${modOn('indicacoes')?`<button onclick="irPara('indicacoes')"><span class="ic">${ico('balao')}</span><b>Indicações de confiança</b><small>quem os vizinhos usam</small></button>`:''}
     ${modOn('achados')?`<button onclick="irPara('achados')"><span class="ic">${ico('lampada')}</span><b>Achados e perdidos</b><small>perdeu ou achou algo?</small></button>`:''}
+    ${modOn('vantagens')?`<button onclick="irPara('vantagens')"><span class="ic">${ico('carrinho')}</span><b>Vantagens do prédio</b><small>descontos que abatem a taxa</small></button>`:''}
     ${modOn('agenda')?`<button onclick="irPara('agenda')"><span class="ic">${ico('calendario')}</span><b>Agenda do prédio</b><small>o que me afeta</small></button>`:''}
   </div>
   <button class="item" style="width:100%; text-align:left; display:block; margin-top:10px" onclick="centralPrivacidade()">
@@ -2907,6 +3091,8 @@ function verTransparencia(){
   const F=FIN[5], saldo=F.rec-F.desp;
   const totalDesp=F.orc.reduce((s,o)=>s+o.real,0);
   const cats=[...F.orc].sort((a,b)=>b.real-a.real);
+  const top3=cats.slice(0,3).map(o=>`${o.c}, ${Math.round(o.real/totalDesp*100)} por cento`).join('; ');
+  window._audioTransp=`Resumo de ${F.nome.toLowerCase()}. O condomínio arrecadou ${fmt(F.rec)} e gastou ${fmt(F.desp)}. Resultado do mês: ${saldo>=0?'sobra de ':'falta de '}${fmt(Math.abs(saldo))}. Para onde foi o dinheiro: ${top3}. Sua taxa de junho está ${MORADOR.emDia?'paga':'em aberto'}.`;
   abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('cifrao')}Pra onde vai meu dinheiro</h3>
     <div class="sub" style="margin-bottom:10px">Resumo de ${F.nome.toLowerCase()}/2026 — os números do condomínio inteiro, sem expor ninguém. Quer o detalhe com notas fiscais? Está no balancete.</div>
     <div class="cards">
@@ -2923,9 +3109,91 @@ function verTransparencia(){
       <div class="cat-trilha" style="margin-top:4px"><div class="cat-barra" style="width:${pct}%"></div></div></div>`;}).join('')}
     <div class="item" style="margin-top:12px"><div class="linha1"><span class="nome">${tIco('check')}Sua taxa de junho</span><span class="chip ${MORADOR.emDia?'verde':'laranja'}">${MORADOR.emDia?'paga':'em aberto'}</span></div>
       <div class="sub">${MORADOR.papel==='inquilina'?'Como inquilina, você paga as despesas ordinárias; fundo e obras são do proprietário.':'Inclui o rateio ordinário + fundo de reserva.'}</div></div>
-    <div class="botoes"><button class="btn claro" onclick="fecharModal();mesGraf=4;verBalancete()"><span class="ico-in">${ico('grafico')}</span> Ver balancete completo (com notas)</button></div>
-    <div class="aviso-lgpd">Você vê o agregado do condomínio e a sua própria taxa. Quem deve a quem não aparece pra vizinho — a inadimplência nominal fica com o síndico e o conselho (LGPD).</div>
+    <div class="botoes"><button class="btn claro" onclick="fecharModal();mesGraf=4;verBalancete()"><span class="ico-in">${ico('grafico')}</span> Ver balancete completo (com notas)</button>
+      ${modOn('acessibilidade')?`<button class="btn claro" onclick="falarTexto(window._audioTransp)"><span class="ico-in">${ico('microfone')}</span> Ouvir resumo</button>`:''}</div>
+    <div class="aviso-lgpd">Você vê o agregado do condomínio e a sua própria taxa. Quem deve a quem não aparece pra vizinho — a inadimplência nominal fica com o síndico e o conselho (LGPD).${modOn('acessibilidade')?' O botão <b>Ouvir</b> lê o resumo em voz alta (acessibilidade).':''}</div>
     <button class="btn principal btn-grande" onclick="fecharModal()">Entendi</button>`);
+}
+/* ===== Meu perfil (o morador edita o que é dele) =====
+   Identidade (nome, unidade, papel) é da cadeia de confiança — só leitura.
+   O morador edita contato, veículos e pets (o que a portaria/síndico usam pra operar). */
+function iniciais(n){ const t=(n||'').replace(/[^\p{L}\s]/gu,' ').trim().split(/\s+/).filter(Boolean); return (t.slice(0,2).map(p=>p[0]).join('')||'?').toUpperCase(); }
+/* avatar do morador: foto (upload em memória) ou iniciais como fallback */
+function avatarHtml(px, fr){ const base=`width:${px}px; height:${px}px; border-radius:50%; flex:0 0 auto; display:inline-block; vertical-align:middle`;
+  return MORADOR.foto
+    ? `<span aria-hidden="true" style="${base}; background-image:url('${MORADOR.foto}'); background-size:cover; background-position:center"></span>`
+    : `<span aria-hidden="true" style="${base}; background:var(--verde-claro); color:var(--verde-escuro); font-weight:800; font-size:${fr||'.82rem'}; display:flex; align-items:center; justify-content:center">${iniciais(MORADOR.nome)}</span>`;
+}
+function escolherFoto(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return;
+    const r=new FileReader(); r.onload=ev=>{ MORADOR.foto=ev.target.result; toast('Foto atualizada.'); editarPerfil(); }; r.readAsDataURL(f); };
+  inp.click();
+}
+function removerFoto(){ MORADOR.foto=null; editarPerfil(); }
+function meuPerfil(){
+  const m=MORADOR;
+  const linhaLista=(ico,tit,arr,vazio)=>`<div class="item"><div class="linha1"><span class="nome">${tIco(ico)}${tit}</span><span class="chip cinza" style="border:none">${arr.length}</span></div>
+    ${arr.length?arr.map(x=>`<div class="sub" style="margin-top:4px">• ${x}</div>`).join(''):`<div class="sub" style="margin-top:4px; color:var(--cinza)">${vazio}</div>`}</div>`;
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:10px">
+      ${avatarHtml(42,'1rem')}
+      Meu perfil</h3>
+    <div class="item"><div class="linha1"><span class="nome">${m.nome}</span><span class="chip cinza">${m.un} · ${m.papel}</span></div>
+      <div class="sub" style="margin-top:4px">Nome, unidade e papel vêm do cadastro do condomínio (cadeia de confiança) — pra mudar, fale com o síndico.</div></div>
+    <div class="secao" style="margin-top:6px">CONTATO</div>
+    <div class="item"><div class="sub" style="margin:0">${tIco('balao')} ${m.tel||'—'}</div><div class="sub" style="margin-top:4px">${tIco('contrato')} ${m.email||'—'}</div>
+      <div class="sub" style="margin-top:6px; font-size:.76rem; color:var(--cinza)">A portaria não vê seu contato; o síndico usa só pra avisos e cobrança (LGPD).</div></div>
+    <div class="secao">VEÍCULOS &amp; PETS</div>
+    ${linhaLista('carrinho','Veículos', m.veiculos, 'Nenhum veículo cadastrado.')}
+    ${linhaLista('pacote','Pets', m.pets, 'Nenhum pet cadastrado.')}
+    <button class="btn principal btn-grande" onclick="editarPerfil()">${tIco('lapis')}Editar meus dados</button>
+    <button class="btn claro btn-grande" style="margin-top:8px" onclick="abrirAcessibilidade()">${tIco('balao')}Acessibilidade — texto, voz e tom</button>
+    <button class="btn claro btn-grande" style="margin-top:8px" onclick="centralPrivacidade()">${tIco('cadeado')}Privacidade e meus dados (LGPD)</button>`);
+}
+/* ===== Acessibilidade — preferências pessoais num lugar só (texto + voz + tom) =====
+   Texto grande é básico de dispositivo (sempre disponível); áudio e registro
+   "direto e simples" dependem do módulo Acessibilidade (o síndico liga pro prédio). */
+function abrirAcessibilidade(){
+  const txtG=document.documentElement.classList.contains('txt-grande');
+  const mod=modOn('acessibilidade');
+  abrirModal(`<h3>${tIco('balao')}Acessibilidade</h3>
+    <div class="sub" style="margin-bottom:10px">Ajuste como o app se comporta pra você — tudo num lugar só.</div>
+    <div class="secao">TAMANHO DO TEXTO</div>
+    <button class="item" style="width:100%; text-align:left; display:block" onclick="document.documentElement.classList.toggle('txt-grande');toast(document.documentElement.classList.contains('txt-grande')?'Texto grande ativado — tudo aumenta junto':'Texto no tamanho normal');abrirAcessibilidade()">
+      <div class="linha1"><span class="nome">Aa+ Texto grande</span><span class="chip ${txtG?'verde':'cinza'}" style="border:none">${txtG?'ligado':'desligado'}</span></div>
+      <div class="sub" style="margin-top:4px">Aumenta todos os textos e botões juntos.</div></button>
+    ${mod?`<div class="secao" style="margin-top:12px">COMO O ${(nomeAssist||'EDI').toUpperCase()} FALA</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px">${Object.entries(EDI_TOM).map(([k,l])=>`<button class="chip ${ediTom===k?'verde':'cinza'}" style="border:none; cursor:pointer" onclick="setEdiTom('${k}');abrirAcessibilidade()">${l}</button>`).join('')}</div>
+      <div class="sub" style="margin-bottom:12px">"Direto e simples" encurta a resposta e tira o jargão entre parênteses — a fonte continua citada.</div>
+      <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="sub" style="margin:0; display:flex; gap:7px; align-items:flex-start">${tIco('microfone')}<span><b>Ouvir em voz alta:</b> disponível no boleto e no balancete (botão "Ouvir").</span></div></div>`
+      :`<div class="aviso-lgpd" style="margin-top:12px">A leitura em voz alta e o registro "direto e simples" do ${nomeAssist} dependem do <b>módulo Acessibilidade</b> — o síndico ativa pra o prédio (⚙ Módulos).</div>`}
+    <button class="btn principal btn-grande" style="margin-top:12px" onclick="fecharModal()">Pronto</button>`);
+}
+function editarPerfil(){
+  const m=MORADOR;
+  abrirModal(`<h3>${tIco('lapis')}Editar meus dados</h3>
+    <div class="sub" style="margin-bottom:10px">Atualize o que é seu. Nome e unidade são do cadastro do condomínio e não mudam aqui.</div>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px">
+      ${avatarHtml(52,'1.1rem')}
+      <button class="btn claro" style="margin:0; padding:9px 14px" onclick="escolherFoto()">${m.foto?'Trocar foto':'Enviar foto'}</button>
+      ${m.foto?`<button class="btn claro" style="margin:0; padding:9px 14px" onclick="removerFoto()">Remover</button>`:''}
+    </div>
+    <label>Telefone / WhatsApp</label><input id="pf-tel" value="${(m.tel||'').replace(/"/g,'&quot;')}" placeholder="(11) 90000-0000">
+    <label>E-mail</label><input id="pf-email" type="email" value="${(m.email||'').replace(/"/g,'&quot;')}" placeholder="voce@email.com">
+    <label>Veículos <span style="font-weight:400; color:var(--cinza)">(um por linha — modelo · placa)</span></label>
+    <textarea id="pf-veic" rows="2" placeholder="Fiat Argo prata · DEF-2G34">${(m.veiculos||[]).join('\n')}</textarea>
+    <label>Pets <span style="font-weight:400; color:var(--cinza)">(um por linha — nome · espécie/porte)</span></label>
+    <textarea id="pf-pets" rows="2" placeholder="Mel · cachorro (Golden)">${(m.pets||[]).join('\n')}</textarea>
+    <button class="btn principal btn-grande" onclick="salvarPerfil()">Salvar</button>
+    <div class="aviso-lgpd" style="margin-top:10px">Veículos liberam a garagem e pets ficam no registro do prédio — a portaria e o síndico usam pra operar, conforme a LGPD.</div>`);
+}
+function salvarPerfil(){
+  const lst=id=>($('#'+id).value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  MORADOR.tel=($('#pf-tel').value||'').trim();
+  MORADOR.email=($('#pf-email').value||'').trim();
+  MORADOR.veiculos=lst('pf-veic');
+  MORADOR.pets=lst('pf-pets');
+  fecharModal(); toast('Perfil atualizado.'); meuPerfil();
 }
 function centralPrivacidade(){
   const dados=[
@@ -3100,11 +3368,39 @@ function ediHome(){
   clearTimeout(window.__ediT1); clearTimeout(window.__ediT2);
   window.__ediT1=setTimeout(()=>{
     const b=$('#edi-bolha-tmp');
-    if(b){ b.innerHTML=`${r.t}${r.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${r.fonte}</span>`:''}`;
+    if(b){ b.innerHTML=`${adaptarTom(r.t)}${r.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${r.fonte}</span>`:''}`;
       if(r.html) b.parentNode.insertAdjacentHTML('beforeend', r.html); }
     ediMood('talking');
     window.__ediT2=setTimeout(()=>ediMood('idle'), 2600);
   }, 650);
+}
+
+/* ===== barra de comando universal: o assistente atende de QUALQUER tela =====
+   O FAB abre um pop-up com o mesmo campo "Peça ao Edi…"; a resposta sai ali,
+   sem trocar de tela. Reaproveita ediResponder/EDI_CHIPS. */
+function abrirComandoEdi(){
+  const chips=(EDI_CHIPS[perfil]||EDI_CHIPS.morador);
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:9px"><span style="flex:0 0 auto">${ediMini}</span>Peça ao ${nomeAssist}</h3>
+    <div class="comando" style="margin:2px 0 4px"><input id="cmd-pop" placeholder='Ex.: "${chips[0]}"' onkeydown="if(event.key==='Enter')ediPop()">
+      <button class="mic" style="background:transparent" aria-label="Falar por voz" onclick="toast('No produto final: fale e o ${nomeAssist} resolve')">${ediMini}</button></div>
+    <div id="cmd-pop-resp"></div>
+    ${tomChips()}
+    <div class="secao" style="margin-top:10px">SUGESTÕES</div>
+    <div class="botoes" style="flex-wrap:wrap; gap:6px">${chips.slice(0,4).map(s=>`<button class="chip cinza" style="border:none; cursor:pointer" onclick="ediDizer(this.textContent)">${s}</button>`).join('')}</div>`);
+  setTimeout(()=>{const i=$('#cmd-pop'); if(i) i.focus();}, 60);
+}
+function ediPop(){
+  const i=$('#cmd-pop'); if(!i) return; const q=(i.value||'').trim(); if(!q) return; i.value='';
+  const r=ediResponder(q); const a=$('#cmd-pop-resp'); ediMood('thinking');
+  if(a) a.innerHTML=`<div class="edi-linha" style="margin:12px 0 2px"><span class="edi-av" style="background:transparent; border:none">${ediMini}</span><div style="max-width:88%"><span class="edi-bolha" id="edi-bolha-pop">…</span></div></div>`;
+  clearTimeout(window.__ediP1); clearTimeout(window.__ediP2);
+  window.__ediP1=setTimeout(()=>{
+    const b=$('#edi-bolha-pop');
+    if(b){ b.innerHTML=`${adaptarTom(r.t)}${r.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${r.fonte}</span>`:''}`;
+      if(r.html) b.parentNode.insertAdjacentHTML('beforeend', r.html); }
+    ediMood('talking');
+    window.__ediP2=setTimeout(()=>ediMood('idle'), 2400);
+  }, 600);
 }
 
 let areaSel='Salão de Festas';
@@ -3384,6 +3680,7 @@ TELAS.ccontas = () => {
     <div class="sub" style="margin-top:3px">Receitas ${fmt(F.rec).replace(',00','')} − despesas ${fmt(F.desp).replace(',00','')} = ${saldo>=0?'superávit':'déficit'} do mês.</div>
   </div>
   <div class="botoes" style="margin-bottom:14px"><button class="btn principal" onclick="parecerConselho()"><span class="ico-in">${ico('lapis')}</span> Registrar parecer</button><button class="btn claro" onclick="mesGraf=${mesCC-1};verBalancete()"><span class="ico-in">${ico('grafico')}</span> Gráfico</button></div>
+  ${modOn('terceirizadas')?(()=>{const {risco,aten}=tercResumo(); const st=risco?['vermelho',risco+' com risco']:aten?['laranja',aten+' a cobrar']:['verde','em dia']; return `<button class="item" style="width:100%; text-align:left; display:block; margin-bottom:14px; border-color:var(--${st[0]==='verde'?'verde':st[0]})" onclick="verTerceirizadasConselho()"><div class="linha1"><span class="nome">${tIco('maleta')}Terceirizadas — risco trabalhista</span><span class="chip ${st[0]}">${st[1]} ›</span></div><div class="sub" style="margin-top:3px">Fiscalização das obrigações (Súmula 331 TST) — protege o condomínio de passivo subsidiário.</div></button>`;})():''}
 <h2>Orçado × realizado (${F.nome.toLowerCase()})</h2>
   <div class="item">
     ${F.orc.map((o,oi)=>{const pct=Math.round(o.real/o.orc*100); const estourou=o.real>o.orc;
@@ -3480,12 +3777,13 @@ const TIPO_ASSINATURA = {
   convencao:  {rot:'Qualificada — ICP-Brasil / gov.br ouro',  base:'MP 2.200-2/2001 — exigida para averbar no cartório', cor:'laranja', nota:'Mudança de convenção vai a registro: pede a assinatura mais forte.'},
   comunicado: {rot:'Eletrônica simples',                      base:'Lei 14.063/2020', cor:'cinza',  nota:'Aviso/aceite: assinatura simples com trilha basta.'},
   contrato:   {rot:'Eletrônica avançada',                     base:'Lei 14.063/2020', cor:'verde',  nota:'Contrato de prestador: avançada com trilha.'},
+  art:        {rot:'Eletrônica avançada (responsável técnico)', base:'Lei 14.063/2020 · ART/RRT registrada no CREA/CAU', cor:'verde', nota:'A ART é emitida no CREA/CAU pelo responsável técnico; a assinatura avançada com trilha vincula ele ao escopo e às condições da obra.'},
 };
 let assinatura=null;    // pedido de assinatura em curso
 let docsAssinados=[];   // documentos já assinados (vão pro acervo)
-function enviarParaAssinatura(titulo, tipoKey){
-  assinatura={titulo, tipoKey, provedor:'Clicksign',
-    signatarios:[{nome:'Roberto Alves', papel:'Síndico · Presidente da mesa', status:''},
+function enviarParaAssinatura(titulo, tipoKey, signatarios, contexto){
+  assinatura={titulo, tipoKey, provedor:'Clicksign', contexto:contexto||null,
+    signatarios: signatarios || [{nome:'Roberto Alves', papel:'Síndico · Presidente da mesa', status:''},
                  {nome:'Mariana Dias',  papel:'Secretária',                    status:''}]};
   verAssinatura();
 }
@@ -3507,9 +3805,11 @@ function assinarComo(ix){
 }
 function concluirAssinatura(){
   const a=assinatura, t=TIPO_ASSINATURA[a.tipoKey]||TIPO_ASSINATURA.ata;
-  docsAssinados.unshift({titulo:a.titulo, info:`assinada ${hojeData()} · ${a.provedor} · ${t.rot} · ${a.signatarios.length} signatários`});
-  logAudit(`arquivou no acervo a ata assinada: "${a.titulo}"`,'Síndico');
-  assinatura=null; fecharModal(); atualizar();
+  docsAssinados.unshift({titulo:a.titulo, info:`assinada ${hojeData()} · ${a.provedor} · ${t.rot} · ${a.signatarios.length} signatário(s)`});
+  logAudit(`arquivou no acervo o documento assinado: "${a.titulo}"`,'Síndico');
+  const ctx=a.contexto; assinatura=null;
+  if(ctx==='art'){ const d=window._rfDraft||{}; d.artAssinada=true; d.art=true; fecharModal(); toast('ART assinada digitalmente pelo responsável técnico — anexada ao comunicado.'); novaReforma(d); return; }
+  fecharModal(); atualizar();
   toast('Assinada e arquivada no acervo (Documentos).');
 }
 TELAS.cdocs = () => {
@@ -3535,24 +3835,28 @@ TELAS.cdocs = () => {
 TELAS.ajustes = () => {
   const totalGeral=setupItens.length, feitosGeral=setupItens.filter(i=>i.feito).length;
   if(ajStep >= ajLista.length){
+    const pendentes=setupItens.filter(i=>!i.feito);
     return `<div class="tela on">
-      <div class="topo"><h1>${tIco('check')}Configuração concluída</h1><p>Seu ${MARCA} está redondo — os detalhes finos você ajusta quando for usar cada parte.</p></div>
+      <div class="topo"><h1>${tIco(pendentes.length?'prancheta':'check')}${pendentes.length?'Terminar configuração':'Configuração concluída'}</h1><p>${pendentes.length?'O básico já ficou pronto no onboarding. Os itens abaixo são opcionais — toque pra configurar o que você pulou, na ordem que quiser.':'Seu '+MARCA+' está redondo. Pode reabrir qualquer ajuste pelas telas do app.'}</p></div>
       <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="linha1"><span class="nome">${Math.round(feitosGeral/totalGeral*100)}% pronto</span><span class="chip verde">${feitosGeral} de ${totalGeral}</span></div>
-      <div class="sub" style="margin-top:6px">Pode reabrir qualquer ajuste pelas telas do app. Nada trava o uso.</div></div>
+      <div class="sub" style="margin-top:6px">${pendentes.length?'Nada aqui trava o uso — é só o que deixa o app mais completo.':'Tudo configurado.'}</div></div>
+      <div class="secao">SEUS PASSOS</div>
+      ${setupItens.map(i=>`<div class="item"><div class="linha1"><span class="nome">${i.feito?tIco('check'):tIco(i.ic)}${i.nome}</span>${i.feito?`<span class="chip verde">pronto</span>`:`<button class="btn principal" style="width:auto; flex:0 0 auto; padding:7px 14px; font-size:13px" onclick="setupFazer('${i.k}')">Configurar</button>`}</div><div class="sub" style="margin-top:3px">${i.desc}${i.feito?'':' · opcional'}</div></div>`).join('')}
       <button class="item" style="width:100%; text-align:left; display:block" onclick="irPara('fontesEdi')">
         <div class="linha1"><span class="nome">${tIco('robo')}Fontes do ${nomeAssist}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip cinza">treinar</span><span style="color:var(--cinza)">›</span></span></div>
         <div class="sub">O que o assistente leu pra responder aos moradores — convenção, regimento, atas.</div>
       </button>
-      <div style="margin-top:8px"><button class="btn principal btn-grande" onclick="irPara('inicio')">Ir pro painel ›</button></div>
+      <div style="margin-top:8px"><button class="btn ${pendentes.length?'claro':'principal'} btn-grande" onclick="irPara('inicio')">Ir pro painel ›</button></div>
     </div>`;
   }
   const it=setupItens.find(x=>x.k===ajLista[ajStep]);
   const seg=ajLista.map((k,i)=>`<span style="flex:1; height:5px; border-radius:99px; background:${i<=ajStep?'var(--verde)':'var(--cinza-claro)'}"></span>`).join('');
   const labels=ajLista.map((k,i)=>{const o=setupItens.find(x=>x.k===k); return `<span style="flex:1; text-align:center; font-size:.62rem; line-height:1.2; font-weight:${i===ajStep?'700':'500'}; color:${i===ajStep?'var(--verde-escuro)':'var(--cinza)'}">${o.nome.split('')[0]}</span>`;}).join('');
   return `<div class="tela on">
-    <div class="topo"><h1>${tIco('prancheta')}Terminar configuração</h1><p>Vamos fechar o que falta — um de cada vez, já com padrão pronto.</p></div>
+    <div class="topo"><h1>${tIco('prancheta')}Terminar configuração</h1><p>O básico já ficou pronto no onboarding — aqui é só o <b>opcional</b>. Um de cada vez, já com padrão pronto; pode pular e voltar quando quiser.</p></div>
     <div style="display:flex; gap:5px; margin:4px 0 5px">${seg}</div>
-    <div style="display:flex; gap:5px; margin-bottom:14px">${labels}</div>
+    <div style="display:flex; gap:5px; margin-bottom:6px">${labels}</div>
+    <div style="text-align:center; margin-bottom:12px"><button class="chip cinza" style="border:none; cursor:pointer" onclick="ajStep=ajLista.length; atualizar()">ver todos os passos ›</button></div>
 <h2 style="margin-top:0; justify-content:flex-start; gap:8px">${tIco(it.ic)}${it.nome}</h2>
     <div class="sub" style="margin-bottom:12px">${it.desc}.</div>
     <div class="item" style="border-color:var(--verde)"><div class="sub" style="margin:0">${it.assist||'Já vem com um padrão pronto. Toque em <b>Configurar</b> e ajuste os detalhes depois, quando for usar.'}</div></div>
@@ -4142,9 +4446,9 @@ let livro = [
 TELAS.livro = () => `<div class="tela on">
   <div class="topo"><h1>${tIco("caderno")}Livro de ocorrências</h1><p>O caderno do prédio — agora com hora, foto e autoria</p></div>
   <button class="btn principal btn-grande" onclick="novaLivro()">+ Registrar ocorrência</button>
-  ${livro.map((l,ix)=>{const enc=/encaminh/i.test(l.destino); return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verLivro(${ix})">
+  ${livro.map((l,ix)=>{const enc=/encaminh/i.test(l.destino); const novo=(l.id&&l.id===window._lvNovoId); return `<button class="item" style="width:100%; text-align:left; display:block${novo?'; border-color:var(--verde); background:var(--verde-claro)':''}" onclick="verLivro(${ix})">
     <div class="linha1"><span class="nome">${l.t.length>70?l.t.slice(0,68)+'…':l.t}</span><span style="display:flex; align-items:center; gap:6px; flex:0 0 auto"><span class="chip ${enc?'laranja':'verde'}">${enc?'ao síndico':'registrada'}</span><span style="color:var(--cinza)">›</span></span></div>
-    <div class="sub" style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:3px">${l.foto?`<span class="chip cinza" style="border:none; padding:1px 8px; font-size:.68rem; display:inline-flex; align-items:center; gap:3px">${tIco('camera')}foto</span>`:''}<span>${l.quando} · zelador</span></div>
+    <div class="sub" style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:3px">${novo?`<span class="chip verde" style="border:none; padding:1px 8px; font-size:.68rem">${tIco('check')}salvo agora</span>`:''}${l.foto?`<span class="chip cinza" style="border:none; padding:1px 8px; font-size:.68rem; display:inline-flex; align-items:center; gap:3px">${tIco('camera')}foto</span>`:''}<span>${l.quando} · zelador</span></div>
   </button>`;}).join('')||vazio('caderno','Livro do dia ainda vazio','Registre a ronda, ocorrências e passagens de turno — vira o histórico operacional do prédio.')}
   <div class="aviso-lgpd">Tudo que você vê na ronda entra aqui: vazamento, equipe, chave, mudança, prestador. O que precisa de decisão ou gasto, encaminhe ao síndico — ele recebe com seu contexto e sua recomendação, nunca o problema cru.</div>
 </div>`;
@@ -4154,7 +4458,8 @@ function novaLivro(){
     <div class="sub" style="margin-bottom:10px; display:flex; align-items:flex-start; gap:6px">${tIco('cadeado')}<span>Fale ou fotografe — leva segundos. Funciona <b>sem sinal</b>: na garagem ou casa de máquinas, registra e sincroniza sozinho quando a internet voltar.</span></div>
     <button class="btn principal btn-grande" id="lv-voz" onclick="ditarLivro()" style="display:flex; align-items:center; justify-content:center; gap:10px">${tIco('microfone')}Falar a ocorrência</button>
     <label style="margin-top:12px">O que aconteceu?</label>
-    <textarea id="lv-t" rows="3" placeholder="Toque em Falar — ou escreva aqui" style="width:100%; border:1.5px solid var(--borda); border-radius:12px; padding:11px 13px; font-family:inherit; font-size:.95rem; color:var(--texto); resize:vertical; margin:2px 0 0; box-sizing:border-box"></textarea>
+    ${window._lvDraft?`<div class="sub" style="margin:0 0 4px; color:var(--verde-escuro); font-size:.78rem">${tIco('check')}Rascunho recuperado — continue de onde parou. <button class="chip cinza" style="border:none; cursor:pointer; font-size:.7rem" onclick="window._lvDraft='';var t=document.getElementById('lv-t');if(t)t.value='';this.parentNode.style.display='none'">descartar</button></div>`:''}
+    <textarea id="lv-t" rows="3" placeholder="Toque em Falar — ou escreva aqui" oninput="window._lvDraft=this.value" style="width:100%; border:1.5px solid var(--borda); border-radius:12px; padding:11px 13px; font-family:inherit; font-size:.95rem; color:var(--texto); resize:vertical; margin:2px 0 0; box-sizing:border-box">${(window._lvDraft||'').replace(/</g,'&lt;')}</textarea>
     <button class="btn claro btn-grande" id="lv-foto" style="margin-top:10px" onclick="fotoLivroAnexar(this)">${tIco('camera')}Tirar / anexar foto</button>
     <label>Destino</label>
     <select id="lv-d"><option>Só registrar no livro</option><option>Encaminhar ao síndico (decisão/gasto)</option></select>
@@ -4180,16 +4485,18 @@ function ditarLivro(){
   const ex=['Ronda do subsolo concluída — sem ocorrências.','Lâmpada do hall do 3º andar trocada.','Infiltração na parede da vaga 8 — parede úmida, tirei foto.','Portão da garagem travando ao fechar — acionei a empresa de automação.','Passagem de turno: porteiro da noite entregou as chaves e o rádio sem pendência.'];
   const t=ex[Math.floor(Math.random()*ex.length)];
   const btn=$('#lv-voz'); if(btn){ btn.innerHTML=`${tIco('microfone')}Ouvindo…`; btn.disabled=true; }
-  setTimeout(()=>{ const ta=$('#lv-t'); if(ta) ta.value=t; if(btn){ btn.innerHTML=`${tIco('microfone')}Falar a ocorrência`; btn.disabled=false; } toast('Transcrito (simulação) — revise e toque em Registrar'); }, 850);
+  setTimeout(()=>{ const ta=$('#lv-t'); if(ta) ta.value=t; window._lvDraft=t; if(btn){ btn.innerHTML=`${tIco('microfone')}Falar a ocorrência`; btn.disabled=false; } toast('Transcrito (simulação) — revise e toque em Registrar'); }, 850);
 }
 function salvarLivro(){
   const t=$('#lv-t').value.trim();
   if(!t){ toast('Fale ou escreva a ocorrência antes de registrar.'); return; }
   const enc=$('#lv-d').value.startsWith('Encaminhar');
-  livro.unshift({quando:agora(), t, destino:enc?'encaminhada ao síndico':'registrada', foto:!!window._lvFoto});
-  if(enc) ocorrencias.unshift({id:Date.now(), un:'Zelador', tipo:'Operacional', titulo:t.slice(0,60), desc:t+' (registrada no livro de ocorrências, com foto)', quando:hojeData(), status:'aberta', resposta:''});
-  fecharModal(); atualizar();
-  toast(enc?'Registrada e encaminhada — o síndico recebe com seu contexto':'Registrada no livro');
+  const id=Date.now();
+  livro.unshift({id, quando:agora(), t, destino:enc?'encaminhada ao síndico':'registrada', foto:!!window._lvFoto});
+  window._lvNovoId=id; window._lvDraft='';   /* confirma que salvou (destaque) + limpa o rascunho */
+  if(enc) ocorrencias.unshift({id:id+1, un:'Zelador', tipo:'Operacional', titulo:t.slice(0,60), desc:t+' (registrada no livro de ocorrências, com foto)', quando:hojeData(), status:'aberta', resposta:''});
+  fecharModal(); irPara('livro');   /* garante o re-render na tela do livro — a ocorrência aparece no topo, destacada */
+  toast(enc?'Registrada e encaminhada — o síndico recebe com seu contexto':'Registrada no livro — aparece no topo');
 }
 
 /* ===== BALANCETE VISUAL (compartilhado: síndico e morador) ===== */
@@ -5482,14 +5789,24 @@ function enviarOcorrencia(){
   toast('Enviado  Você acompanha o status por aqui e recebe a resposta no WhatsApp.');
 }
 
-function novaReforma(){
-  window._artAnexada=false;
+const REFORMA_AREAS=['Sala','Cozinha','Banheiro','Suíte','Quarto','Á. serviço','Varanda/fachada'];
+function novaReforma(draft){
+  draft=draft||{};
+  window._artAssinada=!!draft.artAssinada;
+  window._artAnexada=!!draft.artAssinada;
+  window._rfAreas=new Set(draft.areas||[]);
+  const selE=v=>draft.estrutura===v?' selected':'';
+  const artSim = draft.art===undefined ? true : !!draft.art;
   abrirModal(`<h3>${tIco('martelo')}Comunicar reforma</h3>
-    <div class="sub" style="margin-bottom:12px">A comunicação prévia ao síndico é exigência da NBR 16.280 — e protege você em caso de questionamento.</div>
-    <label>O que será feito? <span style="color:var(--vermelho)">*</span></label><input id="rf-titulo" placeholder="Ex.: troca de piso da sala e cozinha">
-    <label>Início previsto e duração <span style="color:var(--vermelho)">*</span></label><input id="rf-periodo" placeholder="Ex.: 22/06, cerca de 3 semanas">
+    <div class="sub" style="margin-bottom:12px">A comunicação prévia ao síndico é exigência da NBR 16.280 — e protege você. Marque na planta onde vai mexer; se precisar, eu já <b>gero a ART pra assinar</b>.</div>
+    <label>O que será feito? <span style="color:var(--vermelho)">*</span></label><input id="rf-titulo" placeholder="Ex.: troca de piso da sala e cozinha" value="${(draft.titulo||'').replace(/"/g,'&quot;')}">
+    <label>Onde no imóvel? <span style="font-weight:400; color:var(--cinza)">(toque na planta)</span></label>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px">
+      ${REFORMA_AREAS.map(a=>`<button type="button" class="rf-area" data-area="${a}" onclick="rfToggleArea(this)" style="padding:13px 6px; border:1.5px solid ${window._rfAreas.has(a)?'var(--verde)':'var(--borda)'}; border-radius:10px; background:${window._rfAreas.has(a)?'var(--verde-claro)':'var(--branco)'}; font-weight:700; font-size:.8rem; color:var(--texto); cursor:pointer">${a}</button>`).join('')}
+    </div>
+    <label>Início previsto e duração <span style="color:var(--vermelho)">*</span></label><input id="rf-periodo" placeholder="Ex.: 22/06, cerca de 3 semanas" value="${(draft.periodo||'').replace(/"/g,'&quot;')}">
     <label>Mexe em estrutura, elétrica ou hidráulica?</label>
-    <select id="rf-estrutura"><option>Não — só acabamento</option><option>Sim</option><option>Não sei dizer</option></select>
+    <select id="rf-estrutura"><option${selE('Não — só acabamento')}>Não — só acabamento</option><option${selE('Sim')}>Sim</option><option${selE('Não sei dizer')}>Não sei dizer</option></select>
     <details style="margin:-2px 0 12px; background:var(--cinza-claro); border-radius:10px; padding:10px 12px">
       <summary style="font-size:.8rem; font-weight:700; cursor:pointer; color:var(--verde-escuro)"> O que conta como "só acabamento"? Toque para ver exemplos</summary>
       <div class="sub" style="margin-top:8px">
@@ -5501,11 +5818,52 @@ function novaReforma(){
       </div>
     </details>
     <label>Tem responsável técnico (ART/RRT)?</label>
-    <select id="rf-art" onchange="document.getElementById('rf-art-up').style.display=this.value==='Sim'?'block':'none'"><option>Sim</option><option>Não</option></select>
-    <div id="rf-art-up">
-      <button class="btn claro btn-grande" id="rf-art-btn" onclick="anexarART()">${clip()}Anexar ART/RRT (PDF) — obrigatório</button>
+    <select id="rf-art" onchange="document.getElementById('rf-art-up').style.display=this.value==='Sim'?'block':'none'"><option${artSim?' selected':''}>Sim</option><option${!artSim?' selected':''}>Não</option></select>
+    <div id="rf-art-up" style="display:${artSim?'block':'none'}">
+      ${window._artAssinada
+        ? `<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="linha1"><span class="nome">${tIco('check')}ART gerada e assinada</span><span class="chip verde">pronta</span></div><div class="sub" style="margin-top:3px">Escopo e condições preenchidos pelo app; o responsável técnico assinou — anexada ao comunicado.</div></div>`
+        : `<button class="btn principal btn-grande" style="background:var(--verde)" onclick="gerarART()">${clip()}Gerar ART pra assinar (guiado)</button>
+           <button class="btn claro btn-grande" id="rf-art-btn" style="margin-top:6px" onclick="anexarART()">${clip()}Já tenho a ART — anexar PDF</button>`}
     </div>
     <button class="btn principal btn-grande" style="background:var(--laranja)" onclick="enviarReforma()">Enviar comunicado ao síndico</button>`);
+}
+function rfToggleArea(el){
+  const a=el.getAttribute('data-area'); if(!window._rfAreas) window._rfAreas=new Set();
+  const on=window._rfAreas.has(a);
+  if(on){ window._rfAreas.delete(a); el.style.background='var(--branco)'; el.style.borderColor='var(--borda)'; }
+  else { window._rfAreas.add(a); el.style.background='var(--verde-claro)'; el.style.borderColor='var(--verde)'; }
+}
+function rfLerForm(){
+  return {titulo:(($('#rf-titulo')||{}).value||''), periodo:(($('#rf-periodo')||{}).value||''), estrutura:(($('#rf-estrutura')||{}).value||''), art:(($('#rf-art')||{}).value==='Sim'), areas:[...(window._rfAreas||[])], artAssinada:!!window._artAssinada};
+}
+/* ART guiada — o app monta o escopo (a partir da planta) e as condições; o responsável técnico só assina */
+function gerarART(){
+  const d=rfLerForm();
+  if(!d.titulo.trim()||!d.periodo.trim()){ toast('Preencha "o que será feito" e o período antes de gerar a ART.'); return; }
+  window._rfDraft=d;
+  const estrut=d.estrutura==='Sim';
+  const norma=estrut?'NBR 16.280 + CC art. 1.341 (estrutura) + NR-10/NR-18 conforme o caso':'NBR 16.280';
+  const areas=d.areas.length?d.areas.join(', '):'<span style="color:var(--vermelho)">(marque na planta)</span>';
+  abrirModal(`<h3>${clip()}ART pra assinar</h3>
+    <div class="sub" style="margin-bottom:10px">Documento montado a partir do que você marcou. Quem assina é o <b>responsável técnico</b> — o app já preenche o escopo e as condições da obra pra ele conferir.</div>
+    <div class="item" style="background:var(--cinza-claro); font-family:monospace; font-size:.76rem; line-height:1.7">
+      <b>ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA — ART</b> <span class="chip cinza">rascunho</span><br>
+      <b>Contratante:</b> ${MORADOR.un} — ${COND.nome}<br>
+      <b>Atividade:</b> ${d.titulo}<br>
+      <b>Local no imóvel:</b> ${areas}<br>
+      <b>Período:</b> ${d.periodo}<br>
+      <b>Norma aplicável:</b> ${norma}<br>
+      <b>Condições da obra (regimento):</b> horário permitido seg–sex 8h–17h; <b>elevador de serviço</b> na entrada de material; cadastro dos trabalhadores na portaria; entulho em caçamba com retirada agendada.<br>
+      <b>Responsável técnico:</b> __________________ (assina)
+    </div>
+    <div class="botoes"><button class="btn principal" onclick="assinarARTDigital()">${tIco('contrato')}Assinar digital (Lei 14.063)</button>
+      <button class="btn claro" onclick="novaReforma(window._rfDraft)">Voltar</button></div>
+    <div class="aviso-lgpd">A ART é emitida no CREA/CAU pelo responsável técnico; o app monta o escopo e as condições, e a assinatura digital (mesmo fluxo da ata — Lei 14.063) vincula o responsável ao documento com trilha.</div>`);
+}
+/* liga a ART ao fluxo de assinatura digital existente — signatário = responsável técnico */
+function assinarARTDigital(){
+  const d=window._rfDraft||rfLerForm(); window._rfDraft=d;
+  enviarParaAssinatura(`ART/RRT — ${d.titulo}`, 'art', [{nome:'Eng. Ricardo Tavares', papel:'Responsável técnico · CREA-SP 5061234567', status:''}], 'art');
 }
 function anexarART(){
   window._artAnexada=true;
@@ -5514,15 +5872,15 @@ function anexarART(){
   toast('ART anexada (simulação) — fica arquivada na solicitação');
 }
 function enviarReforma(){
-  const t=$('#rf-titulo').value.trim();
-  const per=$('#rf-periodo').value.trim();
+  const d=rfLerForm();
+  const t=d.titulo.trim(), per=d.periodo.trim();
   if(!t||!per){ toast('Descrição e prazo são obrigatórios — a NBR 16.280 exige escopo e período definidos.'); return; }
-  const sel=$('#rf-estrutura').value;
-  const estrutura=sel==='Sim', naoSabe=sel==='Não sei dizer';
-  const art=$('#rf-art').value==='Sim';
-  if(art&&!window._artAnexada){ toast('Anexe o arquivo da ART/RRT antes de enviar.'); return; }
-  const desc=`${per} · ${estrutura?'mexe em estrutura/instalações':naoSabe?'morador não soube classificar — avaliar escopo':'só acabamento'} · ${art?'ART anexada':'sem ART'}`;
-  ocorrencias.unshift({id:Date.now(), un:MORADOR.un, tipo:'Reforma', titulo:t, desc, quando:hojeData(), status:'aberta', resposta:'', art:art?{arquivo:'art-reforma.pdf'}:null});
+  const estrutura=d.estrutura==='Sim', naoSabe=d.estrutura==='Não sei dizer';
+  const art=d.art, assinada=!!window._artAssinada;
+  if(art&&!window._artAnexada&&!assinada){ toast('Gere a ART pra assinar (ou anexe o PDF) antes de enviar.'); return; }
+  const areasTxt=d.areas.length?` · ${d.areas.join(', ')}`:'';
+  const desc=`${per}${areasTxt} · ${estrutura?'mexe em estrutura/instalações':naoSabe?'morador não soube classificar — avaliar escopo':'só acabamento'} · ${art?(assinada?'ART gerada e assinada':'ART anexada'):'sem ART'}`;
+  ocorrencias.unshift({id:Date.now(), un:MORADOR.un, tipo:'Reforma', titulo:t, desc, quando:hojeData(), status:'aberta', resposta:'', art:art?{arquivo: assinada?'art-gerada-assinada.pdf':'art-reforma.pdf'}:null, areas:d.areas});
   fecharModal(); atualizar();
   if(estrutura&&!art) toast('Enviado — mas atenção: obra em estrutura/instalações exige ART (NBR 16.280). O síndico vai solicitar antes de aprovar.');
   else if(naoSabe) toast('Enviado  O síndico vai avaliar o escopo com você antes de aprovar — melhor do que descobrir depois.');
@@ -5555,12 +5913,26 @@ TELAS.ocorrencias = () => {
     ${tipos.map(t=>`<button class="chip ${filtroOc===t?'verde':'cinza'}" style="border:${filtroOc===t?'1px solid var(--verde)':'1px solid var(--borda)'}; background:${filtroOc===t?'var(--verde-claro)':'transparent'}" aria-pressed="${filtroOc===t}" onclick="filtroOc=filtroOc==='${t}'?'Todas':'${t}';atualizar()">${rotulo[t]} (${conta(t)})</button>`).join('')}
     ${filtroOc!=='Todas'?`<button class="chip cinza" style="border:none" onclick="filtroOc='Todas';atualizar()">✕ limpar</button>`:''}
   </div>
+  ${(()=>{ if(verConcluidas || !modOn('sla')) return '';
+    const ab=ocorrencias.filter(o=>o.status!=='resolvida'&&!o.resposta&&passaTorre(daTorre(o.un))&&porTipo(o));
+    if(!ab.length) return '';
+    const atras=ab.filter(o=>slaOc(o)[0]==='vermelho').length;
+    const venc=ab.filter(o=>{const s=slaOc(o); return s&&s[0]==='laranja';}).length;
+    const ok=ab.length-atras-venc;
+    return `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:-2px 0 12px">
+      <span style="font-size:.74rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--cinza)">SLA 1ª resposta</span>
+      ${ok?`<span class="chip verde" style="border:none">${ok} no prazo</span>`:''}
+      ${venc?`<span class="chip laranja" style="border:none">${venc} vence hoje/amanhã</span>`:''}
+      ${atras?`<span class="chip vermelho" style="border:none">${atras} atrasada${atras>1?'s':''}</span>`:''}
+      <button class="chip cinza" style="border:none; cursor:pointer" title="Editar as metas de prazo por tipo" onclick="configurarSLA()">${tIco('engrenagem')}metas</button>
+    </div>`;})()}
   ${lista.length?'':vazio(verConcluidas?'balao':'check', verConcluidas?'Nenhuma concluída nesta categoria ainda':'Nada pendente nesta categoria', verConcluidas?'Quando algo for resolvido, fica registrado aqui.':'Tudo em ordem por aqui — sem ocorrências em aberto.')}
-  ${lista.map(o=>{const c=chipOc(o);
+  ${lista.map(o=>{const c=chipOc(o); const s=slaOc(o);
     const aguarda=o.status!=='resolvida'&&!o.resposta;
     return `<button class="item" style="width:100%; text-align:left; display:block" onclick="verOcorrencia(${o.id})">
     <div class="linha1"><span class="nome">${iconeOc(o)} ${o.titulo}</span><span style="display:flex; align-items:center; gap:6px"><span class="chip ${c[1]}">${c[0]}</span><span style="color:var(--cinza)">›</span></span></div>
     <div class="sub">${o.un} · ${o.tipo} · ${o.quando}${o.rito?` · ${tIco('balanca')}${RITO_ROTULO[o.rito]}`:''}${aguarda?' · <b style="color:var(--laranja)">aguardando você</b>':''}</div>
+    ${s?`<div class="sub" style="margin-top:5px"><span class="chip ${s[0]}" style="border:none">SLA · ${s[1]}</span></div>`:''}
   </button>`;}).join('')}
   <div class="aviso-lgpd">Toque numa ocorrência para ver a conversa e agir. Histórico preservado — o valor está em enxergar padrões ("o portão quebra todo mês").</div>
 </div>`;
@@ -5571,6 +5943,7 @@ function verOcorrencia(id){
   const c=chipOc(o);
   abrirModal(`<h3>${iconeOc(o)} ${o.titulo}</h3>
     <div class="sub" style="margin-bottom:8px">${o.un} · ${o.tipo} · ${o.quando} · <span class="chip ${c[1]}">${c[0]}</span></div>
+    ${(()=>{const s=slaOc(o); return s?`<div class="sub" style="margin-bottom:6px"><span class="chip ${s[0]}" style="border:none">SLA 1ª resposta · ${s[1]}</span> <span style="color:var(--cinza)">· aberta há ${ocDias(o)}d · meta ${SLA_OC[o.tipo]||3}d</span></div>`:''})()}
     <div class="sub" style="margin-bottom:6px">"${o.desc}"</div>
     ${o.rito?`<div class="sub" style="margin:6px 0; color:var(--vermelho); font-weight:700; display:flex; align-items:center; gap:5px">${tIco('balanca')}${RITO_ROTULO[o.rito]}</div>`:''}
     ${artLink(o)}
@@ -5717,6 +6090,126 @@ function avancarOcorrencia(id){
   atualizar(); toast(`Status: ${o.status}`);
 }
 
+/* ===== Antes de fazer — o Edi avisa e QUANTIFICA a multa (proativo) =====
+   Régua local + valor em R$ ANTES de o morador infringir. Multa por infração
+   ancorada em CC art. 1.336 §2º / 1.337 (até 5× a taxa, exige convenção/assembleia). */
+let INFRACOES = [
+  {k:'obra', nome:'Reforma sem comunicar', mult:2, base:'NBR 16.280 + CC art. 1.336 §2º — a obra deve ser comunicada antes; se mexe em estrutura, exige ART (CC art. 1.341).', certo:'Comunique a obra e anexe a ART antes de começar — o app guia o passo a passo (período, horário, elevador de serviço, descarte).', obra:true},
+  {k:'estrutura', nome:'Mexer em estrutura / prumada (furar parede-mestra)', mult:3, base:'CC art. 1.341 (não comprometer a estrutura) + NBR 16.280 — ART e projeto do responsável técnico obrigatórios.', certo:'Estrutura exige ART e projeto. Comunique antes; sem isso a obra pode ser embargada e a responsabilidade é sua.', obra:true},
+  {k:'fachada', nome:'Alterar a fachada (cor, esquadria, ar-condicionado à vista)', mult:2, base:'CC art. 1.336, III — é vedado alterar a fachada sem aprovação; muda a estética do prédio inteiro.', certo:'Alteração de fachada precisa de aprovação em assembleia. Leve a proposta à pauta antes de instalar/pintar.', obra:false},
+  {k:'barulho', nome:'Festa / barulho fora do horário', mult:1, base:'Regimento: silêncio das 22h às 8h + CC art. 1.336 §2º / 1.337 (conduta antissocial; reincidência agrava).', certo:'Respeite o horário de silêncio e avise os vizinhos. Para evento maior, reserve o salão de festas.', obra:false},
+  {k:'entulho', nome:'Entulho / descarte em área comum', mult:1.5, base:'Regimento + CC art. 1.336 §2º — área comum não é depósito de obra.', certo:'Use a caçamba/área designada e agende a retirada com a portaria.', obra:false},
+];
+function multaValor(f){ return Math.round(COND.taxa*f.mult); }
+function multTxt(m){ return (m%1?String(m).replace('.',','):String(m)); }
+function verAntesDeFazer(){
+  abrirModal(`<h3>${tIco('balanca')}Antes de fazer — evite multa</h3>
+    <div class="sub" style="margin-bottom:10px">Vai reformar, dar uma festa ou mudar algo? O ${nomeAssist} te mostra <b>a regra e o risco em R$ antes</b> — e como fazer do jeito certo.</div>
+    ${INFRACOES.map((f,ix)=>`<button class="item" style="width:100%; text-align:left; display:block" onclick="avisoRiscoEdi(${ix})">
+      <div class="linha1"><span class="nome">${f.nome}</span><span class="chip laranja">até ${fmt(multaValor(f))} ›</span></div></button>`).join('')}
+    <div class="aviso-lgpd" style="margin-top:6px">O ${nomeAssist} cita a fonte e o valor definido pelo síndico/convenção — pra você decidir informado, não pra punir.</div>`);
+}
+function avisoRiscoEdi(ix){
+  const f=INFRACOES[ix]; const v=multaValor(f);
+  abrirModal(`<h3>${f.nome}</h3>
+    <div class="edi-linha" style="margin:2px 0 10px"><span class="edi-av" style="background:transparent; border:none">${ediMini}</span>
+      <div style="max-width:88%"><span class="edi-bolha"><b>${nomeAssist}:</b> isso pode gerar <b>multa de até ${fmt(v)}</b> (${multTxt(f.mult)}× a taxa de ${fmt(COND.taxa)}).<br><span style="font-size:.8rem; color:var(--cinza)">${clip()}Base: ${f.base}</span></span></div></div>
+    <div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="sub" style="margin:0; display:flex; gap:7px; align-items:flex-start">${tIco('check')}<span><b>O certo a fazer:</b> ${f.certo}</span></div></div>
+    ${f.obra?`<button class="btn principal btn-grande" onclick="novaReforma()">${tIco('martelo')}Comunicar a obra corretamente →</button>`:''}
+    <div class="aviso-lgpd" style="margin-top:10px">Valores e regras definidos pelo síndico/convenção. A multa por infração exige previsão na convenção ou deliberação de 2/3 (CC art. 1.336 §2º) — o ${nomeAssist} cita a fonte, não pune sozinho.</div>`);
+}
+/* síndico: configurar as multas por infração (multiplicador da taxa) */
+function configurarMultas(){
+  abrirModal(`<h3>${tIco('balanca')}Multas por infração</h3>
+    <div class="sub" style="margin-bottom:10px">Multiplicador da taxa (${fmt(COND.taxa)}) por tipo. O ${nomeAssist} usa isto pra avisar o morador <b>antes</b>, com o valor em R$.</div>
+    <div class="mlt-grid">${INFRACOES.map((f,ix)=>`
+      <span class="sub mlt-nome">${f.nome}</span>
+      <input id="mlt-${ix}" class="mlt-inp" type="text" inputmode="decimal" value="${multTxt(f.mult)}" aria-label="Multiplicador da taxa para ${f.nome}" oninput="previewMulta(${ix})">
+      <span class="sub mlt-res">× = <b id="mlt-v-${ix}">${fmt(multaValor(f))}</b></span>`).join('')}</div>
+    <button class="btn principal btn-grande" onclick="salvarMultas()">Salvar</button>
+    <div class="aviso-lgpd" style="margin-top:10px">Teto legal: até <b>5× a taxa</b> (CC art. 1.336 §2º / 1.337). A multa por infração exige previsão na <b>convenção</b> ou deliberação de <b>2/3 da assembleia</b> — configure conforme a sua convenção.</div>`);
+}
+function previewMulta(ix){
+  const el=$('#mlt-'+ix); if(!el) return;
+  const v=Math.max(0,Math.min(5,parseFloat((el.value||'').replace(',','.'))||0));
+  const alvo=$('#mlt-v-'+ix); if(alvo) alvo.textContent=fmt(Math.round(COND.taxa*v));
+}
+function salvarMultas(){
+  INFRACOES.forEach((f,ix)=>{ const v=parseFloat((($('#mlt-'+ix)||{}).value||'').replace(',','.')); if(v>=0&&v<=5) f.mult=v; });
+  fecharModal(); toast('Multas por infração atualizadas.');
+}
+
+/* ===== AUDITORIA DE TERCEIRIZADAS — fiscalização trabalhista (Súmula 331 TST) =====
+   O condomínio (tomador de serviços) responde SUBSIDIARIAMENTE pelas verbas
+   trabalhistas da terceirizada se não fiscalizar. Este checklist mensal É a
+   fiscalização que afasta a condenação — e o Edi avisa o síndico e o conselho. */
+let TERCEIRIZADAS = [
+  {id:1, nome:'BrilhaMais Serviços', servico:'Limpeza', func:3, doc:'CNPJ 12.345.678/0001-90', itens:{salarios:true, fgts:true, inss:true, ferias:true, cnd:true}},
+  {id:2, nome:'Portaria Segura 24h', servico:'Portaria/vigilância', func:4, doc:'CNPJ 98.765.432/0001-10', itens:{salarios:true, fgts:false, inss:true, ferias:true, cnd:false}},
+  {id:3, nome:'ElevaTech Manutenção', servico:'Elevadores', func:1, doc:'CNPJ 55.444.333/0001-22', itens:{salarios:true, fgts:true, inss:true, ferias:true, cnd:true}},
+  {id:4, nome:'VerdeVida Jardinagem', servico:'Jardinagem', func:1, doc:'MEI 33.222.111/0001-00', itens:{salarios:true, fgts:true, inss:false, ferias:true, cnd:true}},
+];
+/* [chave, rótulo, ajuda, crítico?] — os críticos puxam o risco pra vermelho */
+const TERC_ITENS = [
+  ['salarios','Salários pagos (holerite/recibo)','o não-pagamento é o passivo mais direto', true],
+  ['fgts','FGTS recolhido (FGTS Digital / GRF)','depósito do mês na conta do trabalhador', true],
+  ['inss','INSS recolhido (GPS / DARF)','contribuição previdenciária do mês', true],
+  ['ferias','Férias e 13º provisionados','verbas que vencem e acumulam', false],
+  ['cnd','Certidões válidas (FGTS-CRF, CNDT)','regularidade fiscal e trabalhista', false],
+];
+function tercStatus(t){
+  const crit=TERC_ITENS.filter(i=>i[3] && !t.itens[i[0]]).length;
+  const outra=TERC_ITENS.filter(i=>!i[3] && !t.itens[i[0]]).length;
+  if(crit) return ['vermelho','risco trabalhista', crit+outra];
+  if(outra) return ['laranja','atenção', outra];
+  return ['verde','em dia', 0];
+}
+function tercResumo(){ const r=TERCEIRIZADAS.filter(t=>tercStatus(t)[0]==='vermelho').length; const a=TERCEIRIZADAS.filter(t=>tercStatus(t)[0]==='laranja').length; return {risco:r, aten:a, ok:TERCEIRIZADAS.length-r-a}; }
+function tercBadge(){ const {risco,aten}=tercResumo(); if(risco) return [risco+' risco','vermelho']; if(aten) return [aten+' a cobrar','laranja']; return ['ok','verde']; }
+
+TELAS.terceirizadas = () => {
+  const {risco,aten,ok}=tercResumo();
+  return `<div class="tela on">
+  <div class="topo"><h1>${tIco('maleta')}Terceirizadas &amp; risco</h1><p>Fiscalização mensal que protege o condomínio da responsabilidade subsidiária</p></div>
+  ${comandoEdi(`Peça ao ${nomeAssist}… "tem risco trabalhista com as terceirizadas?"`)}
+  <div class="edi-linha"><span class="edi-av">${ediMini}</span><div style="max-width:88%"><span class="edi-bolha"><b>${nomeAssist}:</b> ${risco?`<b>${risco} empresa(s) com risco</b> — falta comprovante de salário/FGTS/INSS. Sem fiscalizar, o condomínio responde <b>subsidiariamente</b>.`:aten?`Tudo pago, mas ${aten} com pendência de certidão/provisão — vale cobrar.`:'Todas em dia este mês. Fiscalização em ordem.'}<br><span style="font-size:.8rem; color:var(--cinza)">${clip()}Base: Súmula 331 do TST — o tomador responde pelas verbas se não fiscalizar.</span></span></div></div>
+  <div class="cards">
+    <button class="card ${risco?'alerta':'ok'}" onclick="${risco?"toast('Toque numa empresa com risco pra ver o que falta')":"toast('Nenhum risco aberto')"}"><div class="num">${risco}</div><div class="lbl">com risco ›</div></button>
+    <div class="card ${aten?'aten':'ok'}"><div class="num">${aten}</div><div class="lbl">a cobrar</div></div>
+    <div class="card ok"><div class="num">${ok}</div><div class="lbl">em dia</div></div>
+  </div>
+  <h2>Empresas contratadas</h2>
+  ${TERCEIRIZADAS.map(t=>{const s=tercStatus(t); return `<button class="item" style="width:100%; text-align:left; display:block" onclick="abrirTerceirizada(${t.id})">
+    <div class="linha1"><span class="nome">${t.nome}</span><span class="chip ${s[0]}">${s[1]}${s[2]?' · '+s[2]:''} ›</span></div>
+    <div class="sub">${t.servico} · ${t.func} func. · ${t.doc}</div></button>`;}).join('')}
+  <div class="aviso-lgpd">Esta fiscalização é a defesa do condomínio: comprova o acompanhamento das obrigações da terceirizada. Em ação trabalhista, é o que afasta a condenação subsidiária (Súmula 331 TST).</div>
+  </div>`;
+};
+function abrirTerceirizada(id){
+  const t=TERCEIRIZADAS.find(x=>x.id===id); if(!t) return;
+  const s=tercStatus(t);
+  const bg=s[0]==='vermelho'?'vermelho-claro':s[0]==='laranja'?'amarelo-claro':'verde-claro';
+  const bd=s[0]==='vermelho'?'vermelho':s[0]==='laranja'?'laranja':'verde';
+  abrirModal(`<h3>${tIco('maleta')}${t.nome}</h3>
+    <div class="sub" style="margin-bottom:10px">${t.servico} · ${t.func} funcionário(s) · ${t.doc}</div>
+    <div class="item" style="border-color:var(--${bd}); background:var(--${bg}); margin-bottom:12px"><div class="linha1"><span class="nome">Situação do mês</span><span class="chip ${s[0]}">${s[1]}</span></div></div>
+    <div class="secao">CHECKLIST MENSAL — marque o que foi comprovado</div>
+    ${TERC_ITENS.map(i=>{const on=t.itens[i[0]]; return `<button class="item" style="width:100%; text-align:left; display:block" onclick="toggleTercItem(${t.id},'${i[0]}')">
+      <div class="linha1"><span class="nome" style="display:flex; gap:8px; align-items:center">${on?tIco('check'):`<span style="width:18px; height:18px; border:2px solid var(--cinza); border-radius:5px; flex:0 0 auto; display:inline-block"></span>`}${i[1]}</span><span class="chip ${on?'verde':i[3]?'vermelho':'laranja'}">${on?'recebido':'pendente'}</span></div>
+      <div class="sub">${i[2]}${i[3]?' · <b>crítico</b>':''}</div></button>`;}).join('')}
+    <div class="botoes"><button class="btn principal" onclick="cobrarTerc(${t.id})">${tIco('balao')}Cobrar documento</button><button class="btn claro" onclick="fecharModal();logAudit&&logAudit('Fiscalizou terceirizada: ${t.nome.replace(/'/g,'')}');toast('Fiscalização registrada na trilha de auditoria.')">Registrar fiscalização</button></div>
+    <div class="aviso-lgpd">Súmula 331 do TST: o condomínio responde <b>subsidiariamente</b> pelas verbas trabalhistas da terceirizada se <b>não fiscalizar</b>. Este checklist é a prova da fiscalização.</div>`);
+}
+function toggleTercItem(id,k){ const t=TERCEIRIZADAS.find(x=>x.id===id); if(!t) return; t.itens[k]=!t.itens[k]; abrirTerceirizada(id); }
+function cobrarTerc(id){ const t=TERCEIRIZADAS.find(x=>x.id===id); const falta=TERC_ITENS.filter(i=>!t.itens[i[0]]); fecharModal(); toast(falta.length?`Cobrança enviada a ${t.nome}: ${falta.length} documento(s) pendente(s).`:`${t.nome} está em dia — nada a cobrar.`); }
+function verTerceirizadasConselho(){
+  const {risco}=tercResumo();
+  abrirModal(`<h3>${tIco('maleta')}Terceirizadas — risco trabalhista</h3>
+    <div class="sub" style="margin-bottom:10px">Visão do conselho (somente leitura). Fiscalização das obrigações trabalhistas das empresas contratadas.</div>
+    ${TERCEIRIZADAS.map(t=>{const s=tercStatus(t); const falta=TERC_ITENS.filter(i=>!t.itens[i[0]]).map(i=>i[1]); return `<div class="item"><div class="linha1"><span class="nome">${t.nome}</span><span class="chip ${s[0]}">${s[1]}</span></div><div class="sub">${t.servico}${falta.length?' · falta: '+falta.join(', '):' · tudo comprovado'}</div></div>`;}).join('')}
+    <div class="aviso-lgpd">${risco?`<b>${risco} empresa(s) com risco.</b> Recomende ao síndico cobrar os comprovantes antes do fechamento — protege o condomínio da condenação subsidiária (Súmula 331 TST).`:'Nenhum risco trabalhista aberto este mês.'}</div>`);
+}
+
 /* ===== ASSISTENTE DE REGRAS (regimento fictício p/ demo) ===== */
 const REGRAS_BASE = [
   {chaves:['festa','salão','salao','música','musica','horário do salão','aniversário','aniversario'],
@@ -5777,11 +6270,11 @@ function ediReservar(area,d,m){
   atualizar();
   setTimeout(()=>{const c=document.querySelector('#rg-chat'); if(c) c.scrollTop=c.scrollHeight;},50);
 }
-function boletoLigado(){ const b=(typeof integracoes!=='undefined'?integracoes:[]).find(i=>/boleto/i.test(i.nome)); return !!(b&&b.status==='conectada'); }
 function minhaTaxa(){
   const emDia=MORADOR.emDia, valor=COND.taxa;
   const txid='APTO'+MORADOR.un.replace('-','')+'-2026-0'+(emDia?7:6);
   const pix=gerarPix(COND.chavePix, COND.nome, COND.cidade, valor, txid);
+  window._audioTaxa=`Taxa de junho da unidade ${MORADOR.un}: ${fmt(valor)}. Situação: ${emDia?'paga, quitada em 3 de junho':'em aberto'}. ${emDia?'Você pode adiantar a taxa de julho pelo PIX.':'Pague na hora pelo PIX, ou use a segunda via do boleto.'}`;
   abrirModal(`<h3>${tIco('cifrao')}Minha taxa — ${MORADOR.un}</h3>
     <div class="item" style="border-color:var(--${emDia?'verde':'laranja'}); margin-bottom:10px">
       <div class="linha1"><span class="nome">${tIco(emDia?'check':'alerta')}Taxa de junho · ${fmt(valor)}</span><span class="chip ${emDia?'verde':'laranja'}">${emDia?'paga':'em aberto'}</span></div>
@@ -5794,10 +6287,43 @@ function minhaTaxa(){
     <div class="pix-caixa">${pix}</div>
     <div class="botoes"><button class="btn principal" onclick="copiar('${pix}','PIX copiado')">${tIco('check')}Copiar PIX</button>
       <a class="btn zap" target="_blank" href="https://wa.me/?text=${encodeURIComponent('PIX da taxa de '+(emDia?'julho':'junho')+' — '+COND.nome+':\n\n'+pix)}">Enviar pra mim</a></div>
-    ${boletoLigado()
-      ? `<button class="btn claro btn-grande" style="margin-top:8px" onclick="toast('2ª via do boleto registrado gerada — código de barras e linha digitável (simulação).')">${tIco('contrato')}2ª via do boleto registrado</button>`
-      : `<div class="aviso-lgpd" style="margin-top:10px">O boleto bancário (código de barras) sai do ERP da administradora — a integração ainda não está ligada neste condomínio. Por aqui você paga na hora pelo PIX, com baixa automática.</div>`}
-    <div class="aviso-lgpd">Gerado na hora, identificado pela sua unidade — sem procurar boleto no e-mail.</div>`);
+    <button class="btn claro btn-grande" style="margin-top:8px" onclick="verBoleto()">${tIco('contrato')}2ª via do boleto (${BANCO.nome})</button>
+    ${modOn('acessibilidade')?`<button class="btn claro btn-grande" style="margin-top:8px" onclick="falarTexto(window._audioTaxa)">${tIco('microfone')}Ouvir esta tela</button>`:''}
+    <div class="aviso-lgpd">Tudo num app só: PIX na hora + 2ª via do boleto puxada do ${BANCO.nome}, identificada pela sua unidade — sem procurar no e-mail.</div>`);
+}
+/* ===== ACESSIBILIDADE — leitura em voz alta (TTS do navegador, pt-BR) =====
+   Barato e real: usa a Web Speech API. Alterna (toca/para) e informa por toast.
+   Serve o deficiente visual e quem só quer ouvir o resumo. */
+function falarTexto(txt){
+  try{
+    if(!('speechSynthesis' in window)){ toast('Seu navegador não suporta leitura em voz.'); return; }
+    const sp=window.speechSynthesis;
+    if(sp.speaking){ sp.cancel(); toast('Leitura interrompida.'); return; }
+    const u=new SpeechSynthesisUtterance(txt); u.lang='pt-BR'; u.rate=1; u.pitch=1;
+    sp.speak(u); toast('Lendo em voz alta… toque em Ouvir de novo pra parar.');
+  }catch(e){ toast('Não consegui ler em voz agora.'); }
+}
+/* ===== BOLETO — 2ª via via integração bancária (Itaú, banco do condomínio) ===== */
+const BANCO={nome:'Itaú', codigo:'341'};
+function linhaDigitavel(valor){
+  const c=String(Math.round(valor*100)).padStart(10,'0');
+  return `${BANCO.codigo}91.09008 61207.957008 71234.560001 5 96370${c}`;
+}
+function verBoleto(){
+  const valor=COND.taxa, venc='10/07/2026', ld=linhaDigitavel(valor);
+  window._audioBoleto=`Segunda via do boleto da taxa condominial da unidade ${MORADOR.un}. Beneficiário: ${COND.nome}. Valor: ${fmt(valor)}. Vencimento: ${venc}. Emitido pelo banco ${BANCO.nome}. Situação: em aberto.`;
+  abrirModal(`<h3>${tIco('contrato')}2ª via do boleto</h3>
+    <div class="sub" style="margin-bottom:10px">Boleto registrado, emitido pelo <b>${BANCO.nome}</b> (banco do condomínio) e trazido pro app — sem procurar no e-mail nem no banco.</div>
+    <div class="item" style="margin-bottom:10px">
+      <div class="linha1"><span class="nome">Taxa · ${MORADOR.un}</span><span class="chip laranja">em aberto</span></div>
+      <div class="sub" style="margin-top:4px">Beneficiário: ${COND.nome}</div>
+      <div class="sub">Valor: <b>${fmt(valor)}</b> · Vencimento: <b>${venc}</b></div>
+    </div>
+    <label>Linha digitável (${BANCO.nome})</label>
+    <div class="pix-caixa">${ld}</div>
+    <div class="botoes"><button class="btn principal" onclick="copiar('${ld.replace(/\s/g,'')}','Linha digitável copiada')">${tIco('check')}Copiar linha digitável</button>
+      ${modOn('acessibilidade')?`<button class="btn claro" onclick="falarTexto(window._audioBoleto)">${tIco('microfone')}Ouvir</button>`:''}</div>
+    <div class="aviso-lgpd">2ª via puxada da integração bancária (${BANCO.nome}) — código de barras e registro no padrão CNAB do banco.</div>`);
 }
 function ediPixJulho(){
   const pix=gerarPix(COND.chavePix, COND.nome, COND.cidade, COND.taxa, 'APTO305-2026-07');
@@ -5806,6 +6332,24 @@ function ediPixJulho(){
     <div class="botoes"><button class="btn claro" onclick="copiar('${pix}','PIX copiado')">Copiar PIX</button>
     <button class="btn principal" onclick="fecharModal()">Fechar</button></div>
     <div class="aviso-lgpd">Gerado na conversa, identificado pela unidade — sem procurar boleto em e-mail.</div>`);
+}
+/* ===== TOM DO EDI — voz padronizada + registro adaptativo (feature das reuniões #6)
+   O conteúdo é sempre formal, objetivo e cita a fonte — IGUAL pra todos (acaba o
+   "jeitinho" de cada síndico). Só o REGISTRO se adapta à pessoa: "completo" (padrão)
+   ou "direto e simples" (frases curtas, sem o jargão entre parênteses — que continua
+   visível na fonte, pra quem quiser). */
+let ediTom='padrao';
+const EDI_TOM={padrao:'Completo', simples:'Direto e simples'};
+function adaptarTom(t){
+  if(!t || ediTom!=='simples' || !modOn('acessibilidade')) return t;
+  const semJargao=String(t).replace(/\s*\([^)]*\)/g,'');            /* tira apartes/citações entre parênteses */
+  const frases=semJargao.split(/(?<=[.!?…])\s+/).filter(Boolean);
+  return frases.slice(0,2).join(' ').replace(/\s{2,}/g,' ').trim();  /* mantém só o essencial */
+}
+function setEdiTom(k){ ediTom=k; if(typeof atualizar==='function' && telaAtual==='mregras') atualizar(); toast(`${nomeAssist} agora responde em tom: ${EDI_TOM[k]}.`); }
+function tomChips(){
+  if(!modOn('acessibilidade')) return '';   /* registro adaptativo faz parte do modo acessibilidade */
+  return `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:2px 0 8px"><span class="sub" style="margin:0; font-size:.74rem">Como o ${nomeAssist} fala comigo:</span>${Object.entries(EDI_TOM).map(([k,l])=>`<button class="chip ${ediTom===k?'verde':'cinza'}" style="border:none; cursor:pointer" onclick="setEdiTom('${k}')">${l}</button>`).join('')}</div>`;
 }
 function ediResponder(q){
   const ql=q.toLowerCase();
@@ -5828,6 +6372,16 @@ function ediResponder(q){
   if(/^\s*(obrigad|valeu|brigad|agrade|vlw|show|perfeito|massa|legal)/.test(ql))
     return {t:`Tô aqui pra isso. Precisando de qualquer coisa, é só me chamar.`};
   if(perfil==='morador'){
+    if(/(obra|reform|furar|parede|quebrar|derrub|estrutur|prumada|fachada|barulho|festa|som alto|entulho|ca[çc]amba)/.test(ql)){
+      let ix=0;
+      if(/estrutur|prumada|parede.?mestr|derrub|quebrar parede/.test(ql)) ix=1;
+      else if(/fachada|esquadria|ar.?condicionado/.test(ql)) ix=2;
+      else if(/barulho|festa|som alto|sil[êe]ncio/.test(ql)) ix=3;
+      else if(/entulho|ca[çc]amba|descarte/.test(ql)) ix=4;
+      const f=INFRACOES[ix], v=multaValor(f);
+      return {t:`Atenção: isso pode gerar multa de até <b>${fmt(v)}</b> (${multTxt(f.mult)}× a taxa). ${f.certo}`, fonte:f.base.split('—')[0].trim(),
+        html:`<div class="botoes">${f.obra?`<button class="btn principal" onclick="novaReforma()">Comunicar a obra</button>`:''}<button class="btn claro" onclick="verAntesDeFazer()">Ver o que evita multa</button></div>`};
+    }
     if(ql.includes('reserv')){
       const area=ql.includes('churras')?'Churrasqueira':'Salão de Festas';
       const naArea=(area==='Churrasqueira'?'na ':'no ')+area;
@@ -5851,6 +6405,16 @@ function ediResponder(q){
     }
   }
   if(perfil==='sindico'||perfil==='conselho'){
+    if(/garantidora|escalona|duplique|garantir.*aluguel|garantir.*taxa/.test(ql)){
+      const graves=inadimplentes.filter(i=>i.dias>=GARANTIDORA.prazoGatilho && !i.escalonado);
+      return {t: graves.length?`${graves.length} caso(s) acima de ${GARANTIDORA.prazoGatilho} dias prontos pra escalonar pra ${GARANTIDORA.nome}: ${graves.map(i=>i.un).join(', ')}. Eu monto o dossiê; o contato do gestor fica protegido.`:`Nenhum caso acima de ${GARANTIDORA.prazoGatilho} dias em aberto pra escalonar agora.`, fonte:`Régua de cobrança + garantidora parceira (${GARANTIDORA.nome})`,
+        html:(graves.length&&perfil==='sindico')?`<div class="botoes"><button class="btn principal" onclick="irPara('inadimplencia')">Abrir cobrança</button></div>`:''};
+    }
+    if(modOn('terceirizadas') && /terceiriz|trabalhist|fgts|inss|v[íi]nculo|passivo|s[úu]mula 331|subsidi/.test(ql)){
+      const {risco,aten}=tercResumo();
+      return {t: risco?`${risco} terceirizada(s) com risco trabalhista — falta comprovante de salário/FGTS/INSS. Sem fiscalizar, o condomínio responde subsidiariamente pelas verbas.`:aten?`Salários e encargos em dia; ${aten} com pendência de certidão/provisão a cobrar.`:'Todas as terceirizadas em dia este mês — fiscalização em ordem.', fonte:'Súmula 331 do TST',
+        html:`<div class="botoes"><button class="btn principal" onclick="${perfil==='conselho'?'verTerceirizadasConselho()':"irPara('terceirizadas')"}">Abrir auditoria de terceirizadas</button></div>`};
+    }
     if(ql.includes('dev')||ql.includes('inadimpl')||ql.includes('atras')){
       const graves=inadimplentes.filter(i=>i.dias>60);
       const tot=graves.reduce((s,i)=>s+divida(i),0);
@@ -5895,6 +6459,8 @@ function ediResponder(q){
 }
 /* dispatcher dos atalhos do Edi: na home usa a barra de comando; no chat usa falarEdi */
 function ediDizer(s){
+  const pop=document.getElementById('cmd-pop');
+  if(pop){ pop.value=s; ediPop(); return; }
   const home=document.getElementById('cmd-home');
   if(home){ home.value=s; ediHome(); }
   else { falarEdi(s); }
@@ -5934,7 +6500,7 @@ function zapProativo(tipo){
   } else if(tipo==='votacao'){
     chatZap=[{de:'bot', proat:1, t:'🗳️ Abriu uma votação no prédio: "Troca do portão da garagem". Faltam 12 votos pro quórum e encerra domingo. Quer votar agora?', act:{label:'Ver e votar', reply:'No produto final isso abre a cédula da votação aqui mesmo — seu voto é registrado e conta pro quórum na hora.'}}];
   } else if(tipo==='manutencao'){
-    chatZap=[{de:'bot', proat:1, t:`⚠️ ${nomeAssist} pro síndico: a manutenção do elevador vence em 30 dias (prazo legal). Posso pedir orçamento às 3 empresas vetadas e te trazer pra aprovar?`, act:{label:'Pedir os 3 orçamentos', reply:'Pedido enviado às 3 empresas. Assim que responderem, eu te mostro o comparativo aqui e você aprova com um toque — nada é contratado sem o seu sim.'}}];
+    chatZap=[{de:'bot', proat:1, t:`⚠️ ${nomeAssist} pro síndico: a manutenção do elevador vence em 30 dias (prazo legal). Posso pedir orçamento às 3 empresas homologadas e te trazer pra aprovar?`, act:{label:'Pedir os 3 orçamentos', reply:'Pedido enviado às 3 empresas. Assim que responderem, eu te mostro o comparativo aqui e você aprova com um toque — nada é contratado sem o seu sim.'}}];
   }
   verEdiZap();
 }
@@ -5989,10 +6555,12 @@ TELAS.mregras = () => `<div class="tela on">
     <div class="edi-av" style="flex:0 0 46px; width:46px; height:46px; background:transparent; border:none">${ediMini}</div>
     <div><h1>${nomeAssist} — assistente do prédio</h1><p>Pergunte, que ele resolve — citando a regra</p></div>
   </div>
+  ${tomChips()}
+  ${modOn('acessibilidade')?`<div class="aviso-lgpd" style="margin:0 0 8px">O ${nomeAssist} responde <b>igual pra todos</b> — formal, objetivo e citando a fonte. Só o <b>registro</b> (mais completo ou mais direto) se ajusta a você.</div>`:''}
   <div id="rg-chat" style="max-height:46vh; overflow-y:auto; margin-bottom:12px">
     ${chatEdi.map(m=>m.de==='eu'
       ? `<div style="text-align:right; margin:8px 0"><span style="display:inline-block; background:var(--verde); color:#fff; border-radius:14px 14px 4px 14px; padding:10px 14px; font-size:.92rem; max-width:85%; text-align:left">${m.t}</span></div>`
-      : `<div class="edi-linha"><span class="edi-av" style="background:transparent; border:none">${ediMini}</span><div style="max-width:88%"><span class="edi-bolha">${m.t}${m.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${m.fonte}</span>`:''}</span></div></div>${m.html?`<div class="edi-acao" style="margin:2px 0 10px 40px">${m.html}</div>`:''}`).join('')}
+      : `<div class="edi-linha"><span class="edi-av" style="background:transparent; border:none">${ediMini}</span><div style="max-width:88%"><span class="edi-bolha">${adaptarTom(m.t)}${m.fonte?`<br><span style="font-size:.78rem; color:var(--verde-escuro); font-weight:700">${clip()}${m.fonte}</span>`:''}</span></div></div>${m.html?`<div class="edi-acao" style="margin:2px 0 10px 40px">${m.html}</div>`:''}`).join('')}
   </div>
   <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px">
     ${(EDI_CHIPS[perfil]||EDI_CHIPS.morador).map(s=>`<button class="chip cinza" style="border:none" onclick="falarEdi('${s}')">${s}</button>`).join('')}
@@ -6583,39 +7151,61 @@ function verAdocao(){
 TELAS.carteira = () => {
   const tUn=carteira.reduce((s,c)=>s+c.un,0);
   const inadMed=Math.round(carteira.reduce((s,c)=>s+c.inadPct,0)/carteira.length);
-  const tEdi=carteira.reduce((s,c)=>s+c.edi,0);
+  const tCaixa=carteira.reduce((s,c)=>s+c.caixa,0);
+  const tManut=carteira.reduce((s,c)=>s+c.manut,0);
+  const predManut=carteira.filter(c=>c.manut>0).length;
   const alertas=carteira.filter(c=>c.status!=='ok').length;
+  const emRisco=carteira.filter(adocaoRisco).length;
+  const nPend=integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length;
+  const radar=(fn,ico,nome,chipTxt,chipCor,sub)=>`<button class="item" style="width:100%; text-align:left; display:block; margin-bottom:8px" onclick="${fn}">
+    <div class="linha1"><span class="nome" style="font-size:.9rem">${tIco(ico)}${nome}</span><span class="chip ${chipCor}">${chipTxt} ›</span></div>
+    <div class="sub" style="margin-top:4px">${sub}</div></button>`;
   return `<div class="tela on">
   <div class="topo"><h1>${tIco("predio")}Carteira</h1><p>Imobiliária Horizonte · ${carteira.length} condomínios · ${tUn} unidades</p></div>
   <div class="cards">
-<div class="card"><div class="num">${tUn}</div><div class="lbl">unidades</div></div>
+    <div class="card"><div class="num">${carteira.length}</div><div class="lbl">condomínios</div></div>
+    <div class="card"><div class="num">${tUn}</div><div class="lbl">unidades</div></div>
     <button class="card ${inadMed>15?'aten':'ok'}" onclick="irPara('admcobranca')"><div class="num">${inadMed}%</div><div class="lbl">inadimplência média ›</div></button>
-${alertas?`<button class="card alerta" onclick="verAlertas()"><div class="num">${alertas}</div><div class="lbl">prédios em alerta ›</div></button>`:`<div class="card ok"><div class="num">0</div><div class="lbl">prédios em alerta</div></div>`}
+    <div class="card ok"><div class="num">${fmt(tCaixa)}</div><div class="lbl">caixa consolidado</div></div>
   </div>
-  <button class="item" style="width:100%; text-align:left; display:block; margin:4px 0 8px" onclick="verAdocao()">
-    <div class="linha1"><span class="nome">${tIco('grafico')}Saúde de adoção</span><span class="chip ${carteira.filter(adocaoRisco).length?'laranja':'verde'}">${carteira.filter(adocaoRisco).length?carteira.filter(adocaoRisco).length+' em risco':'tudo engajado'} ›</span></div>
-    <div class="sub" style="margin-top:5px">Quem usa e quem está esfriando — agir antes do churn (renovação do contrato).</div></button>
-  <button class="item" style="width:100%; text-align:left; display:block; margin:0 0 14px" onclick="irPara('integracoes')">
-    <div class="linha1"><span class="nome">${tIco('importar')}Integrações da carteira</span><span class="chip ${integracoes.filter(i=>i.status==='pendente'||i.status==='erro').length?'laranja':'verde'}">padrão ›</span></div>
-    <div class="sub" style="margin-top:5px">WhatsApp, banco e ERP num lugar — define o padrão da carteira; cada prédio sobrescreve o que é local.</div></button>
-  <div class="secao">SEUS CONDOMÍNIOS</div>
-  <button class="btn claro btn-grande" style="margin-bottom:10px" onclick="adicionarCondoAdm()">+ Adicionar condomínio à carteira</button>
-  <div class="inad-desk"><table class="tbl-sind"><thead><tr><th>Condomínio</th><th>Cidade</th><th class="n">Un.</th><th>Síndico</th><th class="n">Inadimpl.</th><th class="n">Ocor.</th><th>Status</th><th></th></tr></thead><tbody>
-    ${carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status]; return `<tr onclick="verCondo(${ix})" style="cursor:pointer">
-      <td><b>${c.nome}</b>${c.atual?' <span class="chip verde" style="border:none">demo</span>':''}</td><td>${c.cidade}</td><td class="n">${c.un}</td><td>${c.sindico}</td>
-      <td class="n">${c.inadPct}%</td><td class="n">${c.ocor}</td><td><span class="chip ${cor}">${rot}</span></td><td style="text-align:right; color:var(--cinza)">›</td></tr>`;}).join('')}
-  </tbody></table></div>
-  <div class="inad-mob">${carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status];
-    return `<button class="item" style="width:100%; text-align:left; display:block; border-left:4px solid var(--${cor})" onclick="verCondo(${ix})">
-    <div class="linha1"><span class="nome">${c.nome}${c.atual?' <span class="chip verde" style="border:none">demo</span>':''}</span><span class="chip ${cor}">${rot}</span></div>
-    <div class="sub" style="margin-top:5px">${c.cidade} · ${c.un} un · síndico: ${c.sindico}</div>
-    <div class="sub" style="margin-top:4px">Inadimplência ${c.inadPct}% (${fmt(c.inad)}) · ${c.ocor} ocorrências · ${c.manut} manut. vencida(s)</div>
-  </button>`;}).join('')}</div>
-  <div class="aviso-lgpd" style="margin-top:6px">Visão da administradora: indicadores operacionais da carteira. O financeiro nasce no ERP (boleto/cobrança) e é espelhado aqui — cada síndico enxerga só o próprio condomínio.</div>
+  <div class="dash">
+    <div class="dash-main">
+      <div class="secao" style="display:flex; align-items:center; justify-content:space-between; margin-top:8px"><span>SEUS CONDOMÍNIOS</span><button class="chip cinza" style="border:none; cursor:pointer" onclick="adicionarCondoAdm()">+ adicionar</button></div>
+      <div class="inad-desk"><table class="tbl-sind"><thead><tr><th style="width:26%">Condomínio</th><th class="n" style="width:9%">Un.</th><th style="width:20%">Síndico</th><th class="n" style="width:13%">Inadimpl.</th><th class="n" style="width:9%">Ocor.</th><th style="width:17%">Status</th><th style="width:6%"></th></tr></thead><tbody>
+        ${carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status]; return `<tr onclick="verCondo(${ix})" style="cursor:pointer">
+          <td><b>${c.nome}</b>${c.atual?' <span class="chip verde" style="border:none">demo</span>':''}</td><td class="n">${c.un}</td><td>${c.sindico}</td>
+          <td class="n">${c.inadPct}%</td><td class="n">${c.ocor}</td><td><span class="chip ${cor}">${rot}</span></td><td style="text-align:right; color:var(--cinza)">›</td></tr>`;}).join('')}
+      </tbody></table></div>
+      <div class="inad-mob">${carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status];
+        return `<button class="item" style="width:100%; text-align:left; display:block; border-left:4px solid var(--${cor})" onclick="verCondo(${ix})">
+        <div class="linha1"><span class="nome">${c.nome}${c.atual?' <span class="chip verde" style="border:none">demo</span>':''}</span><span class="chip ${cor}">${rot}</span></div>
+        <div class="sub" style="margin-top:5px">${c.cidade} · ${c.un} un · síndico: ${c.sindico}</div>
+        <div class="sub" style="margin-top:4px">Inadimplência ${c.inadPct}% (${fmt(c.inad)}) · ${c.ocor} ocorrências · ${c.manut} manut. vencida(s)</div>
+      </button>`;}).join('')}</div>
+    </div>
+    <div class="dash-side">
+      <div class="secao" style="margin-top:8px">RADAR DA CARTEIRA</div>
+      ${radar('verAlertas()','alerta','Prédios em alerta', alertas||'ok', alertas?'laranja':'verde', alertas?`${alertas} de ${carteira.length} pedem atenção agora.`:'Nenhum prédio em alerta.')}
+      ${radar('verAdocao()','grafico','Adoção — risco de churn', emRisco||'ok', emRisco?'laranja':'verde', emRisco?`${emRisco} esfriando — agir antes da renovação do contrato.`:'Carteira toda engajada.')}
+      ${radar("acaoBulk('manut')",'chave','Manutenção vencida (prazo legal)', tManut||'ok', tManut?'vermelho':'verde', tManut?`${tManut} vencida(s) em ${predManut} prédio(s) — providenciar na carteira.`:'Nenhuma manutenção vencida.')}
+      ${radar("irPara('integracoes')",'importar','Integrações da carteira', nPend?nPend+' pend.':'padrão', nPend?'laranja':'verde', 'WhatsApp, banco e ERP — padrão da carteira; cada prédio sobrescreve o local.')}
+    </div>
+    <div class="full"><div class="aviso-lgpd" style="margin-top:6px">Visão da administradora: indicadores operacionais da carteira. O financeiro nasce no ERP (boleto/cobrança) e é espelhado aqui — cada síndico enxerga só o próprio condomínio.</div></div>
+  </div>
 </div>`;
 };
 /* administradora cadastra um condomínio novo e segue pro assistente de configuração */
 function adicionarCondoAdm(){
+  abrirModal(`<h3>${tIco("predio")}Adicionar à carteira</h3>
+    <div class="sub" style="margin-bottom:10px">Como você quer trazer os condomínios?</div>
+    <button class="item" style="width:100%; text-align:left; display:block" onclick="addCondoUnico()">
+      <div class="linha1"><span class="nome">${tIco('predio')}Um condomínio</span><span style="color:var(--cinza)">›</span></div>
+      <div class="sub" style="margin-top:4px">Cadastro manual + o assistente de setup do síndico.</div></button>
+    <button class="item" style="width:100%; text-align:left; display:block" onclick="migracaoMassa()">
+      <div class="linha1"><span class="nome">${tIco('importar')}Migrar carteira inteira</span><span style="color:var(--cinza)">›</span></div>
+      <div class="sub" style="margin-top:4px">Importar de Superlógica, uCondo, TownSq ou planilha — em massa.</div></button>`);
+}
+function addCondoUnico(){
   abrirModal(`<h3>${tIco("predio")}Adicionar condomínio à carteira</h3>
     <div class="sub" style="margin-bottom:10px">Cadastre o prédio e siga o mesmo assistente do síndico — a administradora faz o setup inicial pelo cliente.</div>
     <label>Nome do condomínio</label><input id="ac-nome" placeholder="Ex.: Edifício Primavera">
@@ -6690,6 +7280,141 @@ function verAlertas(){
     <div class="sub" style="margin-bottom:10px">Condomínios da carteira que pedem atenção — toque pra abrir a ficha.</div>
     ${alt.map(({c,ix})=>{const [cor,rot]=SEM[c.status];
       return `<button class="item" style="width:100%; text-align:left; display:block; border-left:4px solid var(--${cor})" onclick="verCondo(${ix})"><div class="linha1"><span class="nome">${c.nome}</span><span class="chip ${cor}">${rot}</span></div><div class="sub" style="margin-top:4px">${c.cidade} · inadimplência ${c.inadPct}% · ${c.manut} manut. vencida(s) · ${c.ocor} ocorrências</div></button>`;}).join('')||vazio('check','Tudo certo','Nenhum prédio em alerta agora.')}`);
+}
+
+/* ============================================================
+   ALAVANCA 1 — AÇÕES NA CARTEIRA INTEIRA (bulk cross-condomínio)
+   A administradora age em vários prédios de uma vez, sem entrar
+   em cada um. Todo disparo respeita a governança: o comunicado
+   entra como rascunho no painel de cada síndico (o síndico publica
+   ao morador) e a cobrança nunca expõe nome de inadimplente (LGPD).
+   ============================================================ */
+const BULK={
+  comunicado:{ ico:'megafone', tit:'Comunicado para a carteira',
+    desc:'Um mesmo comunicado cai na régua de cada síndico selecionado — reajuste da taxa, aviso jurídico, campanha. Ele revisa e publica ao morador.',
+    pre:()=>true },
+  cobranca:{ ico:'cifrao', tit:'Disparar régua de cobrança',
+    desc:'Aciona a régua do ERP (lembrete PIX/boleto) nos inadimplentes dos prédios selecionados. O nome do inadimplente nunca aparece pro morador.',
+    pre:c=>c.inad>0 },
+  manut:{ ico:'chave', tit:'Providenciar manutenções vencidas',
+    desc:'Abre a ordem de serviço / convoca a empresa para as manutenções com prazo legal vencido — tira o risco jurídico de cima do síndico.',
+    pre:c=>c.manut>0 },
+};
+TELAS.acoes = () => {
+  const nInad=carteira.filter(c=>c.inad>0).length;
+  const nManut=carteira.filter(c=>c.manut>0).length, tManut=carteira.reduce((s,c)=>s+c.manut,0);
+  const opt=(fn,ico,tit,sub)=>`<button class="item" style="width:100%; text-align:left; display:block" onclick="${fn}">
+    <div class="linha1"><span class="nome">${tIco(ico)}${tit}</span><span style="color:var(--cinza)">›</span></div>
+    <div class="sub" style="margin-top:4px">${sub}</div></button>`;
+  return `<div class="tela on">
+    <div class="topo"><h1>${tIco('checklist')}Ações na carteira</h1><p>Aja em vários condomínios de uma vez — sem abrir prédio por prédio</p></div>
+    <div class="secao">O QUE VOCÊ QUER DISPARAR</div>
+    ${opt("acaoBulk('comunicado')",'megafone','Comunicado para a carteira', `Um aviso pra toda a carteira ou um recorte — ${carteira.length} condomínios disponíveis.`)}
+    ${opt("acaoBulk('cobranca')",'cifrao','Disparar régua de cobrança', `${nInad} prédio(s) com inadimplência aberta.`)}
+    ${opt("acaoBulk('manut')",'chave','Providenciar manutenções vencidas', `${tManut} manutenção(ões) vencida(s) em ${nManut} prédio(s) — risco legal.`)}
+    <div class="aviso-lgpd" style="margin-top:10px">A administradora dispara; a governança fica intacta — o síndico aprova o que vai ao morador e o inadimplente nunca é exposto (LGPD).</div>
+  </div>`;
+};
+function escopoChecklist(pre){
+  return carteira.map((c,ix)=>{const [cor,rot]=SEM[c.status]; const on=pre(c);
+    return `<label class="item" style="width:100%; display:flex; align-items:center; gap:10px; cursor:pointer">
+      <input type="checkbox" class="bulk-cond" value="${ix}" ${on?'checked':''} onchange="bulkCount()" style="width:18px; height:18px; flex:0 0 auto">
+      <span style="flex:1; min-width:0"><span class="nome">${c.nome}</span><div class="sub">${c.cidade} · ${c.un} un · inad ${c.inadPct}% · ${c.manut} manut. venc.</div></span>
+      <span class="chip ${cor}">${rot}</span></label>`;}).join('');
+}
+function bulkSel(){ return [...document.querySelectorAll('.bulk-cond:checked')].map(el=>+el.value); }
+function bulkCount(){
+  const sel=bulkSel(); const un=sel.reduce((s,ix)=>s+carteira[ix].un,0);
+  const b=$('#bulk-count'); if(b) b.textContent=`${sel.length} condomínio(s) · ${un} unidades`;
+  const btn=$('#bulk-go'); if(btn) btn.disabled=sel.length===0;
+}
+function acaoBulk(tipo){
+  const cfg=BULK[tipo];
+  const campos = tipo==='comunicado'
+    ? `<label>Título</label><input id="bulk-tit" placeholder="Ex.: Reajuste da taxa condominial a partir de setembro">
+       <label>Mensagem</label><textarea id="bulk-msg" rows="3" placeholder="Escreva o comunicado. Cada síndico revisa antes de publicar ao morador."></textarea>` : '';
+  abrirModal(`<h3>${tIco(cfg.ico)}${cfg.tit}</h3>
+    <div class="sub" style="margin-bottom:10px">${cfg.desc}</div>
+    ${campos}
+    <div class="secao" style="margin-top:6px">EM QUAIS CONDOMÍNIOS</div>
+    <div class="sub" id="bulk-count" style="margin:-4px 0 8px; font-weight:600"></div>
+    ${escopoChecklist(cfg.pre)}
+    <button class="btn principal btn-grande" id="bulk-go" onclick="confirmarBulk('${tipo}')">Revisar e disparar →</button>`);
+  bulkCount();
+}
+function confirmarBulk(tipo){
+  const sel=bulkSel(); if(!sel.length){ toast('Selecione ao menos um condomínio.'); return; }
+  const cs=sel.map(ix=>carteira[ix]);
+  if(tipo==='comunicado'){
+    const tit=($('#bulk-tit')&&$('#bulk-tit').value||'').trim();
+    if(!tit){ toast('Dê um título ao comunicado.'); return; }
+    fecharModal(); toast(`Comunicado enviado a ${cs.length} síndico(s) — entra como rascunho no painel de cada um pra publicar ao morador.`);
+  } else if(tipo==='cobranca'){
+    const tot=cs.reduce((s,c)=>s+c.inad,0); const un=Math.round(cs.reduce((s,c)=>s+c.un*c.inadPct/100,0));
+    fecharModal(); toast(`Régua disparada em ${cs.length} prédio(s) · ~${un} unidades · ${fmt(tot)} a recuperar.`);
+  } else {
+    const tot=cs.reduce((s,c)=>s+c.manut,0);
+    fecharModal(); toast(`${tot} ordem(ns) de serviço aberta(s) em ${cs.length} prédio(s) — empresas convocadas, prazo legal registrado.`);
+  }
+}
+
+/* ============================================================
+   ALAVANCA 2 — ONBOARDING / MIGRAÇÃO EM MASSA
+   Trazer uma carteira inteira de outro sistema em minutos é o que
+   destrava a troca (o medo nº 1). O anti-lock-in corta dos dois
+   lados: sair é fácil — entrar também.
+   ============================================================ */
+const MIGRA={
+  'Superlógica':[
+    {nome:'Cond. Portal do Sol', cidade:'Osasco',     un:72, mor:141, ok:true},
+    {nome:'Ed. Villa Real',      cidade:'Barueri',    un:40, mor:83,  ok:true},
+    {nome:'Res. Jardim das Flores', cidade:'Osasco',  un:58, mor:96,  ok:false, nota:'2 unidades sem morador vinculado — revisar depois'},
+  ],
+  'uCondo':[
+    {nome:'Ed. Monte Azul',   cidade:'Carapicuíba', un:64, mor:120, ok:true},
+    {nome:'Cond. Alpha Ville',cidade:'Barueri',     un:96, mor:180, ok:true},
+  ],
+  'TownSq':[
+    {nome:'Res. Bela Vista',  cidade:'Osasco', un:44, mor:79, ok:true},
+  ],
+  'Planilha (CSV/Excel)':[
+    {nome:'Cond. São Jorge',  cidade:'Osasco', un:36, mor:61, ok:false, nota:'colunas de e-mail em branco — convites saem só por WhatsApp'},
+    {nome:'Ed. Primavera',    cidade:'Osasco', un:28, mor:45, ok:true},
+  ],
+};
+function migracaoMassa(){
+  const fonte=(f,sub)=>`<button class="item" style="width:100%; text-align:left; display:block" onclick="migraDetecta('${f.replace(/'/g,"\\'")}')">
+    <div class="linha1"><span class="nome">${tIco('importar')}${f}</span><span style="color:var(--cinza)">›</span></div>
+    <div class="sub" style="margin-top:4px">${sub}</div></button>`;
+  abrirModal(`<h3>${tIco('importar')}Migrar carteira inteira</h3>
+    <div class="sub" style="margin-bottom:10px">De onde vêm os condomínios? Puxamos carteira, unidades, moradores e histórico — em minutos, não em semanas.</div>
+    ${fonte('Superlógica','Conecta na API e importa a carteira toda.')}
+    ${fonte('uCondo','Conecta na conta e traz os condomínios.')}
+    ${fonte('TownSq','Importa via exportação da conta.')}
+    ${fonte('Planilha (CSV/Excel)','Sobe o arquivo e a gente mapeia as colunas.')}
+    <div class="aviso-lgpd" style="margin-top:10px">Anti-lock-in dos dois lados: assim como seus dados saem quando quiser, trazer de outro sistema é rápido — a troca deixa de ser o motivo pra não migrar.</div>`);
+}
+function migraDetecta(fonte){
+  const achados=MIGRA[fonte]||[];
+  const nCond=achados.length, nUn=achados.reduce((s,a)=>s+a.un,0), nMor=achados.reduce((s,a)=>s+a.mor,0);
+  const rever=achados.filter(a=>!a.ok).length;
+  abrirModal(`<h3>${tIco('importar')}Lido de ${fonte}</h3>
+    <div class="cards" style="margin-bottom:8px">
+      <div class="card ok"><div class="num">${nCond}</div><div class="lbl">condomínios</div></div>
+      <div class="card ok"><div class="num">${nUn}</div><div class="lbl">unidades</div></div>
+      <div class="card ok"><div class="num">${nMor}</div><div class="lbl">moradores</div></div>
+    </div>
+    <div class="sub" style="margin-bottom:8px">Histórico financeiro dos últimos 12 meses e documentos incluídos. ${rever?`<b>${rever}</b> prédio(s) pedem revisão — dá pra importar mesmo assim e ajustar depois.`:'Tudo pronto pra importar.'}</div>
+    <div class="secao">O QUE VAMOS IMPORTAR</div>
+    ${achados.map(a=>`<div class="item"><div class="linha1"><span class="nome">${a.nome}</span><span class="chip ${a.ok?'verde':'laranja'}">${a.ok?'pronto':'revisar'}</span></div>
+      <div class="sub" style="margin-top:4px">${a.cidade} · ${a.un} un · ${a.mor} moradores</div>
+      ${a.nota?`<div class="sub" style="margin-top:3px; color:var(--laranja-txt)">${a.nota}</div>`:''}</div>`).join('')}
+    <button class="btn principal btn-grande" onclick="migraConfirma('${fonte.replace(/'/g,"\\'")}',${nCond})">Importar ${nCond} condomínio(s) →</button>
+    <button class="btn claro btn-grande" style="margin-top:8px" onclick="migracaoMassa()">← Trocar origem</button>`);
+}
+function migraConfirma(fonte,n){
+  fecharModal();
+  toast(`${n} condomínio(s) migrados de ${fonte} — moradores convidados por WhatsApp e histórico preservado. No produto entram na carteira; nesta demo o painel segue com os 4 exemplos.`);
 }
 
 TELAS.admcobranca = () => {
