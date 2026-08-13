@@ -484,7 +484,7 @@
 <script>
 'use strict';
 /* Versão do protótipo — aparece na barra superior. Atualize a cada release. */
-const VERSAO='v4.150';
+const VERSAO='v4.153';
 /* ============================================================
    EdiVita — protótipo navegável (sem servidor, dados em memória)
    Condomínio fictício: Residencial Jacarandá, Osasco/SP, 60 unidades
@@ -587,7 +587,7 @@ function gerarPix(chave,nome,cidade,valor,txid){
         + '6304';
   return p + crc16(p);
 }
-const COND = {nome:'Residencial Jacarandá', cidade:'Osasco', chavePix:'12345678000190',
+const COND = {nome:'Residencial Jacarandá', cidade:'Osasco', chavePix:'12345678000190', codigo:'JAC-3F9K',
               taxa:480, multa:0.02, jurosMes:0.01, painelElevador:true, administradora:'Imobiliária Horizonte'};
 const MARCA = 'EdiVita';
 
@@ -601,6 +601,9 @@ let setupItens=[
   {k:'equipe',   nome:'Equipe e escala',        desc:'quem trabalha e os turnos', feito:false, min:1, valor:false, ic:'pessoas'},
   {k:'prest',    nome:'Prestadores e contratos',desc:'liga à triagem do zelador e alerta vencimento', feito:false, min:2, valor:false, ic:'contrato'},
 ];
+/* Fase do condomínio: implementação (onboarding) → liberação aos moradores → execução.
+   Demo já em operação; liberarApp() marca a virada. */
+let appLiberado=true, appLiberadoEm='12/03/2025';
 function setupProgresso(){
   const feitos=setupItens.filter(i=>i.feito).length;
   const pct=Math.round(feitos/setupItens.length*100);
@@ -757,9 +760,19 @@ const MORADOR = {nome:'Carla Mendes', un:'A-305', emDia:true, papel:'inquilina',
 /* Multi-imóvel: uma pessoa pode ter vínculos em vários condomínios (mora num, é dona de outro).
    Um login, um seletor de imóvel. `atual` marca o imóvel em contexto. */
 let meusImoveis = [
-  {cond:'Residencial Jacarandá', un:'A-305', papel:'Moradora (inquilina)', papelCurto:'inquilina', cidade:'São Paulo · SP', tema:'caderno', atual:true},
-  {cond:'Edifício Aurora', un:'402', papel:'Proprietária (alugada)', papelCurto:'proprietária', cidade:'Campinas · SP', tema:'condox', atual:false},
+  {cond:'Residencial Jacarandá', un:'A-305', papel:'Moradora (inquilina)', papelCurto:'inquilina', cidade:'São Paulo · SP', tema:'caderno', codigo:'JAC-3F9K', atual:true},
+  {cond:'Edifício Aurora', un:'402', papel:'Proprietária (alugada)', papelCurto:'proprietária', cidade:'Campinas · SP', tema:'condox', codigo:'AUR-7T2M', atual:false},
 ];
+/* Condomínios cadastrados na EdiVita — cada um ganha um CÓDIGO quando o síndico o cadastra.
+   É esse código que o morador digita no 1º acesso pra achar o condomínio e pedir o vínculo.
+   (No produto, isso vem do backend; aqui é o diretório-demo.) */
+const CODIGOS_COND = {
+  'JAC-3F9K':{cond:'Residencial Jacarandá', cidade:'São Paulo · SP', tema:'caderno'},
+  'AUR-7T2M':{cond:'Edifício Aurora', cidade:'Campinas · SP', tema:'condox'},
+  'PARQ-2B8X':{cond:'Parque das Palmeiras', cidade:'Osasco · SP', tema:'classico'},
+  'MRV-9K4D':{cond:'Condomínio Vista Verde', cidade:'Guarulhos · SP', tema:'premium'},
+};
+function normCodigo(s){ return (s||'').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,''); }
 /* Histórico de assembleias encerradas (acervo navegável, com a ata anexada) */
 let assembleiasAnteriores = [
   {data:'25/11/2025', tema:'AGO — prestação de contas 2024 e orçamento 2025', resultado:'aprovada', ata:true},
@@ -1590,8 +1603,11 @@ function TELAS_ONBOARDING(){
     <div class="sub">Moradores podem perguntar "pode festa até que horas?" e o ${nomeAssist} cita o artigo — menos pergunta no seu WhatsApp.</div></div>`:''}
     <div class="item" style="border-color:var(--laranja)"><div class="linha1"><span class="nome">${tIco('cifrao')}Suba o último relatório e veja a inadimplência</span><span class="chip laranja">opcional agora</span></div>
     <div class="sub">Com aging (1-30, 31-60, 61-90, 90+ dias) e cobrança por WhatsApp + PIX pronta.</div></div>
-    <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="sub" style="margin:0"><b>Próximos passos sugeridos:</b> gerar a cobrança do mês · cadastrar a portaria · marcar a assembleia de lançamento pra convidar os moradores.</div></div>
-    <button class="btn principal btn-grande" onclick="obConcluir()">Entrar no meu painel →</button>`;
+    <div class="item" style="border-color:var(--laranja); background:#fff8ef"><div class="linha1"><span class="nome">${tIco('megafone')}Falta liberar o app para os moradores</span><span class="chip laranja">marco final</span></div>
+    <div class="sub">Esta é a virada da <b>implementação</b> para a <b>operação</b>: ao liberar, todas as unidades recebem o convite de acesso e passam a usar o app. Você continua ajustando o que quiser depois.</div></div>
+    <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="sub" style="margin:0"><b>Depois de liberar:</b> gerar a cobrança do mês · cadastrar a portaria · marcar a assembleia de lançamento.</div></div>
+    <button class="btn principal btn-grande" onclick="obConcluir()">Liberar o app para os moradores →</button>
+    <button class="btn claro btn-grande" style="margin-top:6px" onclick="appLiberado=false; appLiberadoEm=''; obConcluir()">Liberar depois — entrar no painel</button>`;
   }
   const back=`<button onclick="obVoltar()" style="background:none; border:none; color:var(--cinza); font-weight:600; font-family:inherit; font-size:.92rem; padding:10px 4px; cursor:pointer">‹ Voltar</button>`;
   const nav = obStep<5
@@ -1646,7 +1662,32 @@ function obConcluir(){
     obOrigem='sindico'; obEditIx=null; obNovo=null;
     trocarPerfil('administradora'); irPara('carteira'); return;
   }
-  toast('Tudo pronto, síndico! Bem-vindo ao seu painel'); trocarPerfil('sindico');
+  if(appLiberado){ appLiberadoEm=hojeData(); toast('App liberado aos moradores! Convites enviados — bem-vindo ao painel.'); }
+  else toast('Configuração salva. Libere o app aos moradores quando quiser, na home.');
+  trocarPerfil('sindico');
+}
+/* liberar o app aos moradores fora do onboarding (home do síndico) — marco implementação → execução */
+function liberarApp(){
+  abrirModal(`<h3>${tIco('megafone')}Liberar o app para os moradores</h3>
+    <div class="sub" style="margin-bottom:8px">Envia o convite de acesso a <b>todas as unidades</b> e marca o fim da implementação — o condomínio entra em <b>operação</b>. Dá pra continuar ajustando tudo depois.</div>
+    <div class="item" style="background:var(--verde-claro); border-color:#bce3d6"><div class="sub" style="margin:0">Os moradores recebem o convite por WhatsApp com o código do condomínio e ativam o acesso.</div></div>
+    <div class="botoes"><button class="btn principal" onclick="confirmarLiberacao()">${tIco('check')}Liberar agora</button><button class="btn claro" onclick="fecharModal()">Agora não</button></div>`);
+}
+function confirmarLiberacao(){ appLiberado=true; appLiberadoEm=hojeData(); logAudit&&logAudit('liberou o app para os moradores','Síndico'); fecharModal(); toast('App liberado! Convites enviados aos moradores.'); atualizar(); }
+/* jornada do condomínio — mesmo faseamento que a Central (back-office) acompanha */
+function verJornadaCond(){
+  const lib=appLiberado;
+  const item=(txt,est)=>`<div class="item" ${est==='atual'?'style="border-color:var(--verde)"':''}><div class="linha1"><span class="nome">${est==='feito'?tIco('check'):(est==='atual'?tIco('megafone'):'')}${txt}</span><span class="chip ${est==='feito'||est==='atual'?'verde':'cinza'}">${est==='feito'?'concluído':est==='atual'?'agora':'a fazer'}</span></div></div>`;
+  abrirModal(`<h3>${tIco('checklist')}Jornada do condomínio</h3>
+    <div class="sub" style="margin-bottom:10px">Da implementação à operação — o mesmo faseamento que a equipe EdiVita acompanha do outro lado.</div>
+    <div class="secao">Implementação</div>
+    ${item('Contrato e cadastro do condomínio','feito')}
+    ${item('Configuração no app (unidades, regras, documentos)','feito')}
+    <div class="secao">Liberação</div>
+    ${item('App liberado aos moradores'+(lib?' · '+appLiberadoEm:''), lib?'feito':'atual')}
+    <div class="secao">Execução</div>
+    ${item('Operação no dia a dia (cobrança, ocorrências, assembleia)', lib?'atual':'pendente')}
+    <div class="botoes"><button class="btn claro" onclick="fecharModal()">Fechar</button></div>`);
 }
 
 /* ===== SÍNDICO ===== */
@@ -1658,6 +1699,12 @@ TELAS.inicio = () => {
   <div class="topo"><h1>Olá, síndico</h1><p>${COND.nome} · 2 torres · 60 unidades</p></div>
 
   ${comandoEdi(`Peça ao ${nomeAssist}… "quem deve há mais de 60 dias?"`)}
+
+  ${appLiberado
+    ? `<div style="display:flex; align-items:center; gap:8px; margin:2px 0 12px; font-size:.8rem; color:var(--cinza)"><span class="chip verde">Em operação</span><span>App liberado aos moradores${appLiberadoEm?' em '+appLiberadoEm:''}</span><button onclick="verJornadaCond()" style="margin-left:auto; background:none; border:none; color:var(--verde-escuro); font-weight:700; font-family:inherit; font-size:.8rem; cursor:pointer">ver jornada ›</button></div>`
+    : `<div class="item" style="border-color:var(--laranja); background:#fff8ef; margin:2px 0 14px"><div class="linha1"><span class="nome">${tIco('megafone')}Implementação — app ainda não liberado</span><span class="chip laranja">passo final</span></div>
+       <div class="sub" style="margin:4px 0 8px">Os moradores ainda não têm acesso. Conclua a configuração e libere o app pra eles começarem a usar.</div>
+       <button class="btn principal btn-grande" onclick="liberarApp()">Liberar o app para os moradores</button></div>`}
 
   ${(()=>{ const p=setupProgresso(); if(p.pct>=100) return '';
     /* banner fininho, SEM barra: a única barra de progresso da home é a da
@@ -3304,7 +3351,7 @@ function verImoveis(){
       <span style="flex:1; min-width:0"><span class="linha1"><span class="nome">${im.cond}</span>${im.atual?'<span class="chip verde">em uso</span>':'<span class="chip cinza">trocar ›</span>'}</span>
       <span class="sub" style="display:block; margin-top:2px">Unidade ${im.un} · ${im.papel} · ${im.cidade}</span></span>
     </button>`;}).join('')}
-    <button class="btn claro btn-grande" style="margin-top:6px" onclick="adicionarImovel()">${tIco('predio')}+ Adicionar imóvel</button>
+    <button class="btn claro btn-grande" style="margin-top:6px" onclick="adicionarImovel()">${tIco('predio')}+ Entrar em um condomínio (por código)</button>
     <div class="aviso-lgpd">Cada vínculo é conferido pelo síndico do respectivo condomínio (cadeia de confiança). Seus dados de um condomínio não vazam pro outro, e cada um mantém a sua identidade visual (white-label).</div>`);
 }
 function trocarImovel(ix){
@@ -3317,20 +3364,45 @@ function trocarImovel(ix){
   corBg=null; corCustom=null; corGold=null; if(TEMAS[im.tema]) temaAtual=im.tema; aplicarTema();
   fecharModal(); toast('Agora no '+im.cond+' — a marca do app mudou junto.'); irPara('mhome');
 }
+/* 1º acesso: o morador entra num condomínio pelo CÓDIGO que o síndico gerou ao cadastrá-lo.
+   Passo 1 — digita o código; o app localiza o condomínio. Passo 2 — confirma unidade e vínculo. */
 function adicionarImovel(){
-  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('predio')}Adicionar imóvel</h3>
-    <div class="sub" style="margin-bottom:10px">Informe onde você tem uma unidade. O pedido vai ao síndico daquele condomínio pra aprovar o vínculo (é o que protege voto e acesso de fraude).</div>
-    <label>Condomínio</label><input id="ai-c" placeholder="Nome ou código do condomínio">
-    <label>Unidade</label><input id="ai-u" placeholder="Ex.: Bloco B, apto 402">
+  window._codLoc=null;
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('predio')}Entrar em um condomínio</h3>
+    <div class="sub" style="margin-bottom:10px">Primeira vez aqui? Digite o <b>código do condomínio</b> — aquele que o <b>síndico</b> recebeu quando cadastrou o condomínio na EdiVita (ele te passa por WhatsApp, no mural ou na convenção).</div>
+    <label>Código do condomínio</label>
+    <input id="ai-cod" placeholder="Ex.: JAC-3F9K" style="text-transform:uppercase; letter-spacing:.06em; font-weight:700" oninput="window._codLoc=null">
+    <button class="btn principal btn-grande" onclick="localizarCondPorCodigo()">${tIco('predio')}Localizar condomínio</button>
+    <div class="aviso-lgpd">O código só serve pra <b>achar</b> o condomínio e pedir o vínculo — quem libera o acesso é o síndico. Enquanto ele não confirmar, o imóvel fica como "aguardando aprovação", sem voto, financeiro ou dados da unidade.</div>`);
+}
+function localizarCondPorCodigo(){
+  const cod=normCodigo(($('#ai-cod')||{}).value);
+  if(!cod){ toast('Digite o código do condomínio.'); return; }
+  const info=CODIGOS_COND[cod];
+  if(!info){ toast('Código não encontrado. Confira com o síndico — pode ter erro de digitação.'); return; }
+  if(meusImoveis.some(im=>normCodigo(im.codigo)===cod)){ toast('Você já tem um vínculo nesse condomínio — ele já está na lista.'); return; }
+  window._codLoc={cod, ...info};
+  const cor=(TEMAS[info.tema]&&TEMAS[info.tema].cores[1])||'var(--verde)';
+  abrirModal(`<h3 style="display:flex; align-items:center; gap:8px">${tIco('predio')}Condomínio encontrado</h3>
+    <div class="item" style="display:flex; align-items:center; gap:12px; border-color:var(--verde); background:var(--verde-claro)">
+      <span style="flex:0 0 auto; width:38px; height:38px; border-radius:10px; background:${cor}; display:flex; align-items:center; justify-content:center; color:#fff">${ico('casa')}</span>
+      <span style="flex:1; min-width:0"><span class="nome">${info.cond}</span><span class="sub" style="display:block; margin-top:2px">${info.cidade} · código ${cod}</span></span>
+      <span class="chip verde">${tIco('check')}</span>
+    </div>
+    <div class="sub" style="margin:10px 0 10px">Confirme sua unidade e o vínculo. O pedido vai ao <b>síndico do ${info.cond}</b> pra aprovar.</div>
+    <label>Sua unidade</label><input id="ai-u" placeholder="Ex.: Bloco B, apto 402">
     <label>Seu vínculo</label><select id="ai-p"><option>Proprietário(a)</option><option>Morador(a) / inquilino(a)</option></select>
     <button class="btn principal btn-grande" onclick="salvarImovel()">Enviar pedido ao síndico</button>
-    <div class="aviso-lgpd">Enquanto o síndico não confirmar, o imóvel aparece como "aguardando aprovação" — sem acesso a voto, financeiro ou dados da unidade.</div>`);
+    <button class="btn claro btn-grande" style="margin-top:6px" onclick="adicionarImovel()">Usar outro código</button>`);
 }
 function salvarImovel(){
-  const c=($('#ai-c').value||'').trim(), u=($('#ai-u').value||'').trim();
-  if(!c||!u){ toast('Informe o condomínio e a unidade.'); return; }
-  meusImoveis.push({cond:c, un:u, papel:$('#ai-p').value+' · aguardando aprovação', cidade:'—', atual:false});
-  fecharModal(); toast('Pedido enviado — o síndico do '+c+' vai aprovar seu vínculo.'); verImoveis();
+  const loc=window._codLoc; if(!loc){ toast('Localize o condomínio pelo código primeiro.'); return; }
+  const u=($('#ai-u').value||'').trim();
+  if(!u){ toast('Informe a sua unidade.'); return; }
+  const papelCurto=$('#ai-p').value.indexOf('Propriet')===0?'proprietária':'inquilina';
+  meusImoveis.push({cond:loc.cond, un:u, papel:$('#ai-p').value+' · aguardando aprovação', papelCurto, cidade:loc.cidade, tema:loc.tema, codigo:loc.cod, atual:false});
+  window._codLoc=null;
+  fecharModal(); toast('Pedido enviado — o síndico do '+loc.cond+' vai aprovar seu vínculo.'); verImoveis();
 }
 
 /* ===== HISTÓRICO DE ASSEMBLEIAS ENCERRADAS ===== */
@@ -3777,7 +3849,7 @@ const TIPO_ASSINATURA = {
   convencao:  {rot:'Qualificada — ICP-Brasil / gov.br ouro',  base:'MP 2.200-2/2001 — exigida para averbar no cartório', cor:'laranja', nota:'Mudança de convenção vai a registro: pede a assinatura mais forte.'},
   comunicado: {rot:'Eletrônica simples',                      base:'Lei 14.063/2020', cor:'cinza',  nota:'Aviso/aceite: assinatura simples com trilha basta.'},
   contrato:   {rot:'Eletrônica avançada',                     base:'Lei 14.063/2020', cor:'verde',  nota:'Contrato de prestador: avançada com trilha.'},
-  art:        {rot:'Eletrônica avançada (responsável técnico)', base:'Lei 14.063/2020 · ART/RRT registrada no CREA/CAU', cor:'verde', nota:'A ART é emitida no CREA/CAU pelo responsável técnico; a assinatura avançada com trilha vincula ele ao escopo e às condições da obra.'},
+  termo:      {rot:'Eletrônica avançada (com trilha)', base:'Lei 14.063/2020 · comunicação de reforma (NBR 16.280)', cor:'verde', nota:'Termo do morador comunicando a obra ao condomínio: identidade + carimbo de tempo dão validade ao registro. A ART é assinada pelo engenheiro no CREA/CAU e anexada à parte.'},
 };
 let assinatura=null;    // pedido de assinatura em curso
 let docsAssinados=[];   // documentos já assinados (vão pro acervo)
@@ -3808,7 +3880,7 @@ function concluirAssinatura(){
   docsAssinados.unshift({titulo:a.titulo, info:`assinada ${hojeData()} · ${a.provedor} · ${t.rot} · ${a.signatarios.length} signatário(s)`});
   logAudit(`arquivou no acervo o documento assinado: "${a.titulo}"`,'Síndico');
   const ctx=a.contexto; assinatura=null;
-  if(ctx==='art'){ const d=window._rfDraft||{}; d.artAssinada=true; d.art=true; fecharModal(); toast('ART assinada digitalmente pelo responsável técnico — anexada ao comunicado.'); novaReforma(d); return; }
+  if(ctx==='termo'){ const d=window._rfDraft||{}; d.termoAssinado=true; fecharModal(); toast('Termo assinado por você — anexado ao comunicado da reforma (histórico).'); novaReforma(d); return; }
   fecharModal(); atualizar();
   toast('Assinada e arquivada no acervo (Documentos).');
 }
@@ -4767,6 +4839,11 @@ TELAS.pessoas = () => {
     <div class="topo"><h1>${tIco('pessoas')}Pessoas & papéis</h1><p>Quem tem acesso, em qual papel — e o status de cada convite</p></div>
     <div class="sub" style="margin:-4px 0 12px">Papel é um <b>vínculo</b>: cada pessoa entra <b>convidada por quem tem autoridade</b>, e o morador entra ligado à unidade. A pessoa é uma só — pode ter mais de um chapéu.</div>
     <button class="btn principal btn-grande" onclick="convidarPessoa()">+ Convidar pessoa</button>
+    <div class="item" style="margin-top:10px; border-color:var(--verde); background:var(--verde-claro)">
+      <div class="linha1"><span class="nome">${tIco('predio')}Código do condomínio</span><span class="chip verde" style="letter-spacing:.08em; font-weight:800">${COND.codigo}</span></div>
+      <div class="sub" style="margin-top:4px">Passe pros moradores no 1º acesso — eles usam esse código pra achar o condomínio e pedir o vínculo (que você aprova aqui).</div>
+      <div class="botoes" style="justify-content:flex-end; margin-top:8px"><button class="btn claro" style="flex:0 0 auto; padding:7px 13px; font-size:13px" onclick="compartilharCodigoCond()">${tIco('enviar')}Compartilhar código</button></div>
+    </div>
     ${claims.length?`<div class="secao">AGUARDANDO SUA APROVAÇÃO</div>
     ${claims.map((c,ix)=>`<div class="item" style="border-left:3px solid var(--laranja)"><div class="linha1"><span class="nome">${tIco('pessoas')}${c.nome}</span><span class="chip laranja">self-claim</span></div>
       <div class="sub" style="margin-top:3px">Pediu pra entrar como morador da <b>${c.un}</b> · ${c.quando}${c.confere==='confirmado'?' · <span style="color:var(--verde-escuro); font-weight:600">proprietário confirmou</span>':''}</div>
@@ -4785,6 +4862,15 @@ const PERMS_AUX=[
   ['cobranca','Enviar lembrete de inadimplência'],
   ['edi','Treinar o Edi (curadoria de fontes)'],
 ];
+function compartilharCodigoCond(){
+  const msg=`Olá! Pra usar o app do ${COND.nome} na EdiVita: baixe o app, toque em "Entrar em um condomínio" e digite o código *${COND.codigo}*. Depois é só confirmar sua unidade — eu aprovo seu acesso por aqui.`;
+  abrirModal(`<h3>${tIco('predio')}Compartilhar código</h3>
+    <div class="item" style="text-align:center; padding:16px"><div class="sub">Código do ${COND.nome}</div>
+      <div style="font-size:1.6rem; font-weight:800; letter-spacing:.1em; color:var(--verde-escuro); margin-top:4px">${COND.codigo}</div></div>
+    <a class="btn zap btn-grande" style="display:block; margin-top:10px" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}">${tIco('enviar')}Enviar por WhatsApp</a>
+    <button class="btn claro btn-grande" style="margin-top:6px" onclick="fecharModal()">Fechar</button>
+    <div class="aviso-lgpd">O código só serve pra achar o condomínio e pedir vínculo — o acesso continua liberado só por você (cadeia de confiança).</div>`);
+}
 function convidarPessoa(){
   abrirModal(`<h3>${tIco('pessoas')}Convidar pessoa</h3>
     <label for="cp-papel">Papel</label>
@@ -5719,7 +5805,23 @@ function reabrirOcorrencia(id){
   atualizar(); toast('Reaberta — morador avisado no WhatsApp ↩');
 }
 function artLink(o){
-  return o.art?`<div class="sub" style="margin-top:5px"><button class="chip verde" style="border:none; cursor:pointer" onclick="verART(${o.id})">${clip()}Ver ART anexada — ${o.art.arquivo}</button></div>`:'';
+  let h='';
+  if(o.termo) h+=`<div class="sub" style="margin-top:5px"><button class="chip verde" style="border:none; cursor:pointer" onclick="verTermo(${o.id})">${clip()}Ver termo do morador — ${o.termo.arquivo}</button></div>`;
+  if(o.art) h+=`<div class="sub" style="margin-top:5px"><button class="chip verde" style="border:none; cursor:pointer" onclick="verART(${o.id})">${clip()}Ver ART anexada — ${o.art.arquivo}</button></div>`;
+  return h;
+}
+function verTermo(id){
+  const o=ocorrencias.find(x=>x.id===id);
+  abrirModal(`<h3>${clip()}${o.termo.arquivo}</h3>
+    <div class="item" style="background:var(--cinza-claro); font-family:monospace; font-size:.78rem; line-height:1.7">
+      <b>TERMO DE COMUNICAÇÃO DE REFORMA</b> <span class="chip verde">assinado</span><br>
+      <b>Responsável pela unidade:</b> ${o.un} — ${COND.nome}<br>
+      <b>O que será feito:</b> ${o.titulo}<br>
+      <b>Período:</b> conforme comunicado de reforma<br>
+      <b>Assinatura:</b> eletrônica avançada com trilha (Lei 14.063/2020) · Clicksign<br><br>
+      Termo do morador comunicando a obra ao condomínio — fica no histórico da unidade. A ART, quando exigida, é do engenheiro (CREA/CAU) e anexada à parte.
+    </div>
+    <div class="botoes"><button class="btn claro" onclick="fecharModal()">Fechar</button></div>`);
 }
 function verART(id){
   const o=ocorrencias.find(x=>x.id===id);
@@ -5792,13 +5894,13 @@ function enviarOcorrencia(){
 const REFORMA_AREAS=['Sala','Cozinha','Banheiro','Suíte','Quarto','Á. serviço','Varanda/fachada'];
 function novaReforma(draft){
   draft=draft||{};
-  window._artAssinada=!!draft.artAssinada;
-  window._artAnexada=!!draft.artAssinada;
+  window._termoAssinado=!!draft.termoAssinado;
+  window._artAnexada=!!draft.artAnexada;
   window._rfAreas=new Set(draft.areas||[]);
   const selE=v=>draft.estrutura===v?' selected':'';
   const artSim = draft.art===undefined ? true : !!draft.art;
   abrirModal(`<h3>${tIco('martelo')}Comunicar reforma</h3>
-    <div class="sub" style="margin-bottom:12px">A comunicação prévia ao síndico é exigência da NBR 16.280 — e protege você. Marque na planta onde vai mexer; se precisar, eu já <b>gero a ART pra assinar</b>.</div>
+    <div class="sub" style="margin-bottom:12px">A comunicação prévia ao síndico é exigência da NBR 16.280 — e protege você. Marque na planta onde vai mexer; no fim, <b>você assina um termo</b> comunicando a obra.</div>
     <label>O que será feito? <span style="color:var(--vermelho)">*</span></label><input id="rf-titulo" placeholder="Ex.: troca de piso da sala e cozinha" value="${(draft.titulo||'').replace(/"/g,'&quot;')}">
     <label>Onde no imóvel? <span style="font-weight:400; color:var(--cinza)">(toque na planta)</span></label>
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px">
@@ -5820,12 +5922,18 @@ function novaReforma(draft){
     <label>Tem responsável técnico (ART/RRT)?</label>
     <select id="rf-art" onchange="document.getElementById('rf-art-up').style.display=this.value==='Sim'?'block':'none'"><option${artSim?' selected':''}>Sim</option><option${!artSim?' selected':''}>Não</option></select>
     <div id="rf-art-up" style="display:${artSim?'block':'none'}">
-      ${window._artAssinada
-        ? `<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="linha1"><span class="nome">${tIco('check')}ART gerada e assinada</span><span class="chip verde">pronta</span></div><div class="sub" style="margin-top:3px">Escopo e condições preenchidos pelo app; o responsável técnico assinou — anexada ao comunicado.</div></div>`
-        : `<button class="btn principal btn-grande" style="background:var(--verde)" onclick="gerarART()">${clip()}Gerar ART pra assinar (guiado)</button>
-           <button class="btn claro btn-grande" id="rf-art-btn" style="margin-top:6px" onclick="anexarART()">${clip()}Já tenho a ART — anexar PDF</button>`}
+      ${window._artAnexada
+        ? `<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="linha1"><span class="nome">${tIco('check')}ART anexada — art-reforma.pdf</span><span class="chip verde">pronta</span></div><div class="sub" style="margin-top:3px">Assinada pelo engenheiro no CREA/CAU — arquivada no comunicado.</div></div>`
+        : `<div class="sub" style="margin:2px 0 6px">A ART é assinada pelo <b>engenheiro no CREA/CAU</b> — ele não entra no app. Anexe o PDF já assinado quando a obra exigir (estrutura/instalações).</div>
+           <button class="btn claro btn-grande" id="rf-art-btn" onclick="anexarART()">${clip()}Anexar ART/RRT (PDF) do engenheiro</button>`}
     </div>
-    <button class="btn principal btn-grande" style="background:var(--laranja)" onclick="enviarReforma()">Enviar comunicado ao síndico</button>`);
+    <div style="border-top:1px solid var(--borda); margin:14px 0 10px"></div>
+    <label>Termo de comunicação da reforma <span style="font-weight:400; color:var(--cinza)">(você assina)</span></label>
+    ${window._termoAssinado
+      ? `<div class="item" style="border-color:var(--verde); background:var(--verde-claro)"><div class="linha1"><span class="nome">${tIco('check')}Termo assinado por você</span><span class="chip verde">assinado</span></div><div class="sub" style="margin-top:3px">Comunicação da obra registrada no seu nome — anexada ao comunicado (histórico do condomínio).</div></div>`
+      : `<div class="sub" style="margin:2px 0 6px">O app monta o termo com o escopo e as condições da obra; <b>você assina digital</b> (Lei 14.063) pra ficar no histórico do condomínio.</div>
+         <button class="btn principal btn-grande" style="background:var(--verde)" onclick="gerarTermo()">${clip()}Gerar termo pra assinar</button>`}
+    <button class="btn principal btn-grande" style="background:var(--laranja); margin-top:12px" onclick="enviarReforma()">Enviar comunicado ao síndico</button>`);
 }
 function rfToggleArea(el){
   const a=el.getAttribute('data-area'); if(!window._rfAreas) window._rfAreas=new Set();
@@ -5834,36 +5942,39 @@ function rfToggleArea(el){
   else { window._rfAreas.add(a); el.style.background='var(--verde-claro)'; el.style.borderColor='var(--verde)'; }
 }
 function rfLerForm(){
-  return {titulo:(($('#rf-titulo')||{}).value||''), periodo:(($('#rf-periodo')||{}).value||''), estrutura:(($('#rf-estrutura')||{}).value||''), art:(($('#rf-art')||{}).value==='Sim'), areas:[...(window._rfAreas||[])], artAssinada:!!window._artAssinada};
+  return {titulo:(($('#rf-titulo')||{}).value||''), periodo:(($('#rf-periodo')||{}).value||''), estrutura:(($('#rf-estrutura')||{}).value||''), art:(($('#rf-art')||{}).value==='Sim'), areas:[...(window._rfAreas||[])], termoAssinado:!!window._termoAssinado, artAnexada:!!window._artAnexada};
 }
-/* ART guiada — o app monta o escopo (a partir da planta) e as condições; o responsável técnico só assina */
-function gerarART(){
+/* Termo de comunicação da reforma — o app monta o escopo (a partir da planta) e as condições; quem assina é o MORADOR (responsável pela unidade). A ART é do engenheiro, feita no CREA/CAU, e entra anexada à parte. */
+function gerarTermo(){
   const d=rfLerForm();
-  if(!d.titulo.trim()||!d.periodo.trim()){ toast('Preencha "o que será feito" e o período antes de gerar a ART.'); return; }
+  if(!d.titulo.trim()||!d.periodo.trim()){ toast('Preencha "o que será feito" e o período antes de gerar o termo.'); return; }
   window._rfDraft=d;
   const estrut=d.estrutura==='Sim';
-  const norma=estrut?'NBR 16.280 + CC art. 1.341 (estrutura) + NR-10/NR-18 conforme o caso':'NBR 16.280';
+  const classif=estrut?'mexe em estrutura/instalações — exige ART/RRT do engenheiro':(d.estrutura==='Não sei dizer'?'a classificar com o síndico':'só acabamento');
+  const norma=estrut?'NBR 16.280 + CC art. 1.341 (estrutura)':'NBR 16.280';
   const areas=d.areas.length?d.areas.join(', '):'<span style="color:var(--vermelho)">(marque na planta)</span>';
-  abrirModal(`<h3>${clip()}ART pra assinar</h3>
-    <div class="sub" style="margin-bottom:10px">Documento montado a partir do que você marcou. Quem assina é o <b>responsável técnico</b> — o app já preenche o escopo e as condições da obra pra ele conferir.</div>
+  abrirModal(`<h3>${clip()}Termo de comunicação da reforma</h3>
+    <div class="sub" style="margin-bottom:10px">Documento montado a partir do que você marcou. Quem assina é <b>você</b>, como responsável pela unidade — fica no histórico do condomínio. A ART, quando exigida, é assinada pelo <b>engenheiro</b> e anexada à parte.</div>
     <div class="item" style="background:var(--cinza-claro); font-family:monospace; font-size:.76rem; line-height:1.7">
-      <b>ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA — ART</b> <span class="chip cinza">rascunho</span><br>
-      <b>Contratante:</b> ${MORADOR.un} — ${COND.nome}<br>
-      <b>Atividade:</b> ${d.titulo}<br>
+      <b>TERMO DE COMUNICAÇÃO DE REFORMA</b> <span class="chip cinza">rascunho</span><br>
+      <b>Responsável pela unidade:</b> ${MORADOR.nome} — ${MORADOR.un} · ${COND.nome}<br>
+      <b>O que será feito:</b> ${d.titulo}<br>
       <b>Local no imóvel:</b> ${areas}<br>
       <b>Período:</b> ${d.periodo}<br>
+      <b>Classificação:</b> ${classif}<br>
       <b>Norma aplicável:</b> ${norma}<br>
       <b>Condições da obra (regimento):</b> horário permitido seg–sex 8h–17h; <b>elevador de serviço</b> na entrada de material; cadastro dos trabalhadores na portaria; entulho em caçamba com retirada agendada.<br>
-      <b>Responsável técnico:</b> __________________ (assina)
+      <b>Declaração:</b> declaro ciência das normas e assumo a responsabilidade pela obra ora comunicada.<br>
+      <b>Assina:</b> ${MORADOR.nome} __________________
     </div>
-    <div class="botoes"><button class="btn principal" onclick="assinarARTDigital()">${tIco('contrato')}Assinar digital (Lei 14.063)</button>
+    <div class="botoes"><button class="btn principal" onclick="assinarTermoDigital()">${tIco('contrato')}Assinar digital (Lei 14.063)</button>
       <button class="btn claro" onclick="novaReforma(window._rfDraft)">Voltar</button></div>
-    <div class="aviso-lgpd">A ART é emitida no CREA/CAU pelo responsável técnico; o app monta o escopo e as condições, e a assinatura digital (mesmo fluxo da ata — Lei 14.063) vincula o responsável ao documento com trilha.</div>`);
+    <div class="aviso-lgpd">O termo é seu, comunicando a obra ao condomínio; a assinatura digital (mesmo fluxo da ata — Lei 14.063) vincula você ao documento com trilha. A ART é responsabilidade do engenheiro, registrada no CREA/CAU e anexada à parte.</div>`);
 }
-/* liga a ART ao fluxo de assinatura digital existente — signatário = responsável técnico */
-function assinarARTDigital(){
+/* liga o termo ao fluxo de assinatura digital existente — signatário = morador (responsável pela unidade) */
+function assinarTermoDigital(){
   const d=window._rfDraft||rfLerForm(); window._rfDraft=d;
-  enviarParaAssinatura(`ART/RRT — ${d.titulo}`, 'art', [{nome:'Eng. Ricardo Tavares', papel:'Responsável técnico · CREA-SP 5061234567', status:''}], 'art');
+  enviarParaAssinatura(`Termo de comunicação de reforma — ${d.titulo}`, 'termo', [{nome:MORADOR.nome, papel:`Responsável pela unidade · ${MORADOR.un}`, status:''}], 'termo');
 }
 function anexarART(){
   window._artAnexada=true;
@@ -5876,14 +5987,14 @@ function enviarReforma(){
   const t=d.titulo.trim(), per=d.periodo.trim();
   if(!t||!per){ toast('Descrição e prazo são obrigatórios — a NBR 16.280 exige escopo e período definidos.'); return; }
   const estrutura=d.estrutura==='Sim', naoSabe=d.estrutura==='Não sei dizer';
-  const art=d.art, assinada=!!window._artAssinada;
-  if(art&&!window._artAnexada&&!assinada){ toast('Gere a ART pra assinar (ou anexe o PDF) antes de enviar.'); return; }
+  const art=d.art, artAnexada=!!window._artAnexada, termo=!!window._termoAssinado;
   const areasTxt=d.areas.length?` · ${d.areas.join(', ')}`:'';
-  const desc=`${per}${areasTxt} · ${estrutura?'mexe em estrutura/instalações':naoSabe?'morador não soube classificar — avaliar escopo':'só acabamento'} · ${art?(assinada?'ART gerada e assinada':'ART anexada'):'sem ART'}`;
-  ocorrencias.unshift({id:Date.now(), un:MORADOR.un, tipo:'Reforma', titulo:t, desc, quando:hojeData(), status:'aberta', resposta:'', art:art?{arquivo: assinada?'art-gerada-assinada.pdf':'art-reforma.pdf'}:null, areas:d.areas});
+  const desc=`${per}${areasTxt} · ${estrutura?'mexe em estrutura/instalações':naoSabe?'morador não soube classificar — avaliar escopo':'só acabamento'} · ${termo?'termo assinado':'sem termo'}${art?(artAnexada?' · ART anexada':' · ART pendente'):''}`;
+  ocorrencias.unshift({id:Date.now(), un:MORADOR.un, tipo:'Reforma', titulo:t, desc, quando:hojeData(), status:'aberta', resposta:'', art:art&&artAnexada?{arquivo:'art-reforma.pdf'}:null, termo:termo?{arquivo:'termo-reforma.pdf'}:null, areas:d.areas});
   fecharModal(); atualizar();
-  if(estrutura&&!art) toast('Enviado — mas atenção: obra em estrutura/instalações exige ART (NBR 16.280). O síndico vai solicitar antes de aprovar.');
+  if(estrutura&&!artAnexada) toast('Enviado — atenção: obra em estrutura/instalações exige ART do engenheiro (NBR 16.280). O síndico vai solicitar o PDF antes de aprovar.');
   else if(naoSabe) toast('Enviado  O síndico vai avaliar o escopo com você antes de aprovar — melhor do que descobrir depois.');
+  else if(!termo) toast('Comunicado enviado  Dica: assine o termo pra deixar a obra registrada no seu nome.');
   else toast('Comunicado enviado  O síndico responde com as condições da obra.');
 }
 
